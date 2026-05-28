@@ -1,0 +1,56 @@
+{
+  /**
+   * apps/supplier — Dashboard fournisseur VIVRE (Next.js)
+   *
+   * Interface pour les fournisseurs : compagnies de bus, hôtels, restaurants, guides.
+   * Accessible sur supplier.vivre.bf — port 3003 en développement.
+   *
+   * Modules (selon ScreenMap SUP-001 à SUP-006) :
+   * - SUP-001 : Tableau de bord du fournisseur (revenus, réservations, alertes)
+   * - SUP-002 : Gestion de l'inventaire (routes, chambres, menu, calendrier guide)
+   * - SUP-003 : Réservations et commandes en temps réel
+   * - SUP-004 : Gestion des prix et disponibilité
+   * - SUP-005 : Profil et documents (licence, assurance, photos, coordonnées bancaires)
+   * - SUP-006 : Analytics (revenus, comparaisons, avis reçus)
+   *
+   * Design : Desktop-first (les gérants travaillent principalement sur PC)
+   */
+  "name": "@vivre/supplier",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard fournisseur VIVRE — Next.js",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3003",
+    "start": "next start --port 3003",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.0",
+    "lucide-react": "^0.367.0",
+    "@tanstack/react-query": "^5.35.0",
+    "zustand": "^4.5.0",
+    "react-hook-form": "^7.51.0",
+    "zod": "^3.23.0",
+    "@hookform/resolvers": "^3.3.0",
+    "socket.io-client": "^4.7.0",
+    "@vivre/ui": "workspace:*",
+    "@vivre/types": "workspace:*",
+    "@vivre/utils": "workspace:*",
+    "@vivre/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0"
+  }
+}

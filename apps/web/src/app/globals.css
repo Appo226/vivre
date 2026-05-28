@@ -1,0 +1,120 @@
+/*
+ * globals.css — Styles globaux de l'application VIVRE
+ *
+ * Ce fichier importe Tailwind CSS et définit les variables CSS custom.
+ * Tailwind est configuré dans tailwind.config.ts avec le design system VIVRE.
+ *
+ * Variables CSS personnalisées :
+ * - Polices Google Fonts (variables injectées par Next.js)
+ * - Couleurs VIVRE (réutilisées dans des contextes non-Tailwind comme MapLibre)
+ * - Espacements pour la bottom navigation mobile
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+ * VARIABLES CSS — Design system VIVRE
+ * ============================================================ */
+:root {
+  /* Polices — injectées par Next.js Font sur le <html> */
+  --font-sora: 'Sora', sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
+  --font-dm: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Couleurs de marque (copié de tailwind/index.ts pour les contextes CSS purs) */
+  --color-green: #1A6B3A;
+  --color-red: #EF2B2D;
+  --color-gold: #F5A623;
+  --color-dark: #1A1A2E;
+
+  /* Hauteur de la bottom navigation mobile */
+  --bottom-nav-height: 72px;
+}
+
+/* ============================================================
+ * RESET ET BASE
+ * ============================================================ */
+@layer base {
+  /* Scrollbar stylée — cohérente sur les navigateurs Webkit (Chrome, Safari) */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db; /* gray-300 */
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af; /* gray-400 */
+  }
+
+  /* Focus visible — accessibilité (ring vert VIVRE) */
+  *:focus-visible {
+    outline: 2px solid var(--color-green);
+    outline-offset: 2px;
+  }
+
+  /* Sélection de texte — couleur VIVRE */
+  ::selection {
+    background-color: rgba(26, 107, 58, 0.2);
+    color: var(--color-green);
+  }
+}
+
+/* ============================================================
+ * COMPOSANTS UTILITAIRES
+ * ============================================================ */
+@layer components {
+  /* Container mobile — largeur max et centrage */
+  .mobile-container {
+    @apply max-w-md mx-auto px-4;
+  }
+
+  /* Section de page avec padding bottom pour la bottom nav */
+  .page-content {
+    @apply pb-safe-bottom;
+  }
+
+  /* Gradient de fond pour les headers de modules */
+  .gradient-green {
+    @apply bg-gradient-to-br from-green-500 to-green-700;
+  }
+
+  /* Card de résultat cliquable */
+  .result-card {
+    @apply rounded-card bg-white border border-gray-100 shadow-card
+           hover:shadow-modal transition-shadow duration-200 cursor-pointer;
+  }
+
+  /* Texte de prix FCFA — police Sora, couleur vert */
+  .price-text {
+    @apply font-sora font-bold text-green-700;
+  }
+
+  /* Badge de statut générique */
+  .status-badge {
+    @apply inline-flex items-center gap-1 rounded-badge px-2 py-0.5
+           text-xs font-semibold font-jakarta;
+  }
+}
+
+/* ============================================================
+ * ANIMATIONS PERSONNALISÉES
+ * ============================================================ */
+@layer utilities {
+  /* Animation de la barre de progression de livraison */
+  .progress-fill {
+    transition: width 0.5s ease-in-out;
+  }
+
+  /* Transition douce pour les maps MapLibre */
+  .map-transition {
+    transition: opacity 0.3s ease-in-out;
+  }
+}

@@ -1,0 +1,38 @@
+{
+  /**
+   * @vivre/types — Types TypeScript partagés entre toutes les apps et packages
+   *
+   * Pourquoi un package de types dédié ?
+   * Sans lui, les types seraient définis dans chaque app et dupliqués.
+   * Ex: le type `User` serait défini dans apps/api ET apps/web — deux sources de vérité.
+   * Avec @vivre/types, un seul endroit : si un champ change (ex: ajout de `preferred_language`),
+   * TypeScript force la mise à jour partout simultanément.
+   *
+   * NB: Ce package contient UNIQUEMENT des types et enums — zéro code runtime.
+   * C'est intentionnel : les types sont effacés à la compilation, ce package
+   * n'ajoute donc aucun overhead au bundle de production.
+   */
+  "name": "@vivre/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types TypeScript partagés pour le monorepo VIVRE",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "@vivre/config": "workspace:*",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0"
+  }
+}

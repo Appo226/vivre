@@ -1,0 +1,39 @@
+{
+  /**
+   * tsconfig/nextjs.json — Configuration TypeScript pour les apps Next.js
+   *
+   * Étend la config de base et ajoute les options spécifiques à Next.js :
+   * - JSX support (preserve = Next.js gère la transformation JSX lui-même)
+   * - "bundler" module resolution = Next.js utilise Webpack/Turbopack pour résoudre
+   * - Plugins Next.js pour la vérification des types des Server Components
+   * - Path aliases (@/*) pour éviter les imports relatifs profonds
+   *
+   * Cette config est utilisée par apps/web, apps/admin, apps/supplier.
+   */
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./base.json",
+  "compilerOptions": {
+    /* Next.js gère la transformation JSX — on ne compile pas directement */
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+
+    /* Bundler resolution = Next.js + Webpack/Turbopack sans extensions .js explicites */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+
+    /* Pas d'output — Next.js compile lui-même via son pipeline */
+    "noEmit": true,
+    "incremental": false,
+
+    /* Plugin Next.js pour la vérification des types des Server/Client Components */
+    "plugins": [{ "name": "next" }],
+
+    /* Alias @/* = src/* pour imports propres dans les apps Next.js */
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next", "dist"]
+}

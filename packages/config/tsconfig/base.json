@@ -1,0 +1,48 @@
+{
+  /**
+   * tsconfig/base.json — Configuration TypeScript de base pour les packages Node.js
+   *
+   * Étendu par tous les packages et apps qui n'ont pas besoin de JSX.
+   * Les apps Next.js utilisent tsconfig/nextjs.json à la place.
+   * L'API Fastify utilise tsconfig/fastify.json.
+   *
+   * Règle absolue du projet : strict: true ne peut jamais être supprimé.
+   * Un PR qui désactive strict sera automatiquement rejeté par la CI.
+   */
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* === CIBLE === */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    /* === STRICT MODE — RÈGLE ABSOLUE === */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* === OUTPUT === */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+
+    /* === INTEROPÉRABILITÉ === */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    /* === PERFORMANCES === */
+    "incremental": true
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

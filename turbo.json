@@ -1,0 +1,101 @@
+{
+  /**
+   * turbo.json — Configuration Turborepo pour le monorepo VIVRE
+   *
+   * Pourquoi Turborepo ?
+   * Turborepo orchestre les builds en respectant les dépendances entre packages.
+   * Il met en cache les outputs (build artifacts, lint results) et ne re-exécute
+   * que ce qui a réellement changé — essentiel quand on a 4 apps + 5 packages.
+   *
+   * Exemple concret : si seul `packages/ui` est modifié, Turborepo ne rebuild
+   * que `ui`, puis seulement les apps qui en dépendent (web, admin, supplier).
+   * L'API Fastify n'est pas rebuildée car elle n'utilise pas `ui`.
+   */
+  "$schema": "https://turbo.build/schema.json",
+
+  /**
+   * globalEnv — Variables d'environnement qui invalident le cache global.
+   * Si NODE_ENV change (dev → prod), tout est recalculé. Autres vars d'env
+   * sont déclarées au niveau du pipeline task concerné.
+   */
+  "globalEnv": ["NODE_ENV"],
+
+  "pipeline": {
+    /**
+     * build — Compile TypeScript et génère les artifacts de production.
+     * "dependsOn: [^build]" signifie : build tous les packages dont je dépends AVANT moi.
+     * Ex: apps/web dépend de packages/ui → ui est buildé en premier.
+     * "outputs" : Turborepo cache ces dossiers pour éviter les rebuilds inutiles.
+     */
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "build/**"
+      ],
+      "env": [
+        "DATABASE_URL",
+        "REDIS_URL",
+        "JWT_SECRET",
+        "ANTHROPIC_API_KEY",
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_WS_URL",
+        "NEXT_PUBLIC_MAPLIBRE_STYLE",
+        "NEXT_PUBLIC_DEFAULT_CITY",
+        "NEXT_PUBLIC_DEFAULT_LAT",
+        "NEXT_PUBLIC_DEFAULT_LNG"
+      ]
+    },
+
+    /**
+     * dev — Mode développement avec rechargement à chaud.
+     * "cache: false" : le mode dev ne doit jamais être mis en cache (les serveurs
+     * doivent toujours redémarrer depuis l'état actuel du code).
+     * "persistent: true" : Turborepo garde ces processus actifs en continu (serveurs).
+     */
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+
+    /**
+     * lint — Vérification ESLint.
+     * "dependsOn: [^build]" : les packages doivent être buildés avant le lint
+     * car ESLint a besoin des types générés (ex: types Prisma).
+     */
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+
+    /**
+     * typecheck — Vérification TypeScript strict.
+     * Séparé du build pour pouvoir lancer la vérification de types sans compiler.
+     */
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+
+    /**
+     * test — Tests unitaires et d'intégration.
+     * "outputs: []" : les résultats de tests ne sont pas mis en cache
+     * (on veut toujours des tests frais, jamais un cache potentiellement stale).
+     */
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "env": ["DATABASE_URL", "REDIS_URL", "JWT_SECRET"]
+    },
+
+    /**
+     * clean — Supprime les artifacts de build.
+     * "cache: false" : toujours exécuter, jamais mettre en cache.
+     */
+    "clean": {
+      "cache": false
+    }
+  }
+}

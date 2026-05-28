@@ -1,0 +1,54 @@
+{
+  /**
+   * apps/admin — Dashboard administrateur VIVRE (Next.js)
+   *
+   * Interface d'administration réservée à l'équipe VIVRE.
+   * Accessible sur admin.vivre.bf — port 3002 en développement.
+   *
+   * Modules gérés :
+   * - ADM-001 : Tableau de bord avec KPIs en temps réel
+   * - ADM-002 : Gestion des fournisseurs (validation, suspension)
+   * - ADM-003 : Gestion des utilisateurs (blocage, litiges, remboursements)
+   * - ADM-004 : Gestion des villes et modules activés
+   * - ADM-005 : Analytics plateforme (revenus, villes, conversion)
+   *
+   * Design : Desktop-first (les admins travaillent sur PC, pas sur mobile)
+   */
+  "name": "@vivre/admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard administrateur VIVRE — Next.js",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port 3002",
+    "start": "next start --port 3002",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.0",
+    "lucide-react": "^0.367.0",
+    "@tanstack/react-query": "^5.35.0",
+    "zustand": "^4.5.0",
+    "react-hook-form": "^7.51.0",
+    "zod": "^3.23.0",
+    "@hookform/resolvers": "^3.3.0",
+    "@vivre/ui": "workspace:*",
+    "@vivre/types": "workspace:*",
+    "@vivre/utils": "workspace:*",
+    "@vivre/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.4.0"
+  }
+}

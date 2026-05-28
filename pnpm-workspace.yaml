@@ -1,0 +1,17 @@
+# pnpm-workspace.yaml — Configuration des workspaces pnpm
+#
+# Pourquoi ce fichier ?
+# pnpm utilise ce fichier pour identifier quels sous-dossiers sont des "packages"
+# indépendants dans le monorepo. Chaque package peut avoir ses propres dépendances
+# mais partager du code avec les autres via des références locales (workspace:*).
+#
+# Le pattern "apps/*" couvre toutes les applications déployables.
+# Le pattern "packages/*" couvre toutes les librairies internes partagées.
+
+packages:
+  # Applications déployables — chacune sera un déploiement distinct
+  - "apps/*"
+
+  # Packages partagés — librairies internes référencées via workspace:*
+  # Jamais déployées seules, toujours bundlées avec les apps qui les consomment
+  - "packages/*"

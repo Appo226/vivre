@@ -1,0 +1,38 @@
+{
+  /**
+   * tsconfig/fastify.json — Configuration TypeScript pour l'API Fastify
+   *
+   * L'API est un serveur Node.js pur (pas de JSX, pas de bundler browser).
+   * Différences clés vs nextjs.json :
+   * - module: NodeNext (import/export ESM natif Node.js, pas de bundler)
+   * - emitDecoratorMetadata: true (pour les futures intégrations DI si besoin)
+   * - types: ["node"] pour accéder aux types Node.js (process, Buffer, etc.)
+   * - outDir: dist (l'API est compilée vers dist/ pour le déploiement)
+   *
+   * NB: noUncheckedIndexedAccess cause des faux-positifs avec express-like
+   * frameworks — on garde "true" et on utilise des guards Zod à la place.
+   */
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    /* Génère les fichiers compilés — l'API est déployée en Node.js pur */
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+
+    /* Types Node.js et Fastify */
+    "types": ["node"],
+
+    /* Alias @/* = src/* pour imports propres dans l'API */
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

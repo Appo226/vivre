@@ -1,0 +1,63 @@
+{
+  /**
+   * VIVRE — Root package.json du monorepo
+   *
+   * Pourquoi un monorepo ?
+   * Le monorepo pnpm + Turborepo permet de partager du code (types, utils, ui, config)
+   * entre toutes les apps sans duplication, avec des builds incrémentaux via Turborepo
+   * (seul ce qui a changé est re-buildé). C'est critique pour une équipe qui développe
+   * simultanément web, api, admin et supplier dans un seul dépôt.
+   *
+   * Architecture :
+   * - apps/*   : applications déployables (Next.js, Fastify)
+   * - packages/*: librairies internes partagées (types, ui, utils, config, database)
+   */
+  "name": "vivre-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VIVRE — Super-application pour le Burkina Faso. Voyager. Manger. Découvrir.",
+  "author": "VIVRE Team <team@vivre.bf>",
+  "license": "UNLICENSED",
+
+  /**
+   * Scripts Turborepo — chaque script propage la commande à tous les workspaces
+   * dans l'ordre des dépendances (défini dans turbo.json).
+   */
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rimraf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @vivre/database prisma generate",
+    "db:migrate": "pnpm --filter @vivre/database prisma migrate dev",
+    "db:seed": "pnpm --filter @vivre/database prisma db seed",
+    "db:studio": "pnpm --filter @vivre/database prisma studio",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down"
+  },
+
+  /**
+   * DevDependencies racine — outils de build et formatage partagés par tous les packages.
+   * NB: Les dépendances spécifiques à chaque app/package sont dans leurs propres package.json.
+   */
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.0",
+    "rimraf": "^5.0.0"
+  },
+
+  /**
+   * packageManager — pnpm est requis. La version est fixée pour éviter les
+   * incohérences entre développeurs (hoisting comportement différent selon les versions).
+   */
+  "packageManager": "pnpm@9.1.0",
+
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

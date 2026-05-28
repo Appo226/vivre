@@ -1,0 +1,1016 @@
+// =============================================================
+// schema.prisma — Schéma Prisma complet pour la plateforme VIVRE
+//
+// Base de données : PostgreSQL 15+ avec extension PostGIS (géospatial)
+// 34 tables organisées en 11 sections selon le DatabaseSchema_v1.3
+//
+// PostGIS est utilisé pour :
+// - Tri des services publics par distance GPS (ST_Distance)
+// - Zones de couverture des restaurants (ST_Within)
+// - Affichage des chauffeurs disponibles dans un rayon (ST_DWithin)
+//
+// Note sur PostGIS dans Prisma :
+// Prisma ne supporte pas nativement les types PostGIS (GEOGRAPHY, GEOMETRY).
+// On stocke lat/lng comme Float et on utilise des Prisma.$queryRaw pour les
+// requêtes géospatiales avancées. Les index GIST PostGIS sont créés dans init.sql.
+//
+// Conventions absolues :
+// - Tous les PKs sont des UUIDs (sécurité + scalabilité)
+// - Toutes les tables ont created_at, updated_at
+// - Les soft-deletes utilisent deleted_at nullable
+// - Les montants financiers sont en FCFA (entiers, pas de décimales)
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  // Preview features : fullTextSearch pour la recherche de restaurants/hôtels
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================
+// SECTION 01 — UTILISATEURS & AUTHENTIFICATION
+// 3 tables : users, user_roles, otp_codes
+// =============================================================
+
+// Table principale des utilisateurs VIVRE.
+// L'authentification est basée sur le numéro de téléphone (+226) + OTP SMS.
+// Un utilisateur peut avoir plusieurs rôles (voir user_roles).
+model User {
+  id                 String   @id @default(uuid())
+  // Numéro de téléphone au format E.164 (+226XXXXXXXX) — identifiant principal
+  phone              String   @unique
+  // Email optionnel — requis pour les fournisseurs et l'admin
+  email              String?  @unique
+  password_hash      String?  // Null = connexion uniquement par OTP
+  first_name         String?
+  last_name          String?
+  avatar_url         String?  // URL S3 de la photo de profil
+  preferred_language String   @default("fr") // "fr" ou "en"
+  is_verified        Boolean  @default(false) // true après premier OTP validé
+  is_active          Boolean  @default(true)  // false = compte bloqué par admin
+  last_login_at      DateTime?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  deleted_at         DateTime? // Soft delete — ne jamais supprimer un user en dur
+
+  // Relations
+  roles                UserRole[]
+  otp_codes            OtpCode[]
+  transport_bookings   TransportBooking[]
+  property_bookings    PropertyBooking[]
+  orders               Order[]
+  guide_bookings       GuideBooking[]
+  ride_requests        RideRequest[]
+  reviews              Review[]
+  payments             Payment[]
+  notifications        Notification[]
+  service_corrections  ServiceCorrection[]
+  // Relations fournisseur
+  transport_company    TransportCompany?
+  property             Property[]
+  restaurant           Restaurant[]
+  guide                Guide?
+  driver               Driver?
+
+  @@map("users")
+}
+
+// Rôles d'un utilisateur — un user peut avoir plusieurs rôles simultanément.
+// Les rôles supplier et driver nécessitent une approbation admin (is_approved).
+model UserRole {
+  id          String   @id @default(uuid())
+  user_id     String
+  // Enum inline Prisma : customer, supplier, driver, admin
+  role        String   // customer | supplier | driver | admin
+  is_approved Boolean  @default(false) // true = approuvé par admin
+  approved_at DateTime?
+  approved_by String?  // UUID de l'admin qui a approuvé
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, role]) // Un seul rôle de chaque type par utilisateur
+  @@index([user_id])
+  @@map("user_roles")
+}
+
+// Codes OTP temporaires envoyés par SMS via Twilio.
+// expires_at = created_at + 5 minutes (configurable via env).
+// used_at non-null = code déjà consommé (ne peut pas être réutilisé).
+model OtpCode {
+  id         String   @id @default(uuid())
+  phone      String   // +226XXXXXXXX
+  code       String   @db.Char(6) // 6 chiffres
+  purpose    String   // "login" | "verify" | "reset"
+  expires_at DateTime
+  used_at    DateTime? // null = pas encore utilisé
+  created_at DateTime @default(now())
+
+  // Relation optionnelle vers User (null si user non encore créé)
+  user_id    String?
+  user       User?    @relation(fields: [user_id], references: [id])
+
+  @@index([phone, code, purpose]) // Lookup rapide lors de la vérification OTP
+  @@map("otp_codes")
+}
+
+// =============================================================
+// SECTION 02 — GÉOGRAPHIE
+// 1 table : cities
+// =============================================================
+
+// Villes couvertes par VIVRE. 10 villes initiales au Burkina Faso.
+// has_transport/has_food/has_drivers : modules activés par ville.
+// L'admin peut activer/désactiver des modules par ville via ADM-004.
+model City {
+  id            String  @id @default(uuid())
+  name          String  // Nom français (ex: "Ouagadougou")
+  name_en       String? // Nom anglais optionnel
+  region        String  // Région administrative du Burkina
+  country_code  String  @default("BFA") // ISO 3166-1 alpha-3
+  latitude      Float
+  longitude     Float
+  population    Int?
+  is_active     Boolean @default(true)
+  // Modules activés pour cette ville
+  has_transport Boolean @default(false)
+  has_food      Boolean @default(false)
+  has_drivers   Boolean @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  transport_companies TransportCompany[]
+  routes_origin       Route[]            @relation("OriginCity")
+  routes_destination  Route[]            @relation("DestinationCity")
+  drivers             Driver[]
+  properties          Property[]
+  restaurants         Restaurant[]
+  attractions         Attraction[]
+  guides              Guide[]
+  public_services     PublicService[]
+  urban_lines         UrbanLine[]
+  ride_requests       RideRequest[]
+
+  @@index([country_code, is_active])
+  @@map("cities")
+}
+
+// =============================================================
+// SECTION 03 — TRANSPORT INTERURBAIN
+// 5 tables : transport_companies, routes, schedules, trips, transport_bookings
+// =============================================================
+
+// Compagnie de transport interurbain (TSR, STMB, Rakieta, Sonef, TCV, Rimbo, etc.)
+// owner_id = compte utilisateur du gestionnaire de la compagnie.
+model TransportCompany {
+  id             String   @id @default(uuid())
+  owner_id       String   @unique // Un owner = une compagnie (relation 1-1)
+  name           String
+  logo_url       String?
+  phone          String
+  email          String?
+  address        String   // Adresse de la gare routière
+  city_id        String
+  license_number String?
+  is_approved    Boolean  @default(false) // Admin doit approuver
+  is_active      Boolean  @default(true)
+  rating_avg     Float    @default(0)
+  total_reviews  Int      @default(0)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  deleted_at     DateTime?
+
+  owner          User     @relation(fields: [owner_id], references: [id])
+  city           City     @relation(fields: [city_id], references: [id])
+  routes         Route[]
+
+  @@index([city_id, is_active, is_approved])
+  @@map("transport_companies")
+}
+
+// Ligne de bus interurbain (itinéraire fixe entre deux villes).
+// distance_km et duration_minutes sont calculés une fois à la création.
+model Route {
+  id                    String  @id @default(uuid())
+  company_id            String
+  origin_city_id        String
+  destination_city_id   String
+  distance_km           Int
+  duration_minutes      Int
+  bus_type              String  // "standard" | "confort" | "vip" | "minibus"
+  total_seats           Int
+  is_active             Boolean @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  deleted_at            DateTime?
+
+  company               TransportCompany @relation(fields: [company_id], references: [id])
+  origin_city           City             @relation("OriginCity", fields: [origin_city_id], references: [id])
+  destination_city      City             @relation("DestinationCity", fields: [destination_city_id], references: [id])
+  schedules             Schedule[]
+  trips                 Trip[]
+
+  @@index([company_id, origin_city_id, destination_city_id])
+  @@index([origin_city_id, destination_city_id, is_active])
+  @@map("routes")
+}
+
+// Planning récurrent d'une ligne (jours et horaires de départ).
+// days_of_week : tableau d'entiers 1-7 (1=Lundi...7=Dimanche).
+model Schedule {
+  id             String  @id @default(uuid())
+  route_id       String
+  departure_time String  // "HH:MM"
+  arrival_time   String  // "HH:MM"
+  // JSON array d'entiers ex: [1,3,5] pour lundi/mercredi/vendredi
+  days_of_week   Int[]
+  base_price     Int     // FCFA — tarif adulte
+  child_price    Int     // FCFA — tarif enfant (~30% moins cher)
+  student_price  Int     // FCFA — tarif étudiant
+  is_active      Boolean @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  route          Route   @relation(fields: [route_id], references: [id])
+  trips          Trip[]
+
+  @@index([route_id, is_active])
+  @@map("schedules")
+}
+
+// Voyage concret — instance d'un Schedule à une date précise.
+// available_seats est décrémenté automatiquement à chaque réservation confirmée
+// via un trigger PostgreSQL (défini dans init.sql).
+model Trip {
+  id                String   @id @default(uuid())
+  schedule_id       String
+  route_id          String
+  departure_datetime DateTime // TIMESTAMPTZ — heure de départ réelle
+  arrival_datetime   DateTime
+  available_seats   Int
+  status            String   @default("scheduled") // "scheduled"|"boarding"|"departed"|"completed"|"cancelled"
+  override_price    Int?     // Si défini, remplace le base_price du Schedule
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  schedule          Schedule @relation(fields: [schedule_id], references: [id])
+  route             Route    @relation(fields: [route_id], references: [id])
+  bookings          TransportBooking[]
+
+  @@index([route_id, departure_datetime, status])
+  @@index([departure_datetime, status]) // Recherche par date
+  @@map("trips")
+}
+
+// Réservation de bus effectuée par un client.
+// seat_numbers : tableau de strings (ex: ["12A", "12B"])
+// qr_code : données JSON encodées pour le billet numérique
+// Les sièges sont réservés 10 minutes en attente de paiement, puis libérés si non payés.
+model TransportBooking {
+  id                   String   @id @default(uuid())
+  user_id              String
+  trip_id              String
+  passenger_count      Int
+  seat_numbers         String[] // VARCHAR[]
+  passenger_type       String   // "adult" | "child" | "student"
+  total_amount         Int      // FCFA
+  status               String   @default("pending") // pending|confirmed|cancelled|completed
+  payment_id           String?
+  qr_code              String   // Données QR en base64 ou JSON
+  cancelled_at         DateTime?
+  cancellation_reason  String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  user                 User     @relation(fields: [user_id], references: [id])
+  trip                 Trip     @relation(fields: [trip_id], references: [id])
+  payment              Payment? @relation(fields: [payment_id], references: [id])
+
+  @@index([trip_id, status])
+  @@index([user_id, status])
+  @@map("transport_bookings")
+}
+
+// =============================================================
+// SECTION 04 — TRANSPORT INTRAURBAIN
+// 4 tables : drivers, ride_requests, urban_lines, urban_stops
+// =============================================================
+
+// Chauffeur intraurbain (taxi ou zémidjan) inscrit sur VIVRE.
+// current_lat/current_lng = position GPS mise à jour toutes les 3s via WS.
+// can_deliver_food = true → ce chauffeur reçoit aussi des demandes de livraison food.
+model Driver {
+  id               String   @id @default(uuid())
+  user_id          String   @unique // Un user = un profil chauffeur max
+  city_id          String
+  driver_type      String   // "taxi" | "zemidjan" | "both"
+  vehicle_type     String?  // Ex: "Moto Honda CG 125"
+  vehicle_plate    String?
+  license_number   String?
+  is_available     Boolean  @default(false) // Toggle par le chauffeur
+  current_lat      Float?
+  current_lng      Float?
+  last_location_at DateTime?
+  can_deliver_food Boolean  @default(false)
+  base_rate_fcfa   Int      @default(200) // Tarif de base FCFA/km
+  rating_avg       Float    @default(0)
+  is_approved      Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  user             User     @relation(fields: [user_id], references: [id])
+  city             City     @relation(fields: [city_id], references: [id])
+  ride_requests    RideRequest[]
+  food_deliveries  Order[]
+
+  // Index géospatial — utilisé pour trouver les chauffeurs proches
+  // L'index GIST PostGIS est créé dans init.sql car Prisma ne le supporte pas nativement
+  @@index([city_id, is_available, driver_type])
+  @@map("drivers")
+}
+
+// Demande de course créée par un client.
+// driver_id = null jusqu'à ce qu'un chauffeur accepte dans les 30s.
+model RideRequest {
+  id              String   @id @default(uuid())
+  user_id         String
+  driver_id       String?  // Null = en recherche de chauffeur
+  city_id         String
+  pickup_lat      Float
+  pickup_lng      Float
+  pickup_address  String?
+  dropoff_lat     Float
+  dropoff_lng     Float
+  dropoff_address String?
+  ride_type       String   // "taxi" | "zemidjan"
+  estimated_price Int      // FCFA — calculé à la création
+  final_price     Int?     // FCFA — défini à la fin de la course
+  status          String   @default("searching")
+  payment_method  String   @default("cash")
+  payment_id      String?
+  requested_at    DateTime @default(now())
+  accepted_at     DateTime?
+  completed_at    DateTime?
+  cancelled_at    DateTime?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  user            User     @relation(fields: [user_id], references: [id])
+  driver          Driver?  @relation(fields: [driver_id], references: [id])
+  city            City     @relation(fields: [city_id], references: [id])
+
+  @@index([driver_id, status])
+  @@index([user_id, status])
+  @@index([status, city_id]) // Pour diffuser aux chauffeurs disponibles dans une ville
+  @@map("ride_requests")
+}
+
+// Ligne de bus urbain (SOTRACO, etc.) — données statiques disponibles offline.
+model UrbanLine {
+  id                String  @id @default(uuid())
+  city_id           String
+  operator_name     String  // Ex: "SOTRACO"
+  line_number       String  // Ex: "L01"
+  line_name         String  // Ex: "Ouaga 2000 — Dassasgho"
+  color_hex         String  // Couleur sur la carte
+  fare_fcfa         Int     // Tarif unique sur la ligne
+  frequency_minutes Int     // Fréquence de passage en minutes
+  is_active         Boolean @default(true)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  city              City    @relation(fields: [city_id], references: [id])
+  stops             UrbanStop[]
+
+  @@index([city_id, is_active])
+  @@map("urban_lines")
+}
+
+// Arrêt de bus urbain sur une ligne SOTRACO.
+// sequence_order définit l'ordre des arrêts (pour afficher la liste ordonnée).
+model UrbanStop {
+  id             String @id @default(uuid())
+  line_id        String
+  name           String
+  sequence_order Int
+  latitude       Float
+  longitude      Float
+
+  line           UrbanLine @relation(fields: [line_id], references: [id])
+
+  @@index([line_id, sequence_order])
+  @@map("urban_stops")
+}
+
+// =============================================================
+// SECTION 05 — HÉBERGEMENT
+// 3 tables : properties, room_types, property_bookings
+// =============================================================
+
+// Propriété hébergeant des clients (hôtel, auberge, campement, location, hostel).
+// amenities : tableau de strings (ex: ["wifi", "piscine", "parking", "climatisation"])
+// check_in_time / check_out_time : "HH:MM"
+model Property {
+  id                   String  @id @default(uuid())
+  owner_id             String
+  city_id              String
+  name                 String
+  property_type        String  // "hotel" | "auberge" | "campement" | "private" | "hostel"
+  description          String? @db.Text
+  address              String
+  latitude             Float
+  longitude            Float
+  phone                String
+  email                String?
+  star_rating          Int?    // 1-5 étoiles (null si non classé)
+  amenities            String[] // Tableau d'équipements
+  check_in_time        String  @default("14:00")
+  check_out_time       String  @default("12:00")
+  cancellation_policy  String? @db.Text
+  is_approved          Boolean @default(false)
+  is_active            Boolean @default(true)
+  rating_avg           Float   @default(0)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+  deleted_at           DateTime?
+
+  owner                User    @relation(fields: [owner_id], references: [id])
+  city                 City    @relation(fields: [city_id], references: [id])
+  room_types           RoomType[]
+  bookings             PropertyBooking[]
+  media                Media[]  @relation("PropertyMedia")
+
+  @@index([city_id, property_type, is_active, is_approved])
+  @@index([latitude, longitude]) // Pour la recherche géographique côté client
+  @@map("properties")
+}
+
+// Type de chambre dans une propriété.
+// quantity = nombre de chambres de ce type disponibles au total.
+model RoomType {
+  id            String  @id @default(uuid())
+  property_id   String
+  name          String  // Ex: "Chambre Standard", "Suite Junior"
+  description   String? @db.Text
+  max_occupancy Int
+  bed_type      String  // "single" | "double" | "twin" | "king"
+  price_per_night Int   // FCFA
+  quantity      Int     // Nombre de chambres de ce type
+  amenities     String[]
+  is_active     Boolean @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  property      Property @relation(fields: [property_id], references: [id])
+  bookings      PropertyBooking[]
+
+  @@index([property_id, is_active])
+  @@map("room_types")
+}
+
+// Réservation d'hébergement.
+// nights_count est calculé à la création : diff(check_out, check_in) en jours.
+model PropertyBooking {
+  id               String   @id @default(uuid())
+  user_id          String
+  property_id      String
+  room_type_id     String
+  check_in_date    String   // "YYYY-MM-DD"
+  check_out_date   String
+  nights_count     Int
+  guests_count     Int
+  total_amount     Int      // FCFA
+  special_requests String?
+  status           String   @default("pending")
+  payment_id       String?
+  cancelled_at     DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  user             User     @relation(fields: [user_id], references: [id])
+  property         Property @relation(fields: [property_id], references: [id])
+  room_type        RoomType @relation(fields: [room_type_id], references: [id])
+  payment          Payment? @relation(fields: [payment_id], references: [id])
+
+  @@index([property_id, status, check_in_date])
+  @@index([user_id, status])
+  @@index([room_type_id, check_in_date, check_out_date]) // Vérification disponibilité
+  @@map("property_bookings")
+}
+
+// =============================================================
+// SECTION 06 — FOOD DELIVERY
+// 5 tables : restaurants, menu_categories, menu_items, orders, order_items
+// =============================================================
+
+// Restaurant ou établissement de restauration.
+// opening_hours : JSON { "mon": "08:00-22:00", "sun": "closed" }
+// is_open_now : calculé côté API en temps réel (non stocké)
+model Restaurant {
+  id                   String  @id @default(uuid())
+  owner_id             String
+  city_id              String
+  name                 String
+  restaurant_type      String  // "restaurant" | "maquis" | "fastfood" | "bakery" | "street_food"
+  description          String? @db.Text
+  address              String
+  latitude             Float
+  longitude            Float
+  phone                String
+  opening_hours        Json    // { "mon": "08:00-22:00", ... }
+  delivery_radius_km   Float   @default(5)
+  min_order_fcfa       Int     @default(0)
+  avg_prep_minutes     Int     @default(30)
+  offers_delivery      Boolean @default(true)
+  offers_pickup        Boolean @default(true)
+  is_approved          Boolean @default(false)
+  is_active            Boolean @default(true)
+  is_open_now          Boolean @default(false) // Mis à jour par un CRON toutes les 15 min
+  rating_avg           Float   @default(0)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+  deleted_at           DateTime?
+
+  owner                User    @relation(fields: [owner_id], references: [id])
+  city                 City    @relation(fields: [city_id], references: [id])
+  menu_categories      MenuCategory[]
+  menu_items           MenuItem[]
+  orders               Order[]
+  media                Media[]  @relation("RestaurantMedia")
+
+  @@index([city_id, is_active, is_approved, is_open_now])
+  @@index([latitude, longitude])
+  @@map("restaurants")
+}
+
+// Catégorie de menu (Entrées, Plats, Grillades, Boissons, Desserts, etc.)
+model MenuCategory {
+  id            String  @id @default(uuid())
+  restaurant_id String
+  name          String
+  sort_order    Int     @default(0)
+  is_active     Boolean @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  restaurant    Restaurant @relation(fields: [restaurant_id], references: [id])
+  items         MenuItem[]
+
+  @@index([restaurant_id, is_active, sort_order])
+  @@map("menu_categories")
+}
+
+// Plat ou article du menu.
+// is_featured = true → affiché dans la section "Nos spécialités" du restaurant.
+model MenuItem {
+  id            String  @id @default(uuid())
+  restaurant_id String
+  category_id   String
+  name          String
+  description   String? @db.Text
+  price         Int     // FCFA
+  image_url     String?
+  is_available  Boolean @default(true)
+  is_featured   Boolean @default(false)
+  prep_minutes  Int?
+  sort_order    Int     @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  deleted_at    DateTime?
+
+  restaurant    Restaurant   @relation(fields: [restaurant_id], references: [id])
+  category      MenuCategory @relation(fields: [category_id], references: [id])
+  order_items   OrderItem[]
+
+  @@index([restaurant_id, category_id, is_available])
+  @@map("menu_items")
+}
+
+// Commande food delivery ou click & collect.
+// driver_id = null jusqu'à assignation d'un zémidjan.
+model Order {
+  id                    String   @id @default(uuid())
+  user_id               String
+  restaurant_id         String
+  driver_id             String?  // Zémidjan assigné — null si pickup ou en attente
+  order_type            String   // "delivery" | "pickup"
+  delivery_address      String?  // Null si pickup
+  delivery_lat          Float?
+  delivery_lng          Float?
+  subtotal              Int      // FCFA — total articles sans livraison
+  delivery_fee          Int      @default(0) // FCFA — 0 si pickup
+  total_amount          Int      // FCFA — subtotal + delivery_fee - promo
+  status                String   @default("pending")
+  payment_method        String   @default("cash")
+  payment_id            String?
+  special_instructions  String?
+  estimated_delivery_at DateTime?
+  delivered_at          DateTime?
+  cancelled_at          DateTime?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  user                  User       @relation(fields: [user_id], references: [id])
+  restaurant            Restaurant @relation(fields: [restaurant_id], references: [id])
+  driver                Driver?    @relation(fields: [driver_id], references: [id])
+  items                 OrderItem[]
+  payment               Payment?   @relation(fields: [payment_id], references: [id])
+
+  @@index([restaurant_id, status, created_at])
+  @@index([driver_id, status])
+  @@index([user_id, created_at])
+  @@map("orders")
+}
+
+// Article d'une commande — snapshot du MenuItem au moment de la commande.
+// On copie le prix pour que les modifications futures ne touchent pas les commandes passées.
+model OrderItem {
+  id           String @id @default(uuid())
+  order_id     String
+  menu_item_id String
+  quantity     Int
+  unit_price   Int    // FCFA — copié du MenuItem au moment de la commande
+  subtotal     Int    // unit_price × quantity
+  notes        String? // Instructions spécifiques pour ce plat
+
+  order        Order    @relation(fields: [order_id], references: [id])
+  menu_item    MenuItem @relation(fields: [menu_item_id], references: [id])
+
+  @@index([order_id])
+  @@map("order_items")
+}
+
+// =============================================================
+// SECTION 07 — TOURISME & GUIDES
+// 3 tables : attractions, guides, guide_bookings
+// =============================================================
+
+// Site ou attraction touristique au Burkina Faso.
+// city_id est nullable pour les parcs nationaux qui couvrent plusieurs villes.
+// description et description_en permettent le contenu bilingue.
+model Attraction {
+  id                    String  @id @default(uuid())
+  city_id               String? // Null pour les sites régionaux/nationaux
+  name                  String
+  name_en               String?
+  category              String  // "nature" | "culture" | "heritage" | "event" | "urban"
+  description           String  @db.Text
+  description_en        String? @db.Text
+  address               String?
+  latitude              Float
+  longitude             Float
+  entry_fee_fcfa        Int     @default(0) // 0 = entrée gratuite
+  entry_fee_tourist     Int?    // Prix pour non-résidents (si différent)
+  opening_hours         Json?   // { "mon": "08:00-17:00", ... } ou null si continu
+  visit_duration_hours  Float?  // Durée recommandée de visite
+  best_season           String? // Ex: "Novembre à Mars"
+  is_unesco             Boolean @default(false) // Badge UNESCO si true
+  is_featured           Boolean @default(false) // "À ne pas manquer"
+  is_active             Boolean @default(true)
+  rating_avg            Float   @default(0)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  city                  City?   @relation(fields: [city_id], references: [id])
+  guide_bookings        GuideBooking[] @relation("AttractionGuideBookings")
+
+  @@index([city_id, category, is_active])
+  @@index([is_featured, is_active])
+  @@map("attractions")
+}
+
+// Guide touristique certifié sur la plateforme VIVRE.
+// is_ontb_certified = true → certifié par l'Office National du Tourisme du Burkina.
+// zones_covered : IDs de villes que le guide peut couvrir (UUID array).
+// languages : codes ISO 639-1 (["fr", "en", "de"]).
+model Guide {
+  id                   String  @id @default(uuid())
+  user_id              String  @unique
+  city_id              String  // Ville principale du guide
+  bio                  String  @db.Text
+  languages            String[] // ["fr", "en", "dioula", "mooré"]
+  specialties          String[] // ["culture", "nature", "gastronomie"]
+  zones_covered        String[] // UUIDs de villes couvertes
+  experience_years     Int?
+  daily_rate_fcfa      Int
+  half_day_rate_fcfa   Int?
+  is_ontb_certified    Boolean @default(false)
+  certification_number String?
+  is_approved          Boolean @default(false)
+  is_active            Boolean @default(true)
+  rating_avg           Float   @default(0)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+  deleted_at           DateTime?
+
+  user                 User    @relation(fields: [user_id], references: [id])
+  city                 City    @relation(fields: [city_id], references: [id])
+  bookings             GuideBooking[]
+
+  @@index([city_id, is_active, is_approved])
+  @@index([is_ontb_certified, is_active])
+  @@map("guides")
+}
+
+// Réservation d'un guide touristique.
+// attraction_ids : UUIDs des sites à visiter (stockés en array).
+model GuideBooking {
+  id                String   @id @default(uuid())
+  user_id           String
+  guide_id          String
+  booking_date      String   // "YYYY-MM-DD"
+  booking_type      String   // "full_day" | "half_day" | "custom"
+  duration_hours    Float?   // Requis si booking_type = "custom"
+  group_size        Int
+  attraction_ids    String[] // UUIDs des Attraction
+  custom_itinerary  String?  @db.Text
+  total_amount      Int      // FCFA
+  status            String   @default("pending")
+  payment_id        String?
+  special_requests  String?
+  cancelled_at      DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  user              User     @relation(fields: [user_id], references: [id])
+  guide             Guide    @relation(fields: [guide_id], references: [id])
+  payment           Payment? @relation(fields: [payment_id], references: [id])
+  // Relation many-to-many via IDs stockés (PostgreSQL array)
+  attractions       Attraction[] @relation("AttractionGuideBookings")
+
+  @@index([guide_id, status, booking_date])
+  @@index([user_id, status])
+  @@map("guide_bookings")
+}
+
+// =============================================================
+// SECTION 08 — PAIEMENTS
+// 2 tables : payments, refunds
+// =============================================================
+
+// Transaction de paiement — point central de toute transaction financière VIVRE.
+// platform_fee = 12% de amount (commission VIVRE)
+// supplier_amount = 88% de amount (versé au fournisseur)
+model Payment {
+  id             String   @id @default(uuid())
+  user_id        String
+  amount         Int      // FCFA
+  currency       String   @default("XOF")
+  payment_method String   // "orange_money" | "moov" | "wave" | "card" | "cash"
+  provider_ref   String?  // Référence transaction chez l'opérateur
+  status         String   @default("pending")
+  booking_type   String   // "transport" | "property" | "food" | "guide" | "ride"
+  booking_id     String   // UUID de la réservation (polymorphique)
+  platform_fee   Int      // FCFA — commission 12%
+  supplier_amount Int     // FCFA — 88% reversé au fournisseur
+  paid_at        DateTime?
+  failed_at      DateTime?
+  failure_reason String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user           User     @relation(fields: [user_id], references: [id])
+  refunds        Refund[]
+  // Relations inverses depuis les tables de réservation
+  transport_bookings  TransportBooking[]
+  property_bookings   PropertyBooking[]
+  orders              Order[]
+  guide_bookings      GuideBooking[]
+
+  @@index([user_id, status])
+  @@index([booking_type, booking_id])
+  @@index([status, payment_method])
+  @@map("payments")
+}
+
+// Remboursement associé à un paiement.
+model Refund {
+  id           String   @id @default(uuid())
+  payment_id   String
+  amount       Int      // FCFA — peut être partiel
+  reason       String
+  status       String   @default("pending")
+  processed_by String?  // UUID de l'admin
+  processed_at DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  payment      Payment  @relation(fields: [payment_id], references: [id])
+
+  @@index([payment_id, status])
+  @@map("refunds")
+}
+
+// =============================================================
+// SECTION 09 — REVIEWS (polymorphique)
+// 1 table : reviews
+// =============================================================
+
+// Évaluation polymorphique — une seule table pour toutes les entités.
+// entity_type + entity_id = référence vers n'importe quelle entité.
+// is_verified = true uniquement si booking_ref_id est valide (avis vérifié).
+// Le trigger PostgreSQL met à jour rating_avg sur l'entité parente après INSERT/UPDATE.
+model Review {
+  id             String  @id @default(uuid())
+  user_id        String
+  entity_type    String  // "transport_company" | "property" | "restaurant" | "guide" | "driver" | "attraction"
+  entity_id      String  // UUID de l'entité concernée
+  booking_ref_id String? // UUID de la réservation — si présent = avis vérifié
+  rating         Int     // 1-5
+  title          String?
+  comment        String? @db.Text
+  is_verified    Boolean @default(false) // true = client a utilisé le service
+  is_visible     Boolean @default(true)  // false = masqué par admin
+  response       String? @db.Text // Réponse du fournisseur à l'avis
+  response_at    DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user           User    @relation(fields: [user_id], references: [id])
+
+  @@index([entity_type, entity_id, is_visible]) // Récupérer les avis d'une entité
+  @@index([user_id])
+  @@map("reviews")
+}
+
+// =============================================================
+// SECTION 10 — MÉDIAS & NOTIFICATIONS
+// 3 tables : media, notifications, promo_codes
+// =============================================================
+
+// Fichier média (photo ou vidéo) associé à une entité.
+// entity_type + entity_id = référence polymorphique.
+// Les fichiers sont stockés sur AWS S3, distribués via CloudFront.
+model Media {
+  id           String  @id @default(uuid())
+  entity_type  String
+  entity_id    String
+  url          String  // URL S3/CloudFront complète
+  media_type   String  // "image" | "video"
+  is_primary   Boolean @default(false) // Une seule photo primaire par entité
+  sort_order   Int     @default(0)
+  uploaded_by  String  // UUID de l'utilisateur qui a uploadé
+
+  // Relations inverses pour les propriétés et restaurants
+  property     Property?   @relation("PropertyMedia", fields: [entity_id], references: [id])
+  restaurant   Restaurant? @relation("RestaurantMedia", fields: [entity_id], references: [id])
+
+  @@index([entity_type, entity_id, is_primary])
+  @@map("media")
+}
+
+// Notification envoyée à un utilisateur.
+// data : JSON avec les données contextuelles (ex: booking_id pour rediriger)
+model Notification {
+  id        String   @id @default(uuid())
+  user_id   String
+  type      String   // "booking_confirmed" | "order_ready" | "driver_arrived" | etc.
+  title     String
+  body      String
+  data      Json?    // { booking_id: "...", screen: "TI_006" }
+  channel   String   // "push" | "sms" | "whatsapp" | "email"
+  is_read   Boolean  @default(false)
+  sent_at   DateTime @default(now())
+  read_at   DateTime?
+  created_at DateTime @default(now())
+
+  user      User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, is_read, sent_at])
+  @@map("notifications")
+}
+
+// Code promotionnel — peut cibler un module spécifique ou tous les modules.
+model PromoCode {
+  id                  String   @id @default(uuid())
+  code                String   @unique
+  discount_type       String   // "percent" | "fixed_fcfa"
+  discount_value      Int      // % ou FCFA selon discount_type
+  min_order_fcfa      Int?     // Commande minimum pour utiliser le code
+  max_uses            Int?     // Null = usage illimité
+  uses_count          Int      @default(0)
+  max_uses_per_user   Int      @default(1)
+  applies_to          String   @default("all") // "all" | "transport" | "food" | etc.
+  supplier_id         String?  // Si défini → promo spécifique à un fournisseur
+  valid_from          DateTime
+  valid_until         DateTime
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([code, is_active])
+  @@index([valid_from, valid_until, is_active])
+  @@map("promo_codes")
+}
+
+// =============================================================
+// SECTION 11 — SERVICES PUBLICS & URGENCES
+// 4 tables : public_service_categories, public_services, emergency_numbers, service_corrections
+// =============================================================
+
+// Catégorie de service public (Hôpital, Pharmacie, Police, etc.)
+// is_emergency = true → mis en rouge en haut de l'écran SP-001.
+model PublicServiceCategory {
+  id          String  @id @default(uuid())
+  slug        String  @unique // "hospital" | "pharmacy" | "police" | etc.
+  name_fr     String
+  name_en     String
+  icon        String  // Nom d'icône Lucide React
+  color_hex   String
+  is_emergency Boolean @default(false)
+  sort_order  Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  services    PublicService[]
+
+  @@map("public_service_categories")
+}
+
+// Service public individuel (hôpital, pharmacie, commissariat...).
+// latitude et longitude sont NOT NULL — requis pour le tri géospatial PostGIS.
+// is_on_duty : calculé par CRON chaque nuit (pharmacies de garde uniquement).
+model PublicService {
+  id               String   @id @default(uuid())
+  category_id      String
+  city_id          String
+  name             String
+  name_en          String?
+  address          String
+  latitude         Float    // NOT NULL — coordonnées GPS requises
+  longitude        Float
+  phone_primary    String?
+  phone_secondary  String?
+  phone_emergency  String?
+  opening_hours    Json?    // { "mon": "08:00-17:00", "sun": "closed" }
+  is_24h           Boolean  @default(false)
+  is_open_now      Boolean  @default(false) // Calculé en temps réel
+  is_on_duty       Boolean  @default(false) // Spécifique aux pharmacies de garde
+  on_duty_until    DateTime? // Fin de la permanence
+  description      String?  @db.Text
+  description_en   String?  @db.Text
+  website          String?
+  data_source      String   @default("manual") // "manual" | "osm" | "crowdsourced"
+  last_verified_at DateTime?
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  category         PublicServiceCategory @relation(fields: [category_id], references: [id])
+  city             City                  @relation(fields: [city_id], references: [id])
+  corrections      ServiceCorrection[]
+
+  // Index pour les requêtes les plus fréquentes
+  @@index([city_id, category_id, is_active])
+  @@index([is_on_duty, category_id]) // Lookup rapide pharmacies de garde
+  // Index géospatial GIST PostGIS créé dans init.sql (non supporté par Prisma nativement)
+  @@map("public_services")
+}
+
+// Numéros d'urgence nationaux — données statiques, disponibles offline.
+model EmergencyNumber {
+  id               String  @id @default(uuid())
+  country_code     String  @default("BFA")
+  service_name     String  // Ex: "SAMU"
+  service_name_en  String  // Ex: "Emergency Medical Services"
+  number           String  // Ex: "15" ou "+226 25 33 40 40"
+  icon             String  // Nom d'icône Lucide React
+  color_hex        String  @default("#C8102E") // Rouge urgence par défaut
+  sort_order       Int     @default(0)
+  is_active        Boolean @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([country_code, is_active, sort_order])
+  @@map("emergency_numbers")
+}
+
+// Signalement d'erreur crowdsourcé sur un service public.
+// user_id est nullable — on accepte les signalements anonymes pour maximiser la participation.
+model ServiceCorrection {
+  id               String   @id @default(uuid())
+  service_id       String
+  user_id          String?  // Null = signalement anonyme (sans connexion)
+  correction_type  String   // "wrong_address" | "wrong_phone" | "closed" | "wrong_hours" | "other"
+  description      String   @db.Text
+  status           String   @default("pending") // "pending" | "reviewed" | "applied" | "rejected"
+  reviewed_by      String?  // UUID de l'admin
+  reviewed_at      DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  service          PublicService @relation(fields: [service_id], references: [id])
+  user             User?         @relation(fields: [user_id], references: [id])
+
+  @@index([service_id, status])
+  @@index([status, created_at]) // Pour la liste des signalements en attente (admin)
+  @@map("service_corrections")
+}

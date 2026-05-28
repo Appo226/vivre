@@ -1,0 +1,56 @@
+{
+  /**
+   * @vivre/database — Package Prisma ORM pour le monorepo VIVRE
+   *
+   * Ce package centralise :
+   * - Le schéma Prisma (prisma/schema.prisma) — 34 tables PostgreSQL + PostGIS
+   * - Les migrations Prisma (prisma/migrations/) — versionnées dans git
+   * - Le client Prisma généré (node_modules/.prisma/) — généré via `prisma generate`
+   * - Le seed de base de données (src/seed.ts) — données initiales (villes, services, admin)
+   * - Le client Prisma exporté (src/index.ts) — singleton partagé
+   *
+   * Pourquoi un package dédié pour la DB ?
+   * Prisma génère un client TypeScript depuis le schéma. Sans ce package,
+   * apps/api et (potentiellement) apps/admin auraient des clients séparés
+   * avec des versions potentiellement différentes du schéma — dangereux.
+   * Ce package garantit une seule version du client Prisma dans tout le monorepo.
+   */
+  "name": "@vivre/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prisma ORM et schéma de base de données pour VIVRE",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:prod": "prisma migrate deploy",
+    "seed": "tsx src/seed.ts",
+    "studio": "prisma studio",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf node_modules/.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0"
+  },
+  "devDependencies": {
+    "@vivre/config": "workspace:*",
+    "@vivre/utils": "workspace:*",
+    "prisma": "^5.14.0",
+    "rimraf": "^5.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+
+  /**
+   * prisma.seed — Script de seed exécuté via `prisma db seed`.
+   * Turborepo n'a pas besoin de connaître ce script — c'est Prisma CLI qui l'appelle.
+   */
+  "prisma": {
+    "seed": "tsx src/seed.ts"
+  }
+}

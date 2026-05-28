@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@vivre/config/tsconfig/base",
+  "compilerOptions": {
+    /* Pas de outDir — ce package est consommé via tsx directement */
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+}

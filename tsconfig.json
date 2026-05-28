@@ -1,0 +1,66 @@
+{
+  /**
+   * tsconfig.json — Configuration TypeScript racine du monorepo VIVRE
+   *
+   * Ce fichier est le point de référence pour tous les packages.
+   * Chaque app/package étend cette config via "extends": "../../tsconfig.json"
+   * (ou via @vivre/config/tsconfig/base.json pour plus de flexibilité).
+   *
+   * Pourquoi "strict: true" ?
+   * Le strict mode active : noImplicitAny, strictNullChecks, strictFunctionTypes,
+   * strictPropertyInitialization, noImplicitThis, alwaysStrict.
+   * Ces règles éliminent les erreurs de runtime les plus courantes en Burkina Faso
+   * où les conditions réseau instables peuvent révéler des edge cases ignorés.
+   */
+  "compilerOptions": {
+    /* === CIBLE DE COMPILATION === */
+    "target": "ES2022",          /* Node.js 20 supporte ES2022 nativement */
+    "lib": ["ES2022"],           /* Lib standard correspondante */
+    "module": "NodeNext",        /* Import/export ESM avec résolution Node.js */
+    "moduleResolution": "NodeNext",
+
+    /* === STRICT MODE — RÈGLE ABSOLUE DU PROJET === */
+    "strict": true,              /* Active toutes les vérifications strictes */
+    "noImplicitAny": true,       /* Interdit les types `any` implicites */
+    "strictNullChecks": true,    /* null/undefined doivent être gérés explicitement */
+    "noUncheckedIndexedAccess": true, /* arr[0] peut être undefined — doit être vérifié */
+    "exactOptionalPropertyTypes": true, /* Distingue propriété absente vs undefined */
+    "noImplicitReturns": true,   /* Toutes les branches doivent retourner une valeur */
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true, /* Évite les bugs macOS/Linux */
+
+    /* === OUTPUT === */
+    "declaration": true,         /* Génère .d.ts pour que les packages soient consommables */
+    "declarationMap": true,      /* Source maps pour les .d.ts (navigation IDE) */
+    "sourceMap": true,           /* Source maps pour le debugging */
+    "outDir": "dist",
+
+    /* === RÉSOLUTION === */
+    "baseUrl": ".",
+    "paths": {
+      /* Alias pour éviter les imports relatifs profonds (../../..) */
+      "@vivre/*": ["packages/*/src"]
+    },
+
+    /* === INTEROPÉRABILITÉ === */
+    "esModuleInterop": true,     /* Permet d'importer des modules CommonJS */
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,   /* Permet import de fichiers JSON */
+    "skipLibCheck": true,        /* Évite les erreurs de types dans node_modules */
+
+    /* === PERFORMANCES === */
+    "incremental": true          /* Build incrémental — ne recompile que les fichiers modifiés */
+  },
+
+  /**
+   * Exclusions globales — ces dossiers ne sont jamais compilés au niveau racine.
+   * Chaque app/package a son propre tsconfig.json qui définit ses propres includes.
+   */
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist",
+    "**/.next",
+    "**/build"
+  ]
+}

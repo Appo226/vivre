@@ -1,0 +1,152 @@
+# docker-compose.yml — Infrastructure de développement VIVRE
+#
+# Services :
+# - PostgreSQL 15 + PostGIS : base de données principale + requêtes géospatiales
+# - Redis 7 : cache API (24h), sessions, positions drivers en temps réel (TTL 10s)
+# - pgAdmin 4 : interface web d'administration PostgreSQL
+#
+# Lancement : pnpm docker:up (alias de docker-compose -f docker/docker-compose.yml up -d)
+# Arrêt     : pnpm docker:down
+#
+# Ports exposés :
+# - PostgreSQL : 5432
+# - Redis      : 6379
+# - pgAdmin    : 5050 → http://localhost:5050
+#
+# IMPORTANT : Ces services sont pour le développement local UNIQUEMENT.
+# En production, PostgreSQL est sur une instance RDS managée (AWS), Redis sur ElastiCache.
+# Ne jamais exposer les ports Docker directement en production.
+
+version: "3.9"
+
+services:
+  # =============================================================
+  # POSTGRESQL 15 + POSTGIS
+  # PostGIS est requis pour les requêtes géographiques (ST_Distance, ST_Within).
+  # On utilise l'image officielle postgis/postgis qui inclut l'extension PostGIS.
+  # =============================================================
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: vivre-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: vivre_user
+      POSTGRES_PASSWORD: vivre_pass
+      POSTGRES_DB: vivre_dev
+      # TZ = Timezone du serveur → UTC (même timezone que le Burkina Faso)
+      TZ: UTC
+      PGTZ: UTC
+
+    ports:
+      # 5432 = port standard PostgreSQL — accessible depuis l'hôte pour Prisma
+      - "5432:5432"
+
+    volumes:
+      # Données persistées entre les redémarrages Docker
+      - postgres_data:/var/lib/postgresql/data
+      # Script d'initialisation — exécuté une seule fois à la création du volume
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    healthcheck:
+      # Vérifie que PostgreSQL accepte les connexions avant de déclarer le service "healthy"
+      # Les autres services qui dépendent de postgres attendront ce healthcheck
+      test: ["CMD-SHELL", "pg_isready -U vivre_user -d vivre_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - vivre-network
+
+  # =============================================================
+  # REDIS 7
+  # Utilisé pour :
+  # - Cache des réponses API (services publics, villes, menus → TTL 24h)
+  # - Positions GPS des chauffeurs en temps réel (TTL 10s)
+  # - Rate limiting (compteurs par IP et par numéro de téléphone)
+  # - Sessions JWT (pour la révocation de tokens si nécessaire)
+  # =============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: vivre-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --loglevel notice
+
+    # appendonly yes : persistance des données (survit aux redémarrages)
+    # maxmemory 256mb : limite la RAM — au-delà, LRU eviction
+    # allkeys-lru : supprime les clés les moins récemment utilisées (pas seulement avec TTL)
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - vivre-network
+
+  # =============================================================
+  # PGADMIN 4
+  # Interface web d'administration PostgreSQL.
+  # Accessible sur http://localhost:5050
+  # Login : admin@vivre.bf / vivre_admin
+  # =============================================================
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: vivre-pgadmin
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vivre.bf
+      PGADMIN_DEFAULT_PASSWORD: vivre_admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"  # Mode single-user (pas de login requis)
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+
+    ports:
+      - "5050:80"
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - vivre-network
+
+# =============================================================
+# VOLUMES PERSISTANTS
+# Les données survivent aux redémarrages et suppressions de containers.
+# Pour réinitialiser : docker volume rm vivre_postgres_data (supprime toutes les données !)
+# =============================================================
+volumes:
+  postgres_data:
+    name: vivre_postgres_data
+  redis_data:
+    name: vivre_redis_data
+  pgadmin_data:
+    name: vivre_pgadmin_data
+
+# =============================================================
+# RÉSEAU DOCKER
+# Réseau isolé pour les services VIVRE — ils se voient par leur nom de service.
+# Ex: l'API se connecte à PostgreSQL via hostname "postgres" (pas localhost).
+# =============================================================
+networks:
+  vivre-network:
+    name: vivre-network
+    driver: bridge

@@ -1,0 +1,80 @@
+# .gitignore — VIVRE Monorepo
+# Fichiers et dossiers à exclure du versioning Git
+
+# ============================================================
+# SECRETS — Ne jamais committer les variables d'environnement
+# Les clés API Orange Money, Anthropic, JWT secrets sont ici
+# ============================================================
+.env
+.env.local
+.env.*.local
+.env.production
+
+# ============================================================
+# DÉPENDANCES — Gérées par pnpm, reconstruites via pnpm install
+# ============================================================
+node_modules/
+**/node_modules/
+
+# ============================================================
+# BUILD ARTIFACTS — Régénérés par `pnpm build`
+# ============================================================
+dist/
+build/
+**/dist/
+**/build/
+.next/
+**/.next/
+
+# ============================================================
+# TURBOREPO CACHE — Cache local des builds incrémentaux
+# Le cache distant (Vercel Remote Cache) est partagé via CI/CD
+# ============================================================
+.turbo/
+**/.turbo/
+
+# ============================================================
+# PRISMA — Les migrations sont versionnées, le client est généré
+# ============================================================
+packages/database/node_modules/
+# NB: prisma/migrations/ est intentionnellement INCLUS dans git
+
+# ============================================================
+# TYPESCRIPT — Fichiers de build incrémental
+# ============================================================
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ============================================================
+# IDE ET OUTILS
+# ============================================================
+.DS_Store
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.vim/
+
+# ============================================================
+# LOGS
+# ============================================================
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# ============================================================
+# TESTS
+# ============================================================
+coverage/
+**/coverage/
+.playwright/
+playwright-report/
+test-results/
+
+# ============================================================
+# UPLOADS LOCAUX — Stocker sur S3 en prod, jamais dans git
+# ============================================================
+uploads/
+public/uploads/

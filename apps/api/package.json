@@ -1,0 +1,95 @@
+{
+  /**
+   * apps/api — API REST + WebSocket VIVRE
+   *
+   * Fastify est choisi pour sa performance (2-3x plus rapide qu'Express)
+   * et son écosystème TypeScript mature. Au Burkina Faso où les serveurs
+   * peuvent être surchargés, chaque ms de latence compte.
+   *
+   * Architecture de l'API :
+   * - src/index.ts      : Point d'entrée — démarre le serveur
+   * - src/app.ts        : Configuration Fastify + plugins + routes
+   * - src/plugins/      : Plugins Fastify (JWT, CORS, rate-limit, multipart)
+   * - src/routes/       : Routes par module (auth, transport, food, etc.)
+   * - src/services/     : Logique métier (auth, paiements, AI, notifications)
+   * - src/repositories/ : Accès base de données via Prisma
+   * - src/schemas/      : Schémas Zod de validation des requêtes
+   * - src/middleware/   : Middlewares (auth guard, rate limiter, etc.)
+   */
+  "name": "@vivre/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST + WebSocket Fastify pour la plateforme VIVRE",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    /* Serveur HTTP et WebSocket */
+    "fastify": "^4.27.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "@fastify/multipart": "^8.0.0",
+    "@fastify/rate-limit": "^9.0.0",
+    "@fastify/helmet": "^11.0.0",
+    "@fastify/swagger": "^8.14.0",
+
+    /* WebSocket pour le suivi en temps réel (courses, commandes, AI) */
+    "socket.io": "^4.7.0",
+
+    /* ORM et base de données */
+    "@prisma/client": "^5.14.0",
+
+    /* Validation et types */
+    "zod": "^3.23.0",
+
+    /* Claude AI + RAG */
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@pinecone-database/pinecone": "^2.2.0",
+
+    /* Cache Redis */
+    "ioredis": "^5.3.0",
+
+    /* SMS + WhatsApp (OTP et notifications) */
+    "twilio": "^5.1.0",
+
+    /* Paiements */
+    "stripe": "^14.22.0",
+
+    /* AWS S3 (stockage médias) */
+    "@aws-sdk/client-s3": "^3.583.0",
+    "@aws-sdk/s3-request-presigner": "^3.583.0",
+
+    /* Firebase (Push Notifications) */
+    "firebase-admin": "^12.1.0",
+
+    /* Utilitaires */
+    "bcryptjs": "^2.4.3",
+    "dayjs": "^1.11.0",
+    "nanoid": "^5.0.0",
+    "node-cron": "^3.0.3",
+    "pino": "^8.21.0",
+    "pino-pretty": "^11.0.0",
+
+    /* Packages internes */
+    "@vivre/database": "workspace:*",
+    "@vivre/types": "workspace:*",
+    "@vivre/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.12.0",
+    "@types/node-cron": "^3.0.11",
+    "@vivre/config": "workspace:*",
+    "rimraf": "^5.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0"
+  }
+}
