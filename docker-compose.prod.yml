@@ -1,0 +1,152 @@
+version: "3.9"
+
+# ─── VIVRE — Infrastructure de production ─────────────────────────────────────
+# Lancement : docker compose -f docker-compose.prod.yml up -d
+# Mise à jour : docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+#
+# Variables requises (voir .env.production.example) :
+#   DATABASE_URL, REDIS_URL, JWT_SECRET, CINETPAY_*, TWILIO_*, ANTHROPIC_API_KEY
+
+services:
+  # ─── PostgreSQL 15 + PostGIS ───────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: vivre-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vivre-internal
+
+  # ─── Redis 7 ──────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vivre-redis-prod
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vivre-internal
+
+  # ─── API Fastify ───────────────────────────────────────────────────────────
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/vivre-api:${IMAGE_TAG:-latest}
+    container_name: vivre-api-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      PORT: 3001
+      HOST: 0.0.0.0
+      API_URL: ${API_URL}
+      WEB_URL: ${WEB_URL}
+      CINETPAY_API_KEY: ${CINETPAY_API_KEY}
+      CINETPAY_SITE_ID: ${CINETPAY_SITE_ID}
+      CINETPAY_NOTIFY_URL: ${API_URL}/v1/payments/webhook
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vivre-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ─── Web Next.js ──────────────────────────────────────────────────────────
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/vivre-web:${IMAGE_TAG:-latest}
+    container_name: vivre-web-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${API_URL}
+      NEXTAUTH_URL: ${WEB_URL}
+    depends_on:
+      - api
+    networks:
+      - vivre-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ─── Nginx reverse proxy ──────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: vivre-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/vivre.conf:/etc/nginx/conf.d/vivre.conf:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - web
+      - api
+    networks:
+      - vivre-internal
+
+  # ─── Certbot (Let's Encrypt) ──────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: vivre-certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # Lance manuellement : docker compose run certbot certonly --webroot -w /var/www/certbot -d vivre.bf -d www.vivre.bf -d api.vivre.bf
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
+
+volumes:
+  postgres_data:
+    name: vivre_postgres_prod
+  redis_data:
+    name: vivre_redis_prod
+  certbot_www:
+    name: vivre_certbot_www
+  certbot_certs:
+    name: vivre_certbot_certs
+
+networks:
+  vivre-internal:
+    name: vivre-internal
+    driver: bridge

@@ -1,9 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@vivre/config/tsconfig/base",
+  "extends": "@vivre/config/tsconfig/fastify",
   "compilerOptions": {
-    /* Pas de outDir — ce package est consommé via tsx directement */
-    "noEmit": true
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+  "include": ["src/index.ts"]
 }

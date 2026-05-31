@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/.env
+**/.env.local
+**/.env.*.local
+.git
+.github
+docker
+nginx
+scripts
+*.md
+*.log
+.DS_Store
