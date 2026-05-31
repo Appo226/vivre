@@ -8,7 +8,7 @@
  * Les zémidjans font aussi la livraison food — réseau de chauffeurs partagé.
  */
 
-import type { UUID, Timestamps, GeoCoordinates } from "./common.js";
+import type { UUID, Timestamps } from "./common.js";
 import type {
   BusType,
   PassengerType,

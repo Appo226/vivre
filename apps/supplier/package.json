@@ -1,20 +1,4 @@
 {
-  /**
-   * apps/supplier — Dashboard fournisseur VIVRE (Next.js)
-   *
-   * Interface pour les fournisseurs : compagnies de bus, hôtels, restaurants, guides.
-   * Accessible sur supplier.vivre.bf — port 3003 en développement.
-   *
-   * Modules (selon ScreenMap SUP-001 à SUP-006) :
-   * - SUP-001 : Tableau de bord du fournisseur (revenus, réservations, alertes)
-   * - SUP-002 : Gestion de l'inventaire (routes, chambres, menu, calendrier guide)
-   * - SUP-003 : Réservations et commandes en temps réel
-   * - SUP-004 : Gestion des prix et disponibilité
-   * - SUP-005 : Profil et documents (licence, assurance, photos, coordonnées bancaires)
-   * - SUP-006 : Analytics (revenus, comparaisons, avis reçus)
-   *
-   * Design : Desktop-first (les gérants travaillent principalement sur PC)
-   */
   "name": "@vivre/supplier",
   "version": "0.1.0",
   "private": true,

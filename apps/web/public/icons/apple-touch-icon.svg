@@ -1,0 +1,14 @@
+<!-- Apple Touch Icon 180×180 (référencé dans layout.tsx) -->
+<!-- Renommer en .png pour la production (iOS exige PNG) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="40" fill="#1A6B3A"/>
+  <text
+    x="90" y="130"
+    font-family="Arial, sans-serif"
+    font-weight="900"
+    font-size="110"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="auto"
+  >V</text>
+</svg>

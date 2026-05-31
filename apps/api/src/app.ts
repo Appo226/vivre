@@ -19,11 +19,69 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
+/*
+ * L'augmentation de FastifySchema (summary, tags, etc.) est déclarée dans
+ * src/types/schema-augment.d.ts — fichier ambiant sans imports, appliqué globalement.
+ * @fastify/swagger sera enregistré ici quand on activera la documentation API.
+ */
 
-/* Routes par module (à décommenter au fur et à mesure du développement) */
-// import { authRoutes } from './routes/auth.routes.js';
-// import { citiesRoutes } from './routes/cities.routes.js';
-// import { transportRoutes } from './routes/transport.routes.js';
+/* Routes — Module 01 : Authentification (Étape 3) */
+import { sendOtpRoute } from "./routes/auth/send-otp.js";
+import { verifyOtpRoute } from "./routes/auth/verify-otp.js";
+import { refreshRoute } from "./routes/auth/refresh.js";
+import { logoutRoute } from "./routes/auth/logout.js";
+import { usersRoutes } from "./routes/users/me.js";
+
+/* Routes — Module 04 : Géographie (Étape 4) */
+import { citiesRoutes } from "./routes/cities/index.js";
+import { publicServicesRoutes, serviceCorrectionsRoute } from "./routes/public-services/index.js";
+import { urbanLinesRoutes } from "./routes/urban-lines/index.js";
+
+/* Routes — Module 05 : Transport Interurbain (Étape 5) */
+import { transportRoutes } from "./routes/transport/index.js";
+
+/* Routes — Module Événements & Billets */
+import { eventsRoutes } from "./routes/events/index.js";
+
+/* Routes — Module 06 : Hébergement (Étape 6) */
+import { propertiesRoutes, propertyBookingsRoutes } from "./routes/properties/index.js";
+
+/* Routes — Module 07 : Food Delivery (Étape 7) */
+import { restaurantsRoutes, ordersRoutes } from "./routes/food/index.js";
+
+/* Routes — Module Livreurs : onboarding + gains + versements */
+import { driversRoutes } from "./routes/drivers/index.js";
+
+/* Routes — Module Paiements : CinetPay (Orange Money, Moov, Telecel) */
+import { paymentsRoutes } from "./routes/payments/index.js";
+
+/* Routes — Module Notifications : device tokens + historique in-app */
+import { notificationsRoutes } from "./routes/notifications/index.js";
+
+/* Routes — Uploads Firebase Storage */
+import { uploadsRoutes } from "./routes/uploads/index.js";
+
+/* Routes — Transport Intraurbain (Taxi / Zémidjan) */
+import { ridesRoutes } from "./routes/rides/index.js";
+
+/* Routes — Avis clients */
+import { reviewsRoutes } from "./routes/reviews/index.js";
+
+/* Routes — Dashboard Administrateur */
+import { adminRoutes } from "./routes/admin/index.js";
+
+/* Routes — Assistant IA (Module 10) */
+import { aiRoutes } from "./routes/ai/index.js";
+
+/* Routes — Attractions touristiques & Guides */
+import { attractionsRoutes } from "./routes/attractions/index.js";
+import { guidesRoutes } from "./routes/guides/index.js";
+
+/* Routes — Annulations et remboursements */
+import { cancellationRoutes } from "./routes/cancellations/index.js";
+
+/* Routes — Recherche universelle */
+import { searchRoutes } from "./routes/search/index.js";
 
 /**
  * Construit et configure l'application Fastify VIVRE.
@@ -52,10 +110,14 @@ export async function buildApp(): Promise<FastifyInstance> {
         : true,
     /* Trust le header X-Forwarded-For derrière un reverse proxy (Nginx, Vercel) */
     trustProxy: true,
-    /* Stringify stricte — rejette les valeurs undefined dans les réponses JSON */
+    /*
+     * AJV — validateur JSON Schema de Fastify.
+     * On utilise Zod pour la validation métier donc on désactive le mode strict d'AJV
+     * pour permettre les mots-clés OpenAPI (example, description) dans les schemas de route.
+     */
     ajv: {
       customOptions: {
-        strict: true,
+        strict: false,  /* Autorise les mots-clés OpenAPI (example, nullable, etc.) */
         allErrors: true,
       },
     },
@@ -69,11 +131,13 @@ export async function buildApp(): Promise<FastifyInstance> {
    * - Content-Security-Policy (limite les origines des scripts)
    * - Strict-Transport-Security (force HTTPS en production)
    */
+  /*
+   * exactOptionalPropertyTypes oblige à ne pas passer `undefined` explicitement.
+   * On spread l'option conditionnellement pour que la propriété soit ABSENTE (pas undefined)
+   * en production — Helmet applique alors sa CSP stricte par défaut.
+   */
   await app.register(helmet, {
-    contentSecurityPolicy:
-      process.env["NODE_ENV"] === "production"
-        ? undefined /* En prod : CSP stricte par défaut */
-        : false,    /* En dev : désactivée pour les outils de debugging */
+    ...(process.env["NODE_ENV"] !== "production" && { contentSecurityPolicy: false }),
   });
 
   /* === PLUGIN : CORS === */
@@ -119,8 +183,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       code: "RATE_LIMIT_EXCEEDED",
       details: {
         limit: context.max,
-        remaining: context.remaining,
-        retry_after: context.ttl,
+        retry_after: context.ttl, /* TTL en ms avant réinitialisation de la fenêtre */
       },
     }),
   });
@@ -170,12 +233,70 @@ export async function buildApp(): Promise<FastifyInstance> {
         environment: process.env["NODE_ENV"] ?? "development",
       }));
 
-      /* TODO: enregistrer les routes au fur et à mesure du développement
-       * await v1.register(authRoutes, { prefix: '/auth' });
-       * await v1.register(citiesRoutes, { prefix: '/cities' });
-       * await v1.register(transportRoutes, { prefix: '/transport' });
-       * etc.
+      /* Module 01 — Authentification */
+      await v1.register(sendOtpRoute, { prefix: "/auth" });
+      await v1.register(verifyOtpRoute, { prefix: "/auth" });
+      await v1.register(refreshRoute, { prefix: "/auth" });
+      await v1.register(logoutRoute, { prefix: "/auth" });
+      await v1.register(usersRoutes, { prefix: "/users" });
+
+      /* Module 04 — Géographie */
+      await v1.register(citiesRoutes, { prefix: "/cities" });
+      await v1.register(publicServicesRoutes, { prefix: "/public-services" });
+      /*
+       * serviceCorrectionsRoute est enregistré à la racine /v1 (pas sous /public-services)
+       * car l'endpoint est /v1/service-corrections selon l'APISpec v1.5.
        */
+      await v1.register(serviceCorrectionsRoute);
+      await v1.register(urbanLinesRoutes, { prefix: "/urban-lines" });
+
+      /* Module 05 — Transport Interurbain */
+      await v1.register(transportRoutes, { prefix: "/transport" });
+
+      /* Module Événements & Billets */
+      await v1.register(eventsRoutes, { prefix: "/events" });
+
+      /* Module 06 — Hébergement */
+      await v1.register(propertiesRoutes, { prefix: "/properties" });
+      await v1.register(propertyBookingsRoutes, { prefix: "/property-bookings" });
+
+      /* Module 07 — Food Delivery */
+      await v1.register(restaurantsRoutes, { prefix: "/restaurants" });
+      await v1.register(ordersRoutes, { prefix: "/orders" });
+
+      /* Module Livreurs */
+      await v1.register(driversRoutes, { prefix: "/drivers" });
+
+      /* Module Paiements — CinetPay agrégateur (Orange, Moov, Telecel) */
+      await v1.register(paymentsRoutes, { prefix: "/payments" });
+
+      /* Module Notifications — tokens FCM + historique */
+      await v1.register(notificationsRoutes, { prefix: "/notifications" });
+
+      /* Firebase Storage — uploads médias */
+      await v1.register(uploadsRoutes, { prefix: "/uploads" });
+
+      /* Transport Intraurbain — courses taxi/zémidjan en temps réel */
+      await v1.register(ridesRoutes, { prefix: "/rides" });
+
+      /* Avis clients — restaurants, hébergements, livreurs */
+      await v1.register(reviewsRoutes, { prefix: "/reviews" });
+
+      /* Dashboard Administrateur — stats, approbations, versements */
+      await v1.register(adminRoutes, { prefix: "/admin" });
+
+      /* Assistant IA — boucle agentique Claude Sonnet */
+      await v1.register(aiRoutes, { prefix: "/ai" });
+
+      /* Attractions touristiques & Guides certifiés */
+      await v1.register(attractionsRoutes, { prefix: "/attractions" });
+      await v1.register(guidesRoutes, { prefix: "/guides" });
+
+      /* Annulations et remboursements — toutes entités */
+      await v1.register(cancellationRoutes);
+
+      /* Recherche universelle — public, fans out en parallèle */
+      await v1.register(searchRoutes, { prefix: "/search" });
     },
     { prefix: "/v1" }
   );

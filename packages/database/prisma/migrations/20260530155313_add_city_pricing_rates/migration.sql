@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "cities" ADD COLUMN     "min_fare" INTEGER NOT NULL DEFAULT 500,
+ADD COLUMN     "night_rate_multiplier" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+ADD COLUMN     "taxi_rate_per_km" INTEGER NOT NULL DEFAULT 250,
+ADD COLUMN     "zemidjan_rate_per_km" INTEGER NOT NULL DEFAULT 150;

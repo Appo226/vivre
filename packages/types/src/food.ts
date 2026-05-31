@@ -12,7 +12,7 @@
  *   mais le restaurant "ouvert maintenant" est filtré de façon similaire
  */
 
-import type { UUID, Timestamps, GeoCoordinates } from "./common.js";
+import type { UUID, Timestamps } from "./common.js";
 import type { RestaurantType, OrderType, OrderStatus, OrderPaymentMethod } from "./enums.js";
 
 /* ============================================================

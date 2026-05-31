@@ -18,6 +18,8 @@
  */
 
 import type { Metadata } from "next";
+import AiChat from "@/components/AiChat";
+import SearchBar from "@/components/SearchBar";
 
 /* Métadonnées spécifiques à la page d'accueil */
 export const metadata: Metadata = {
@@ -55,20 +57,7 @@ export default function HomePage(): React.ReactElement {
         </button>
 
         {/* Barre de recherche universelle */}
-        <div className="relative">
-          <input
-            type="search"
-            placeholder="Rechercher hôtels, restaurants, bus..."
-            className={[
-              "w-full h-12 px-4 pl-10",
-              "bg-white rounded-card text-gray-900",
-              "font-dm text-sm placeholder:text-gray-400",
-              "focus:outline-none focus:ring-2 focus:ring-green-300",
-            ].join(" ")}
-          />
-          {/* TODO: Icône Search de lucide-react */}
-          <span className="absolute left-3 top-3.5 text-gray-400">🔍</span>
-        </div>
+        <SearchBar />
       </header>
 
       {/* === GRILLE DES MODULES === */}
@@ -130,8 +119,8 @@ export default function HomePage(): React.ReactElement {
       {/* === BOTTOM NAVIGATION === */}
       <BottomNav />
 
-      {/* === BOUTON FLOTTANT AI === */}
-      <AiFloatingButton />
+      {/* === ASSISTANT IA === */}
+      <AiChat />
     </main>
   );
 }
@@ -142,12 +131,13 @@ export default function HomePage(): React.ReactElement {
 
 /** Modules de la grille H-001 */
 const MODULE_CARDS = [
-  { id: "transport", href: "/transport", icon: "🚌", label: "Transport" },
-  { id: "food", href: "/food", icon: "🍽️", label: "Repas" },
-  { id: "hotels", href: "/hotels", icon: "🏨", label: "Hôtels" },
-  { id: "guides", href: "/guides", icon: "🧭", label: "Guides" },
-  { id: "attractions", href: "/attractions", icon: "🗺️", label: "Découvrir" },
-  { id: "urgences", href: "/urgences", icon: "🏥", label: "Urgences" },
+  { id: "course",      href: "/course",    icon: "🛵", label: "Course" },
+  { id: "food",        href: "/food",      icon: "🍽️", label: "Repas" },
+  { id: "hotels",      href: "/hebergement", icon: "🏨", label: "Hôtels" },
+  { id: "transport",   href: "/transport", icon: "🚌", label: "Voyage" },
+  { id: "evenements",  href: "/evenements",icon: "🎟️", label: "Événements" },
+  { id: "guides",      href: "/guides",    icon: "🗺️", label: "Guides" },
+  { id: "urgences",    href: "/urgences",  icon: "🏥", label: "Urgences" },
 ] as const;
 
 /* ============================================================
@@ -200,26 +190,3 @@ function BottomNav(): React.ReactElement {
   );
 }
 
-/**
- * Bouton flottant IA — accessible depuis toutes les pages.
- * Ouvre l'assistant IA Claude (Module 10).
- * TODO Step 15: Connecter à l'API /ai/chat
- */
-function AiFloatingButton(): React.ReactElement {
-  return (
-    <button
-      className={[
-        "fixed bottom-20 right-4 z-40",
-        "w-14 h-14 rounded-full",
-        "bg-gold text-white shadow-modal",
-        "flex items-center justify-center",
-        "hover:scale-105 active:scale-95",
-        "transition-transform duration-200",
-      ].join(" ")}
-      aria-label="Ouvrir l'assistant IA VIVRE"
-    >
-      {/* TODO: Logo IA ou icône Sparkles de lucide-react */}
-      <span className="text-2xl">✨</span>
-    </button>
-  );
-}

@@ -1,19 +1,4 @@
 {
-  /**
-   * apps/admin — Dashboard administrateur VIVRE (Next.js)
-   *
-   * Interface d'administration réservée à l'équipe VIVRE.
-   * Accessible sur admin.vivre.bf — port 3002 en développement.
-   *
-   * Modules gérés :
-   * - ADM-001 : Tableau de bord avec KPIs en temps réel
-   * - ADM-002 : Gestion des fournisseurs (validation, suspension)
-   * - ADM-003 : Gestion des utilisateurs (blocage, litiges, remboursements)
-   * - ADM-004 : Gestion des villes et modules activés
-   * - ADM-005 : Analytics plateforme (revenus, villes, conversion)
-   *
-   * Design : Desktop-first (les admins travaillent sur PC, pas sur mobile)
-   */
   "name": "@vivre/admin",
   "version": "0.1.0",
   "private": true,

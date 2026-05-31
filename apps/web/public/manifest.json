@@ -1,0 +1,75 @@
+{
+  "name": "VIVRE — Burkina Faso",
+  "short_name": "VIVRE",
+  "description": "Super-app du Burkina Faso — Transport, Repas, Hôtels, Urgences",
+  "lang": "fr",
+  "dir": "ltr",
+
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+
+  "background_color": "#FFFFFF",
+  "theme_color": "#1A6B3A",
+
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Prendre une course",
+      "short_name": "Course",
+      "description": "Taxi ou Zémidjan — réservation immédiate",
+      "url": "/course?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Commander un repas",
+      "short_name": "Repas",
+      "description": "Livraison depuis les restaurants de votre ville",
+      "url": "/food?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Numéros d'urgence",
+      "short_name": "Urgences",
+      "description": "SAMU 15, Police 17, Pompiers 18",
+      "url": "/urgences?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Transport interurbain",
+      "short_name": "Voyage",
+      "description": "Bus Ouaga ↔ Bobo, Fada, Koudougou…",
+      "url": "/transport?source=shortcut",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any" }]
+    }
+  ],
+
+  "categories": ["travel", "food", "lifestyle", "navigation"],
+
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Accueil VIVRE"
+    }
+  ],
+
+  "prefer_related_applications": false
+}

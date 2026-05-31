@@ -69,6 +69,7 @@ model User {
   reviews              Review[]
   payments             Payment[]
   notifications        Notification[]
+  device_tokens        DeviceToken[]
   service_corrections  ServiceCorrection[]
   // Relations fournisseur
   transport_company    TransportCompany?
@@ -76,6 +77,12 @@ model User {
   restaurant           Restaurant[]
   guide                Guide?
   driver               Driver?
+  // Événements organisés (rôle organisateur)
+  organized_events          Event[]           @relation("OrganizedEvents")
+  event_bookings            EventBooking[]    @relation("EventBookingOwner")
+  received_event_bookings   EventBooking[]    @relation("EventBookingTransfer")
+  // Portefeuille VIVRE (crédits remboursements)
+  wallet                    VivreWallet?
 
   @@map("users")
 }
@@ -130,7 +137,7 @@ model OtpCode {
 // L'admin peut activer/désactiver des modules par ville via ADM-004.
 model City {
   id            String  @id @default(uuid())
-  name          String  // Nom français (ex: "Ouagadougou")
+  name          String  @unique // Nom français (ex: "Ouagadougou") — unique car chaque ville a un nom distinct
   name_en       String? // Nom anglais optionnel
   region        String  // Région administrative du Burkina
   country_code  String  @default("BFA") // ISO 3166-1 alpha-3
@@ -142,6 +149,11 @@ model City {
   has_transport Boolean @default(false)
   has_food      Boolean @default(false)
   has_drivers   Boolean @default(false)
+  // Tarification intraurbaine — modifiable par l'admin sans redéploiement
+  taxi_rate_per_km     Int   @default(250) // FCFA par km, taxi voiture
+  zemidjan_rate_per_km Int   @default(150) // FCFA par km, moto-taxi
+  min_fare             Int   @default(500) // FCFA minimum facturation
+  night_rate_multiplier Float @default(1.0) // Multiplicateur nuit (ex: 1.2 = +20% après 22h)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
@@ -157,9 +169,44 @@ model City {
   public_services     PublicService[]
   urban_lines         UrbanLine[]
   ride_requests       RideRequest[]
+  events              Event[]
+  pricing_rules       CityPricingRule[]
 
   @@index([country_code, is_active])
   @@map("cities")
+}
+
+// Règles tarifaires d'une ville — s'empilent sur les tarifs de base
+// Exemple : +20% en janvier (FESPACO), +15% heure de pointe 17h-20h
+model CityPricingRule {
+  id      String @id @default(uuid())
+  city_id String
+  city    City   @relation(fields: [city_id], references: [id], onDelete: Cascade)
+
+  label   String   // Nom lisible : "Saison des pluies", "FESPACO 2026", "Rush du soir"
+
+  // Conditions temporelles — ET logique entre toutes les conditions définies.
+  // Un tableau vide signifie "toujours" pour cette dimension.
+  months      Int[]    // 1=jan … 12=déc.  Vide = tous les mois.
+  weekdays    Int[]    // 0=dim, 1=lun … 6=sam.  Vide = tous les jours.
+  hour_start  Int?     // 0–23. Null = pas de contrainte horaire.
+  hour_end    Int?     // 0–23 inclus. Si hour_end < hour_start → chevauchement minuit.
+  date_from   DateTime? // Début d'une fenêtre calendaire (optionnel)
+  date_to     DateTime? // Fin d'une fenêtre calendaire  (optionnel, inclus)
+
+  // Multiplicateurs appliqués au tarif de base de la ville
+  // Plusieurs règles actives se multiplient entre elles, plafonnées à 2.0×
+  taxi_multiplier     Float @default(1.0)
+  zemidjan_multiplier Float @default(1.0)
+
+  priority  Int     @default(0)    // Ordre d'affichage — n'affecte pas le calcul (compound)
+  is_active Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([city_id, is_active])
+  @@map("city_pricing_rules")
 }
 
 // =============================================================
@@ -206,6 +253,11 @@ model Route {
   duration_minutes      Int
   bus_type              String  // "standard" | "confort" | "vip" | "minibus"
   total_seats           Int
+  // Politique d'annulation billet
+  cancel_policy         String  @default("moderate") // "flexible"|"moderate"|"strict"|"non_refundable"
+  cancel_full_refund_h  Int     @default(24)  // Heures avant départ → remboursement intégral
+  cancel_partial_h      Int     @default(2)   // Heures avant départ → remboursement partiel
+  cancel_partial_pct    Int     @default(50)  // % remboursé dans la fenêtre partielle
   is_active             Boolean @default(true)
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -281,7 +333,7 @@ model TransportBooking {
   seat_numbers         String[] // VARCHAR[]
   passenger_type       String   // "adult" | "child" | "student"
   total_amount         Int      // FCFA
-  status               String   @default("pending") // pending|confirmed|cancelled|completed
+  status               String   @default("pending_payment") // pending_payment|pending|confirmed|cancelled|completed
   payment_id           String?
   qr_code              String   // Données QR en base64 ou JSON
   cancelled_at         DateTime?
@@ -321,19 +373,63 @@ model Driver {
   can_deliver_food Boolean  @default(false)
   base_rate_fcfa   Int      @default(200) // Tarif de base FCFA/km
   rating_avg       Float    @default(0)
-  is_approved      Boolean  @default(false)
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  is_approved        Boolean  @default(false)
+  // application_status: "pending" | "approved" | "rejected"
+  // pending = candidature soumise en attente de vérification admin
+  // approved = dossier validé, le chauffeur peut livrer
+  // rejected = dossier refusé (voir rejection_reason)
+  application_status String   @default("pending")
+  rejection_reason   String?  @db.Text // Raison de refus communiquée au candidat
+  // documents : JSON { id_card_url, license_url, vehicle_reg_url, selfie_url }
+  documents          Json?
+  payout_phone       String?  // Numéro mobile money par défaut pour les versements
+  payout_method      String?  // "orange_money" | "moov" | "telecel_money"
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
   user             User     @relation(fields: [user_id], references: [id])
   city             City     @relation(fields: [city_id], references: [id])
   ride_requests    RideRequest[]
   food_deliveries  Order[]
+  payouts          DriverPayout[]
 
   // Index géospatial — utilisé pour trouver les chauffeurs proches
   // L'index GIST PostGIS est créé dans init.sql car Prisma ne le supporte pas nativement
   @@index([city_id, is_available, driver_type])
+  @@index([application_status])
   @@map("drivers")
+}
+
+// Versement automatique des gains d'un livreur.
+// Les gains sont calculés depuis les Orders livrées (80% du delivery_fee).
+// Le versement est déclenché automatiquement via le PayoutProviderRegistry —
+// aucune intervention admin requise en conditions normales.
+// Commission VIVRE : 20% du delivery_fee de chaque livraison.
+model DriverPayout {
+  id                      String   @id @default(uuid())
+  driver_id               String
+  amount_fcfa             Int      // Montant net (après commission VIVRE de 20%)
+  deliveries_count        Int      // Nombre de livraisons couvertes
+  period_from             DateTime // Début de la période couverte
+  period_to               DateTime // Fin de la période couverte
+  payment_method          String   // "orange_money" | "moov" | "telecel_money"
+  phone_number            String   // Numéro mobile money du livreur
+  status                  String   @default("processing")
+  // "processing"  : virement initié, en attente de confirmation réseau
+  // "paid"         : confirmé — livreur a bien reçu l'argent
+  // "failed"       : échec du virement (voir failure_reason)
+  provider_transaction_id String?  // ID de transaction côté opérateur (CinetPay Transfer)
+  failure_reason          String?  // Message d'erreur si status = "failed"
+  admin_note              String?  // Note admin visible en interne uniquement
+  processed_at            DateTime?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  driver                  Driver   @relation(fields: [driver_id], references: [id])
+
+  @@index([driver_id, status])
+  @@index([status, created_at])
+  @@map("driver_payouts")
 }
 
 // Demande de course créée par un client.
@@ -433,7 +529,12 @@ model Property {
   amenities            String[] // Tableau d'équipements
   check_in_time        String  @default("14:00")
   check_out_time       String  @default("12:00")
-  cancellation_policy  String? @db.Text
+  cancellation_policy  String? @db.Text // Texte libre affiché à l'utilisateur
+  // Politique structurée — utilisée par le moteur de remboursement
+  cancel_policy        String  @default("strict") // "flexible"|"moderate"|"strict"|"non_refundable"
+  cancel_full_refund_h Int?    // Heures avant check-in → remboursement intégral (ex: 72)
+  cancel_partial_h     Int?    // Heures avant check-in → remboursement partiel (ex: 24)
+  cancel_partial_pct   Int?    // Pourcentage remboursé dans la fenêtre partielle (0–100)
   is_approved          Boolean @default(false)
   is_active            Boolean @default(true)
   rating_avg           Float   @default(0)
@@ -445,7 +546,6 @@ model Property {
   city                 City    @relation(fields: [city_id], references: [id])
   room_types           RoomType[]
   bookings             PropertyBooking[]
-  media                Media[]  @relation("PropertyMedia")
 
   @@index([city_id, property_type, is_active, is_approved])
   @@index([latitude, longitude]) // Pour la recherche géographique côté client
@@ -488,11 +588,12 @@ model PropertyBooking {
   guests_count     Int
   total_amount     Int      // FCFA
   special_requests String?
-  status           String   @default("pending")
-  payment_id       String?
-  cancelled_at     DateTime?
-  created_at       DateTime @default(now())
-  updated_at       DateTime @updatedAt
+  status               String   @default("pending_payment") // pending_payment|pending|confirmed|cancelled|completed
+  payment_id           String?
+  cancelled_at         DateTime?
+  cancellation_reason  String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
 
   user             User     @relation(fields: [user_id], references: [id])
   property         Property @relation(fields: [property_id], references: [id])
@@ -543,7 +644,6 @@ model Restaurant {
   menu_categories      MenuCategory[]
   menu_items           MenuItem[]
   orders               Order[]
-  media                Media[]  @relation("RestaurantMedia")
 
   @@index([city_id, is_active, is_approved, is_open_now])
   @@index([latitude, longitude])
@@ -607,8 +707,8 @@ model Order {
   subtotal              Int      // FCFA — total articles sans livraison
   delivery_fee          Int      @default(0) // FCFA — 0 si pickup
   total_amount          Int      // FCFA — subtotal + delivery_fee - promo
-  status                String   @default("pending")
-  payment_method        String   @default("cash")
+  status                String   @default("pending_payment") // pending_payment|pending|confirmed|preparing|ready|picked_up|delivered|cancelled
+  payment_method        String   @default("orange_money")   // orange_money|moov|telecel_money
   payment_id            String?
   special_instructions  String?
   estimated_delivery_at DateTime?
@@ -679,7 +779,8 @@ model Attraction {
   updated_at            DateTime @updatedAt
 
   city                  City?   @relation(fields: [city_id], references: [id])
-  guide_bookings        GuideBooking[] @relation("AttractionGuideBookings")
+  // Les réservations de guide référencent les attractions via attraction_ids (UUID array)
+  // pas de relation Prisma directe — lookup via prisma.$queryRaw WHERE id = ANY(attraction_ids)
 
   @@index([city_id, category, is_active])
   @@index([is_featured, is_active])
@@ -742,8 +843,8 @@ model GuideBooking {
   user              User     @relation(fields: [user_id], references: [id])
   guide             Guide    @relation(fields: [guide_id], references: [id])
   payment           Payment? @relation(fields: [payment_id], references: [id])
-  // Relation many-to-many via IDs stockés (PostgreSQL array)
-  attractions       Attraction[] @relation("AttractionGuideBookings")
+  // attraction_ids String[] contient les UUIDs des attractions visitées.
+  // Pas de relation Prisma : lookup via prisma.$queryRaw("SELECT * FROM attractions WHERE id = ANY($1)", attraction_ids)
 
   @@index([guide_id, status, booking_date])
   @@index([user_id, status])
@@ -763,10 +864,10 @@ model Payment {
   user_id        String
   amount         Int      // FCFA
   currency       String   @default("XOF")
-  payment_method String   // "orange_money" | "moov" | "wave" | "card" | "cash"
-  provider_ref   String?  // Référence transaction chez l'opérateur
-  status         String   @default("pending")
-  booking_type   String   // "transport" | "property" | "food" | "guide" | "ride"
+  payment_method String   // "orange_money" | "moov" | "telecel_money" — set from CinetPay webhook
+  provider_ref   String?  // CinetPay payment_token — stocké à l'initiation
+  status         String   @default("pending")   // pending|completed|failed|cancelled
+  booking_type   String   // "transport" | "property" | "food" | "event"
   booking_id     String   // UUID de la réservation (polymorphique)
   platform_fee   Int      // FCFA — commission 12%
   supplier_amount Int     // FCFA — 88% reversé au fournisseur
@@ -783,6 +884,7 @@ model Payment {
   property_bookings   PropertyBooking[]
   orders              Order[]
   guide_bookings      GuideBooking[]
+  event_bookings      EventBooking[]
 
   @@index([user_id, status])
   @@index([booking_type, booking_id])
@@ -792,19 +894,25 @@ model Payment {
 
 // Remboursement associé à un paiement.
 model Refund {
-  id           String   @id @default(uuid())
-  payment_id   String
-  amount       Int      // FCFA — peut être partiel
-  reason       String
-  status       String   @default("pending")
-  processed_by String?  // UUID de l'admin
-  processed_at DateTime?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  payment_id     String
+  amount         Int      // FCFA — peut être partiel
+  reason         String
+  status         String   @default("pending") // "pending"|"completed"|"rejected"
+  // Méthode choisie par l'utilisateur
+  refund_method  String   @default("vivre_credit") // "vivre_credit" | "mobile_money"
+  // Traçabilité de la réservation source
+  booking_type   String?  // "transport" | "property" | "food" | "event"
+  booking_id     String?  // UUID de la réservation concernée
+  processed_by   String?  // UUID de l'admin
+  processed_at   DateTime?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 
-  payment      Payment  @relation(fields: [payment_id], references: [id])
+  payment        Payment  @relation(fields: [payment_id], references: [id])
 
   @@index([payment_id, status])
+  @@index([status, refund_method]) // Pour le tableau de bord admin
   @@map("refunds")
 }
 
@@ -848,19 +956,19 @@ model Review {
 // Fichier média (photo ou vidéo) associé à une entité.
 // entity_type + entity_id = référence polymorphique.
 // Les fichiers sont stockés sur AWS S3, distribués via CloudFront.
+// Modèle polymorphique — entity_type + entity_id référencent n'importe quelle entité.
+// On n'utilise pas de relations Prisma typées ici car le polymorphisme Prisma
+// nécessiterait une FK spécifique par type, ce qui n'est pas adapté à un modèle générique.
+// Les lookups se font par requêtes WHERE entity_type = '...' AND entity_id = '...'.
 model Media {
   id           String  @id @default(uuid())
-  entity_type  String
-  entity_id    String
+  entity_type  String  // "property" | "restaurant" | "guide" | "attraction" | "user"
+  entity_id    String  // UUID de l'entité (sans FK Prisma — polymorphique)
   url          String  // URL S3/CloudFront complète
   media_type   String  // "image" | "video"
   is_primary   Boolean @default(false) // Une seule photo primaire par entité
   sort_order   Int     @default(0)
   uploaded_by  String  // UUID de l'utilisateur qui a uploadé
-
-  // Relations inverses pour les propriétés et restaurants
-  property     Property?   @relation("PropertyMedia", fields: [entity_id], references: [id])
-  restaurant   Restaurant? @relation("RestaurantMedia", fields: [entity_id], references: [id])
 
   @@index([entity_type, entity_id, is_primary])
   @@map("media")
@@ -885,6 +993,23 @@ model Notification {
 
   @@index([user_id, is_read, sent_at])
   @@map("notifications")
+}
+
+// Token FCM (Firebase Cloud Messaging) pour les notifications push.
+// Un utilisateur peut avoir plusieurs appareils simultanément (web + mobile).
+// Le token est mis à jour à chaque connexion — FCM peut en changer.
+model DeviceToken {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique  // Token FCM — unique par appareil
+  platform   String            // "web" | "android" | "ios"
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("device_tokens")
 }
 
 // Code promotionnel — peut cibler un module spécifique ou tous les modules.
@@ -979,7 +1104,7 @@ model PublicService {
 model EmergencyNumber {
   id               String  @id @default(uuid())
   country_code     String  @default("BFA")
-  service_name     String  // Ex: "SAMU"
+  service_name     String  @unique // Ex: "SAMU" — unique car un seul service par nom
   service_name_en  String  // Ex: "Emergency Medical Services"
   number           String  // Ex: "15" ou "+226 25 33 40 40"
   icon             String  // Nom d'icône Lucide React
@@ -1013,4 +1138,223 @@ model ServiceCorrection {
   @@index([service_id, status])
   @@index([status, created_at]) // Pour la liste des signalements en attente (admin)
   @@map("service_corrections")
+}
+
+// =============================================================
+// SECTION 12 — ÉVÉNEMENTS & BILLETS
+// 4 tables : event_categories, events, event_ticket_types, event_bookings
+//
+// Flux de vie d'un événement :
+//   Organisateur soumet → status "pending_approval"
+//   Admin vérifie → "approved" ou "rejected"
+//   Organisateur paie les frais de publication → has_paid_publishing = true
+//   Billetterie ouverte → utilisateurs réservent des EventBooking
+//   Après validation de chaque billet à l'entrée → status "checked_in"
+//
+// Revenue VIVRE :
+//   - Frais de publication : publishing_fee_fcfa (défaut 5 000 FCFA, négociable)
+//   - Commission sur ventes : commission_percent (défaut 5%, négociable)
+// =============================================================
+
+// Catégories d'événements (concert, sport, festival, conférence…)
+model EventCategory {
+  id        String  @id @default(uuid())
+  name      String  @unique // "Concert", "Festival", "Sport", "Conférence", "Culturel", "Religieux"
+  name_en   String?
+  icon      String?          // Emoji ou nom d'icône Lucide
+  color_hex String  @default("#1A6B3A")
+  is_active Boolean @default(true)
+
+  events    Event[]
+
+  @@map("event_categories")
+}
+
+// Événement organisé sur la plateforme VIVRE.
+// L'organisateur est un User avec rôle supplier (supplier_type = "events").
+// Après approbation admin, les tickets peuvent être vendus.
+model Event {
+  id          String   @id @default(uuid())
+  organizer_id String  // User (rôle supplier) qui organise l'événement
+  city_id      String
+  category_id  String
+
+  title        String
+  slug         String  @unique // URL-friendly, ex: "faso-fest-2026-ouagadougou"
+  description  String  @db.Text // Description complète (Markdown supporté côté client)
+  cover_url    String?           // Image de couverture principale
+  gallery_urls String[]          // Photos supplémentaires (max 10 recommandé)
+
+  // Localisation du lieu
+  venue_name    String  // Nom du lieu, ex: "Stade du 4 Août"
+  venue_address String  // Adresse complète
+  latitude      Float?
+  longitude     Float?
+
+  // Temporalité
+  starts_at DateTime
+  ends_at   DateTime
+
+  // Capacité maximale autorisée
+  max_capacity Int
+
+  // Informations de sécurité — transmises à la police si demandé
+  // L'organisateur doit décrire : plan de sécurité, sorties de secours,
+  // personnel de sécurité prévu, restrictions d'âge, etc.
+  safety_description String?  @db.Text
+  expected_profile   String?  // Description du public attendu (familles, adultes, etc.)
+
+  // Statut — cycle de vie
+  status           String @default("draft")
+  // "draft"            : brouillon (organisateur en cours de rédaction)
+  // "pending_approval" : soumis à l'admin pour validation
+  // "approved"         : validé — tickets en vente si has_paid_publishing = true
+  // "rejected"         : rejeté avec raison
+  // "cancelled"        : annulé après publication
+  // "completed"        : événement terminé
+  rejection_reason String?    // Si rejected : explication pour l'organisateur
+  is_featured      Boolean @default(false) // Mis en avant par l'admin sur la home
+
+  // Politique de remboursement — configurée par l'organisateur
+  refund_enabled      Boolean @default(false) // true = l'organisateur autorise les remboursements
+  refund_cutoff_hours Int?    // Heures avant l'événement jusqu'auxquelles on peut annuler
+
+  // Revenue VIVRE — valeurs par défaut, modifiables par l'admin par accord commercial
+  publishing_fee_fcfa Int   @default(5000)  // Frais fixes de publication
+  commission_percent  Float @default(5.0)   // % commission sur chaque vente de ticket
+  has_paid_publishing Boolean @default(false) // true = frais de publication réglés
+
+  // Avis clients agrégés
+  rating_avg    Float @default(0)
+
+  // Rapport police
+  // L'admin peut marquer l'événement comme notifié aux autorités
+  police_notified_at DateTime? // null = pas encore notifié aux forces de l'ordre
+
+  // Métadonnées d'approbation
+  approved_by String?   // UUID de l'admin qui a approuvé
+  approved_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  deleted_at DateTime?
+
+  organizer    User            @relation("OrganizedEvents", fields: [organizer_id], references: [id])
+  city         City            @relation(fields: [city_id], references: [id])
+  category     EventCategory   @relation(fields: [category_id], references: [id])
+  ticket_types EventTicketType[]
+  bookings     EventBooking[]
+
+  @@index([city_id, status, starts_at])        // Découverte par ville
+  @@index([organizer_id, status])              // Dashboard organisateur
+  @@index([status, starts_at])                 // Événements approuvés futurs (home)
+  @@index([slug])                              // Lookup par slug (page événement)
+  @@map("events")
+}
+
+// Type de billet pour un événement — un événement peut avoir plusieurs types.
+// Ex: "VIP" (25 000 FCFA, 50 places), "Standard" (5 000 FCFA, 500 places)
+model EventTicketType {
+  id          String @id @default(uuid())
+  event_id    String
+
+  name        String  // "VIP", "Standard", "Early Bird", "Gratuit"
+  description String? // Ce qui est inclus (ex: "Accès backstage + cocktail dînatoire")
+  price_fcfa  Int     // 0 = billet gratuit (inscription requise quand même)
+  quantity    Int     // Nombre total de billets disponibles pour ce type
+  max_per_order Int @default(10) // Limite anti-scalping par réservation
+
+  // Période de vente — null = pas de restriction de date
+  sale_starts_at DateTime?
+  sale_ends_at   DateTime?
+
+  is_active Boolean @default(true)
+
+  event    Event          @relation(fields: [event_id], references: [id])
+  bookings EventBooking[]
+
+  @@index([event_id, is_active])
+  @@map("event_ticket_types")
+}
+
+// Réservation de billet(s) par un utilisateur.
+// Un EventBooking = une commande (potentiellement plusieurs billets du même type).
+// Le QR code est unique par booking et scanné une seule fois à l'entrée.
+model EventBooking {
+  id             String @id @default(uuid())
+  user_id        String
+  event_id       String
+  ticket_type_id String
+
+  quantity        Int
+  unit_price_fcfa Int  // Snapshot du prix unitaire au moment de la réservation
+  total_amount    Int  // FCFA = quantity × unit_price_fcfa
+  commission_fcfa Int  // Part VIVRE (commission_percent × total_amount / 100)
+
+  status String @default("pending")
+  // "pending"    : en attente de paiement (billet réservé 10 min)
+  // "confirmed"  : paiement validé, billet émis
+  // "cancelled"  : annulé par l'utilisateur ou l'organisateur
+  // "checked_in" : scanné et validé à l'entrée de l'événement
+
+  qr_code String // Données encodées en base64 pour le QR code de validation
+
+  payment_id  String?
+  checked_in_at DateTime? // Timestamp du scan à l'entrée
+  cancelled_at  DateTime?
+  cancellation_reason String?
+
+  // Transfert de billet — le propriétaire cède son billet à un autre utilisateur
+  transferred_to_id String?   // UUID de l'utilisateur destinataire
+  transferred_at    DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user            User            @relation("EventBookingOwner", fields: [user_id], references: [id])
+  transferred_to  User?           @relation("EventBookingTransfer", fields: [transferred_to_id], references: [id])
+  event           Event           @relation(fields: [event_id], references: [id])
+  ticket_type     EventTicketType @relation(fields: [ticket_type_id], references: [id])
+  payment         Payment?        @relation(fields: [payment_id], references: [id])
+
+  @@index([event_id, status])
+  @@index([user_id, status])
+  @@map("event_bookings")
+}
+
+// =============================================================
+// SECTION 12 — PORTEFEUILLE VIVRE
+// Crédits accumulés par remboursements, utilisables sur toutes les réservations.
+// =============================================================
+
+// Solde de crédit VIVRE par utilisateur.
+// Crédité lors d'un remboursement en "vivre_credit".
+// Débité lors d'un paiement partiel ou total avec le portefeuille.
+model VivreWallet {
+  id           String   @id @default(uuid())
+  user_id      String   @unique
+  balance_fcfa Int      @default(0) // Solde disponible en FCFA
+  updated_at   DateTime @updatedAt
+
+  user         User              @relation(fields: [user_id], references: [id])
+  transactions WalletTransaction[]
+
+  @@map("vivre_wallets")
+}
+
+// Journal des mouvements du portefeuille.
+// amount_fcfa positif = crédit, négatif = débit.
+model WalletTransaction {
+  id           String   @id @default(uuid())
+  wallet_id    String
+  amount_fcfa  Int      // +crédit ou -débit
+  type         String   // "refund" | "booking_payment" | "admin_credit"
+  reference_id String?  // ID du Refund ou de la réservation associée
+  description  String   // Texte lisible (ex: "Remboursement annulation hôtel Le Relais")
+  created_at   DateTime @default(now())
+
+  wallet       VivreWallet @relation(fields: [wallet_id], references: [id])
+
+  @@index([wallet_id, created_at])
+  @@map("wallet_transactions")
 }

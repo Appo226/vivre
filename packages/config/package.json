@@ -1,19 +1,4 @@
 {
-  /**
-   * @vivre/config — Package de configuration partagée
-   *
-   * Pourquoi centraliser la config ?
-   * Sans ce package, chaque app aurait son propre tsconfig, eslintrc, tailwind.config.
-   * Un changement de règle ESLint demanderait de modifier 4 fichiers. Avec ce package,
-   * un seul endroit à modifier, propagé à toutes les apps automatiquement.
-   *
-   * Ce package contient :
-   * - tsconfig/base.json       : TypeScript strict pour tous les packages Node
-   * - tsconfig/nextjs.json     : Extension pour les apps Next.js (JSX, bundler)
-   * - tsconfig/fastify.json    : Extension pour l'API Fastify
-   * - eslint/index.js          : Règles ESLint partagées
-   * - tailwind/index.ts        : Configuration Tailwind avec le design system VIVRE
-   */
   "name": "@vivre/config",
   "version": "0.1.0",
   "private": true,

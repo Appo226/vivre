@@ -1,0 +1,95 @@
+"use client";
+
+/**
+ * /fournisseur/hebergement — Hub propriétaire hébergement
+ */
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api";
+import { useAuthStore } from "@/store/auth.store";
+
+interface MyProperty {
+  id: string;
+  name: string;
+  property_type: string;
+  is_approved: boolean;
+  star_rating: number | null;
+  rating_avg: number | null;
+  city: { name: string };
+  _count: { room_types: number };
+}
+
+export default function FournisseurHebergementPage(): React.ReactElement {
+  const router = useRouter();
+  const { accessToken } = useAuthStore();
+  const [properties, setProperties] = useState<MyProperty[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accessToken) { router.push("/auth"); return; }
+    apiClient
+      .get<{ properties: MyProperty[] }>("/properties/mine")
+      .then((r) => setProperties(r.properties))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [accessToken, router]);
+
+  return (
+    <div className="mobile-container min-h-screen bg-gray-50 pb-24">
+      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+        <div className="flex items-center gap-3 pt-4">
+          <button onClick={() => router.back()} className="text-gray-500">‹</button>
+          <h1 className="text-lg font-sora font-bold text-gray-900">Mes hébergements</h1>
+        </div>
+      </header>
+
+      <div className="px-4 pt-4 space-y-3">
+        {loading && [1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-2/3 mb-2" />
+            <div className="h-3 bg-gray-100 rounded w-1/3" />
+          </div>
+        ))}
+
+        {!loading && properties.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-4">🏨</p>
+            <p className="text-gray-500 font-dm text-sm">Aucun hébergement enregistré.</p>
+          </div>
+        )}
+
+        {properties.map((p) => (
+          <div key={p.id} className="bg-white rounded-xl p-4 border border-gray-100 space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-jakarta font-bold text-gray-900">{p.name}</p>
+                <p className="text-xs text-gray-500 font-dm">
+                  {p.property_type} · {p.city.name}
+                  {p.star_rating ? ` · ${"★".repeat(p.star_rating)}` : ""}
+                </p>
+              </div>
+              <span className={[
+                "text-xs font-dm px-2 py-0.5 rounded-full",
+                p.is_approved ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700",
+              ].join(" ")}>
+                {p.is_approved ? "Approuvé" : "En attente"}
+              </span>
+            </div>
+            <div className="flex gap-2 text-xs text-gray-500 font-dm">
+              {p.rating_avg && p.rating_avg > 0 && <span>⭐ {p.rating_avg.toFixed(1)}</span>}
+              <span>{p._count.room_types} chambre{p._count.room_types !== 1 ? "s" : ""}</span>
+            </div>
+            <Link
+              href={`/fournisseur/hebergement/${p.id}/reservations`}
+              className="block text-center bg-green-700 text-white text-sm font-jakarta font-semibold py-2.5 rounded-xl"
+            >
+              Voir les réservations
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

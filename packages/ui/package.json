@@ -1,20 +1,4 @@
 {
-  /**
-   * @vivre/ui — Design system partagé pour VIVRE
-   *
-   * Composants React réutilisables par apps/web, apps/admin et apps/supplier.
-   * Construit sur Radix UI (accessibilité) + Tailwind CSS (design system VIVRE).
-   *
-   * Composants inclus dans le scaffold :
-   * - Button : avec variants (primary, secondary, danger, ghost) et loading state
-   * - Badge  : pour les statuts (Confirmé, Annulé, De garde, etc.)
-   * - Skeleton : états de chargement pour les listes et cards
-   * - Input : champ texte avec gestion d'erreurs Zod
-   * - Card : conteneur standard pour les résultats de recherche
-   *
-   * NB: Ce package est "server-component safe" — pas de hooks ni de contextes.
-   * Les composants avec state (modales, dropdowns) sont dans apps/web/src/components/.
-   */
   "name": "@vivre/ui",
   "version": "0.1.0",
   "private": true,

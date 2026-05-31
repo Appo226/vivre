@@ -1,15 +1,4 @@
 {
-  /**
-   * @vivre/utils — Utilitaires partagés pour le monorepo VIVRE
-   *
-   * Contient les fonctions utilitaires qui n'ont pas de logique métier
-   * mais qui sont utilisées dans plusieurs apps :
-   * - currency.ts  : Formatage des montants FCFA
-   * - date.ts      : Manipulation des dates (dayjs + timezone Africa/Ouagadougou)
-   * - geo.ts       : Calculs géographiques (distance, coordonnées)
-   * - validation.ts: Schémas Zod réutilisables (téléphone BF, coordonnées GPS)
-   * - phone.ts     : Normalisation des numéros burkinabè (+226)
-   */
   "name": "@vivre/utils",
   "version": "0.1.0",
   "private": true,
@@ -18,7 +7,9 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "require": "./dist/index.js",
       "import": "./dist/index.js",
+      "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },
