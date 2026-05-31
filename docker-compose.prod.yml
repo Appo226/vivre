@@ -68,7 +68,7 @@ services:
       WEB_URL: ${WEB_URL}
       CINETPAY_API_KEY: ${CINETPAY_API_KEY}
       CINETPAY_SITE_ID: ${CINETPAY_SITE_ID}
-      CINETPAY_NOTIFY_URL: ${API_URL}/v1/payments/webhook
+      CINETPAY_NOTIFY_URL: ${API_URL}/payments/webhook
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
       TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
@@ -115,36 +115,19 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/vivre.conf:/etc/nginx/conf.d/vivre.conf:ro
-      - certbot_www:/var/www/certbot:ro
-      - certbot_certs:/etc/letsencrypt:ro
+      - ./nginx/vivre.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - web
       - api
     networks:
       - vivre-internal
 
-  # ─── Certbot (Let's Encrypt) ──────────────────────────────────────────────
-  certbot:
-    image: certbot/certbot:latest
-    container_name: vivre-certbot
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_certs:/etc/letsencrypt
-    # Lance manuellement : docker compose run certbot certonly --webroot -w /var/www/certbot -d vivre.bf -d www.vivre.bf -d api.vivre.bf
-    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done"
-
 volumes:
   postgres_data:
     name: vivre_postgres_prod
   redis_data:
     name: vivre_redis_prod
-  certbot_www:
-    name: vivre_certbot_www
-  certbot_certs:
-    name: vivre_certbot_certs
 
 networks:
   vivre-internal:
