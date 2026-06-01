@@ -1,18 +1,10 @@
+"use client";
+
 /**
  * app/offline/page.tsx — Page de fallback hors ligne
  *
- * Affichée par le Service Worker quand :
- *   - Le réseau est indisponible
- *   - La page demandée n'est pas dans le cache
- *
- * Rappelle à l'utilisateur ce qui reste accessible sans connexion :
- *   - Numéros d'urgence (mis en cache par le SW)
- *   - Lignes SOTRACO (mises en cache 24h)
- *   - Pages déjà visitées (NetworkFirst avec fallback cache)
- *
- * Cette page est précachée par next-pwa lors du build.
- * Elle n'utilise pas de hooks React — rendu statique pur pour garantir
- * qu'elle s'affiche même si JS est lent à charger.
+ * Précachée par next-pwa. Affichée par le Service Worker quand le réseau
+ * est indisponible et la page demandée n'est pas en cache.
  */
 
 export const dynamic = "force-static";

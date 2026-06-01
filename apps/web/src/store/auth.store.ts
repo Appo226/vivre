@@ -103,7 +103,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "vivre-auth",          /* Clé localStorage */
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        typeof window !== "undefined" ? localStorage : undefined as never
+      ),
+      skipHydration: true,
       /*
        * Persister uniquement les tokens et le user — pas les helpers (fonctions).
        * `isAuthenticated` est recalculé depuis accessToken à l'hydratation.
