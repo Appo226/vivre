@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
  * /fournisseur/evenements — Dashboard organisateur d'événements
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api";
@@ -32,7 +32,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   completed:        { label: "Terminé",           color: "text-gray-600 bg-gray-100" },
 };
 
-export default function FournisseurEvenementsPage(): React.ReactElement {
+function FournisseurEvenementsContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { accessToken } = useAuthStore();
@@ -163,5 +163,13 @@ export default function FournisseurEvenementsPage(): React.ReactElement {
         })}
       </div>
     </div>
+  );
+}
+
+export default function FournisseurEvenementsPage(): React.ReactElement {
+  return (
+    <Suspense fallback={null}>
+      <FournisseurEvenementsContent />
+    </Suspense>
   );
 }

@@ -77,14 +77,12 @@ function formatDate(dateStr: string): string {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function MesCommandesPage(): React.ReactElement {
+export default function MesCommandesPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/food/mes-commandes"); } }, [accessToken, router]);
 
-  if (!accessToken) {
-    router.push("/auth?redirect=/food/mes-commandes");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   const [filter, setFilter] = useState<FilterKey>("all");
   const [orders, setOrders] = useState<OrderSummary[]>([]);

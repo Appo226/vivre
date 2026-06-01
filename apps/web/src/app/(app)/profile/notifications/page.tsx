@@ -58,9 +58,10 @@ function relativeTime(iso: string): string {
  * PAGE
  * ============================================================ */
 
-export default function NotificationsPage(): React.ReactElement {
+export default function NotificationsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
 
   const [notifs,     setNotifs]     = useState<NotifItem[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -68,7 +69,7 @@ export default function NotificationsPage(): React.ReactElement {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const load = useCallback(async (cursor?: string) => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     const params = cursor ? `?cursor=${cursor}` : "";
     const res = await apiClient.get<{
       notifications: NotifItem[];

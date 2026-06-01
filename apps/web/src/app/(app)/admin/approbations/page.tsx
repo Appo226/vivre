@@ -49,9 +49,10 @@ interface Event {
   _count: { bookings: number };
 }
 
-export default function AdminApprobationsPage(): React.ReactElement {
+export default function AdminApprobationsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
   const [tab, setTab] = useState<Tab>("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [properties, setProperties]   = useState<Property[]>([]);
@@ -60,7 +61,7 @@ export default function AdminApprobationsPage(): React.ReactElement {
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async (t: Tab) => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     setLoading(true);
     try {
       if (t === "restaurants") {

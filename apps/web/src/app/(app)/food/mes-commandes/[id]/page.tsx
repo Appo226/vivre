@@ -104,14 +104,12 @@ export default function OrderDetailPage({
 }: {
   params: { id: string };
   searchParams: { success?: string };
-}): React.ReactElement {
+}): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
 
-  if (!accessToken) {
-    router.push("/auth");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);

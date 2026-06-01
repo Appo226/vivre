@@ -80,7 +80,7 @@ function formatTime(iso: string): string {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function EventDetailPage(): React.ReactElement {
+export default function EventDetailPage(): React.ReactElement | null {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -112,10 +112,7 @@ export default function EventDetailPage(): React.ReactElement {
   });
 
   function openBookingModal(tt: TicketType): void {
-    if (!accessToken) {
-      router.push(`/auth?redirect=/evenements/${id}`);
-      return;
-    }
+    if (!accessToken) return;
     setSelectedTicketType(tt);
     setQuantity(1);
     setBookingError("");

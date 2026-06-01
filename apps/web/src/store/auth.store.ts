@@ -106,7 +106,6 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() =>
         typeof window !== "undefined" ? localStorage : undefined as never
       ),
-      skipHydration: true,
       /*
        * Persister uniquement les tokens et le user — pas les helpers (fonctions).
        * `isAuthenticated` est recalculé depuis accessToken à l'hydratation.

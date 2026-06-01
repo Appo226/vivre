@@ -32,15 +32,16 @@ export default function RestaurantMenuPage({
   params,
 }: {
   params: { id: string };
-}): React.ReactElement {
+}): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     try {
       const res = await apiClient.get<{ categories: MenuCategory[] }>(`/restaurants/${params.id}/menu`);
       setCategories(res.categories);

@@ -51,16 +51,17 @@ export default function PropertyReservationsPage({
   params,
 }: {
   params: { id: string };
-}): React.ReactElement {
+}): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
   const [bookings, setBookings] = useState<PropertyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     setLoading(true);
     try {
       const url = `/properties/${params.id}/bookings${tab ? `?status=${tab}` : ""}`;

@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * partie du formulaire à la fois — le parcours perçu est plus court.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { apiClient, ApiError } from "@/lib/api";
@@ -56,14 +56,12 @@ const REQUIRED_DOCS = [
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function DevenirLivreurPage(): React.ReactElement {
+export default function DevenirLivreurPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/devenir-livreur"); } }, [accessToken, router]);
 
-  if (!accessToken) {
-    router.push("/auth?redirect=/devenir-livreur");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   /* État du formulaire multi-étapes */
   const [step, setStep] = useState(1);

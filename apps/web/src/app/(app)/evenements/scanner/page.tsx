@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * une utilisation rapide debout à l'entrée d'un événement, une main dans la poche.
  */
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { apiClient, ApiError } from "@/lib/api";
@@ -49,15 +49,13 @@ interface ScanResult {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function ScannerPage(): React.ReactElement {
+export default function ScannerPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/evenements/scanner"); } }, [accessToken, router]);
 
   /* Rediriger si non authentifié */
-  if (!accessToken) {
-    router.push("/auth?redirect=/evenements/scanner");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   const [bookingId, setBookingId] = useState("");
   const [isScanning, setIsScanning] = useState(false);

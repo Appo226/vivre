@@ -32,16 +32,17 @@ const BOOKING_TYPE_LABELS: Record<string, string> = {
   event:     "🎟️ Événement",
 };
 
-export default function AdminRemboursementsPage(): React.ReactElement {
+export default function AdminRemboursementsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"pending" | "completed" | "rejected">("pending");
   const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     setLoading(true);
     try {
       const res = await apiClient.get<Refund[]>(

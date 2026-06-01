@@ -81,15 +81,13 @@ function formatDate(dateStr: string): string {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function MesReservationsPage(): React.ReactElement {
+export default function MesReservationsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/hebergement/mes-reservations"); } }, [accessToken, router]);
 
   /* Rediriger si non authentifié */
-  if (!accessToken) {
-    router.push("/auth?redirect=/hebergement/mes-reservations");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   const [filter, setFilter] = useState<FilterKey>("all");
   const [bookings, setBookings] = useState<BookingSummary[]>([]);

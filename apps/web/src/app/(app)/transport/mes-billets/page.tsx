@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * L'authentification est vérifiée via le store Zustand (access_token présent).
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
@@ -85,15 +85,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
-export default function MesBilletsPage(): React.ReactElement {
+export default function MesBilletsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth/login?redirect=/transport/mes-billets"); } }, [accessToken, router]);
 
   /* Rediriger si non authentifié */
-  if (!accessToken) {
-    router.push("/auth/login?redirect=/transport/mes-billets");
-    return <></>;
-  }
+  if (!accessToken) return null;
 
   const [filter, setFilter] = useState<FilterType>("all");
   const [page, setPage] = useState(1);

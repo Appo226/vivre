@@ -63,16 +63,17 @@ export default function RestaurantCommandesPage({
   params,
 }: {
   params: { id: string };
-}): React.ReactElement {
+}): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
+  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
   const [orders, setOrders] = useState<RestaurantOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!accessToken) { router.push("/auth"); return; }
+    if (!accessToken) return;
     setLoading(true);
     try {
       const url = `/restaurants/${params.id}/orders${tab ? `?status=${tab}` : ""}`;

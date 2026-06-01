@@ -16,9 +16,8 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAuthStore } from "@/store/auth.store";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -29,11 +28,6 @@ interface ProvidersProps {
  * Wraps tous les enfants avec les contextes nécessaires.
  */
 export function Providers({ children }: ProvidersProps): React.ReactElement {
-  /* Hydrate the Zustand auth store from localStorage on first mount */
-  useEffect(() => {
-    useAuthStore.persist.rehydrate();
-  }, []);
-
   /*
    * QueryClient créé avec useState pour éviter de le partager entre SSR et client.
    * Sans useState, le QueryClient serait partagé entre toutes les requêtes serveur
