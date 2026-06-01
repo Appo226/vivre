@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * transport/mes-billets/[id]/page.tsx — TI_006 : Détail d'un billet + QR code
  *

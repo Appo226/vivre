@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * hebergement/[id]/page.tsx — HE_003 : Détail d'un hébergement
  *

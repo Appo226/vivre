@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * evenements/[id]/page.tsx — EV_002 : Détail d'un événement + achat de billets
  *

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * transport/voyages/[id]/page.tsx — TI_003 : Détail d'un voyage + sélection sièges
  *

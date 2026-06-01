@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /admin/remboursements — Traitement des remboursements Mobile Money
  */

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * transport/mes-billets/page.tsx — TI_005 : Mes réservations de bus
  *

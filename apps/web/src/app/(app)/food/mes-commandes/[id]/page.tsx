@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * food/mes-commandes/[id]/page.tsx — FD_005 : Détail et suivi de commande
  *

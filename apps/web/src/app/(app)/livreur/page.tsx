@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * livreur/page.tsx — Tableau de bord livreur VIVRE
  *

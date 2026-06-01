@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /evenements/publier — Formulaire de création d'événement (organisateurs)
  *

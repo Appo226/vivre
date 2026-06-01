@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * hebergement/mes-reservations/[id]/page.tsx — HE_005 : Détail d'une réservation
  *

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /fournisseur/evenements — Dashboard organisateur d'événements
  */

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * hebergement/resultats/page.tsx — HE_002 : Résultats de recherche hébergement
  *

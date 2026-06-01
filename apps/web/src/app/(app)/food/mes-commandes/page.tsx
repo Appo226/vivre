@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * food/mes-commandes/page.tsx — FD_004 : Mes commandes food delivery
  *

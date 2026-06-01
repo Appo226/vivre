@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * food/[id]/page.tsx — FD_002 : Détail d'un restaurant + menu
  *

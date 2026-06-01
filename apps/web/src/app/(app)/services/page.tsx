@@ -16,6 +16,8 @@
 
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";

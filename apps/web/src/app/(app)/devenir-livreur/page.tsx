@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * devenir-livreur/page.tsx — Candidature livreur VIVRE
  *

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * food/panier/page.tsx — FD_003 : Panier + Checkout
  *

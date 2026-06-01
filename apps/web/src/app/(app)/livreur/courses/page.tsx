@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * livreur/courses/page.tsx — Interface chauffeur : mode course intraurbain
  *

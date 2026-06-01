@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * course/page.tsx — Transport Intraurbain : demande de course
  *

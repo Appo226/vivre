@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * evenements/scanner/page.tsx — EV_SCAN : Scanner de billets à l'entrée
  *

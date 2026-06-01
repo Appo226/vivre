@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * hebergement/mes-reservations/page.tsx — HE_004 : Mes réservations hôtelières
  *

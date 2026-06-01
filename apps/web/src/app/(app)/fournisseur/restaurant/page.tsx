@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /fournisseur/restaurant — Hub restaurateur : liste des restaurants
  */

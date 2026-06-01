@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * paiement/retour/page.tsx — Page de retour après paiement CinetPay
  *

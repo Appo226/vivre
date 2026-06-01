@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /portefeuille — Portefeuille VIVRE : solde + historique + recharge
  */

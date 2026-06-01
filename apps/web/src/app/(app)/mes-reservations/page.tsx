@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /mes-reservations — Hub unifié de toutes les réservations VIVRE
  *

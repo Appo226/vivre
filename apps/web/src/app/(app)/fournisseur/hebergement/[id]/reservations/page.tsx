@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /fournisseur/hebergement/[id]/reservations — Gestion des réservations
  */

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * course/[id]/page.tsx — Suivi de course en temps réel (client)
  *

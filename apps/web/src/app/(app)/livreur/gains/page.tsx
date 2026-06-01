@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * livreur/gains/page.tsx — Gains et versements livreur VIVRE
  *

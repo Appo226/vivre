@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * transport/page.tsx — TI_001 : Écran recherche transport interurbain
  *

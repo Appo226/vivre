@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * food/page.tsx — FD_001 : Accueil Food Delivery
  *

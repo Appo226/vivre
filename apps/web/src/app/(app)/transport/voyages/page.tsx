@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * transport/voyages/page.tsx — TI_002 : Résultats de recherche de voyages
  *

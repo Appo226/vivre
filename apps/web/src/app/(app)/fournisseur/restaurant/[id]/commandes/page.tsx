@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * /fournisseur/restaurant/[id]/commandes — File d'attente des commandes
  */

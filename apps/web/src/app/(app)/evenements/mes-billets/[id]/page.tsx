@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 /**
  * evenements/mes-billets/[id]/page.tsx — EV_003 : Billet d'événement avec QR code
  *
