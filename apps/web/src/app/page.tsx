@@ -20,6 +20,7 @@
 import type { Metadata } from "next";
 import AiChat from "@/components/AiChat";
 import SearchBar from "@/components/SearchBar";
+import { BottomNav } from "@/components/BottomNav";
 
 /* Métadonnées spécifiques à la page d'accueil */
 export const metadata: Metadata = {
@@ -140,53 +141,4 @@ const MODULE_CARDS = [
   { id: "urgences",    href: "/urgences",  icon: "🏥", label: "Urgences" },
 ] as const;
 
-/* ============================================================
- * COMPOSANTS
- * (Seront déplacés dans leurs fichiers propres à l'Étape 2+)
- * ============================================================ */
-
-/**
- * Bottom Navigation — 5 onglets permanents en bas de l'écran.
- * Sticky sur mobile, toujours visible.
- * TODO Step 2: Extraire dans apps/web/src/components/BottomNav.tsx
- */
-function BottomNav(): React.ReactElement {
-  const tabs = [
-    { href: "/", icon: "🏠", label: "Accueil" },
-    { href: "/transport", icon: "🚌", label: "Transport" },
-    { href: "/food", icon: "🍽️", label: "Repas" },
-    { href: "/hotels", icon: "🏨", label: "Hôtels" },
-    { href: "/profile", icon: "👤", label: "Profil" },
-  ] as const;
-
-  return (
-    <nav
-      className={[
-        "fixed bottom-0 left-0 right-0 z-50",
-        "bg-white border-t border-gray-200 shadow-bottom-nav",
-        "max-w-md mx-auto",     /* Centré comme le reste du contenu */
-      ].join(" ")}
-      aria-label="Navigation principale"
-    >
-      <div className="flex justify-around items-center h-bottom-nav px-2">
-        {tabs.map((tab) => (
-          <a
-            key={tab.href}
-            href={tab.href}
-            className={[
-              "flex flex-col items-center gap-1 py-2 px-3 rounded-md",
-              "text-gray-500 hover:text-green-700",
-              "transition-colors duration-150",
-            ].join(" ")}
-          >
-            <span className="text-xl" role="img" aria-label={tab.label}>
-              {tab.icon}
-            </span>
-            <span className="text-xs font-jakarta font-medium">{tab.label}</span>
-          </a>
-        ))}
-      </div>
-    </nav>
-  );
-}
 

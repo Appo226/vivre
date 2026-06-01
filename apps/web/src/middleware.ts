@@ -28,7 +28,7 @@ import type { NextRequest } from "next/server";
 
 /* Routes qui ne nécessitent PAS d'authentification */
 const PUBLIC_ROUTES = [
-  /^\/(auth)/,              /* /auth/*, /auth/verify, /auth/profile-setup */
+  /^\/auth/,                /* /auth, /auth/verify, /auth/profile-setup */
   /^\/urgences/,            /* Page urgences — critique, accessible sans compte */
   /^\/services/,            /* Services publics — accessibles sans compte */
   /^\/discover/,            /* Page de découverte publique */

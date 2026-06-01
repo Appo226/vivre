@@ -402,6 +402,72 @@ export async function dispatchPayout(payoutId: string): Promise<void> {
 }
 
 /**
+ * Déclenche un virement mobile money pour un remboursement approuvé par l'admin.
+ * Lit le payment_method du paiement original pour choisir l'opérateur.
+ * Met à jour le statut du Refund : "completed" ou "failed".
+ */
+export async function dispatchMobileMoneyRefund(refundId: string): Promise<void> {
+  const refund = await prisma.refund.findUnique({
+    where: { id: refundId },
+    select: {
+      id:     true,
+      amount: true,
+      payment: {
+        select: {
+          payment_method: true,
+          user: { select: { phone: true, first_name: true, last_name: true } },
+        },
+      },
+    },
+  });
+
+  if (!refund) {
+    console.error(`[Refund] dispatchMobileMoneyRefund: refund ${refundId} introuvable`);
+    return;
+  }
+
+  const { payment } = refund;
+  const recipientName =
+    [payment.user.first_name, payment.user.last_name].filter(Boolean).join(" ")
+    || "Client VIVRE";
+
+  try {
+    const provider = payoutRegistry.get(payment.payment_method);
+
+    console.info(
+      `[Refund] Remboursement ${refund.amount} FCFA via ${provider.name} → ${payment.user.phone}`
+    );
+
+    const result = await provider.send({
+      phoneNumber:  payment.user.phone,
+      amountFcfa:   refund.amount,
+      recipientName,
+      referenceId:  `refund-${refund.id}`,
+    });
+
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: {
+        status:     "completed",
+        processed_at: new Date(),
+      },
+    });
+
+    console.info(`[Refund] ✅ Remboursement effectué : ${result.providerTransactionId}`);
+
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error(`[Refund] ❌ Échec du remboursement ${refundId} : ${reason}`);
+
+    /* Refund "rejected" — l'admin devra retry manuellement */
+    await prisma.refund.update({
+      where: { id: refundId },
+      data: { status: "rejected" },
+    });
+  }
+}
+
+/**
  * Vérifie le statut d'un virement en cours auprès de l'opérateur.
  * Appelé manuellement par l'admin ou par un job planifié.
  * Met à jour le statut dans la base si changement.

@@ -19,7 +19,6 @@ export default function AdminLayout({
   return (
     <html lang="fr">
       <body className="min-h-screen bg-gray-100 font-sans antialiased">
-        {/* TODO Step 18: Ajouter la sidebar admin et le header */}
         {children}
       </body>
     </html>

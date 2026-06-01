@@ -3,6 +3,7 @@
  */
 
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "VIVRE Fournisseur — Dashboard",
@@ -17,7 +18,6 @@ export default function SupplierLayout({
   return (
     <html lang="fr">
       <body className="min-h-screen bg-gray-100 font-sans antialiased">
-        {/* TODO Step 16: Ajouter la sidebar fournisseur */}
         {children}
       </body>
     </html>

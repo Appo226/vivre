@@ -22,6 +22,7 @@ import {
   type RefundMethod,
 } from "../../services/cancellation.service.js";
 import { notifyBookingCancelled } from "../../services/notification.service.js";
+import { dispatchMobileMoneyRefund } from "../../services/payout.service.js";
 
 const refundMethodSchema = z.enum(["vivre_credit", "mobile_money"]).default("vivre_credit");
 
@@ -529,12 +530,9 @@ export const cancellationRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (action === "approve") {
-      await prisma.refund.update({
-        where: { id },
-        data: { status: "completed", processed_by: adminId, processed_at: new Date() },
-      });
-      /* TODO : déclencher le virement CinetPay/mobile money réel ici */
-      return reply.send({ processed: true, action: "approved", message: "Remboursement approuvé. Virement mobile money à déclencher." });
+      /* Déclencher le virement mobile money via le service de payout — fire-and-forget */
+      void dispatchMobileMoneyRefund(id);
+      return reply.send({ processed: true, action: "approved", message: "Remboursement approuvé. Virement mobile money en cours." });
     }
 
     /* Reject → convertir en crédit portefeuille automatiquement si raison fournie */
