@@ -1,10 +1,11 @@
 # syntax=docker/dockerfile:1
-# ─── Stage 1 : installation des dépendances ───────────────────────────────────
-FROM node:20-alpine AS deps
+# ─── Stage 1 : build ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN npm install -g pnpm@9.1.0
 
+# Copy workspace manifests first (layer-cached until deps change)
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/config/package.json    ./packages/config/
 COPY packages/types/package.json     ./packages/types/
@@ -14,39 +15,31 @@ COPY apps/api/package.json           ./apps/api/
 
 RUN pnpm install --frozen-lockfile
 
-# ─── Stage 2 : compilation ────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-RUN npm install -g pnpm@9.1.0
-
-COPY --from=deps /app/node_modules        ./node_modules
-COPY --from=deps /app/packages            ./packages
-
+# Copy source after installing deps
 COPY packages/config   ./packages/config
 COPY packages/types    ./packages/types
 COPY packages/utils    ./packages/utils
 COPY packages/database ./packages/database
 COPY apps/api          ./apps/api
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml turbo.json ./
+COPY turbo.json        ./
 
-# Génère le client Prisma dans node_modules
+# Generate Prisma client
 RUN pnpm --filter @vivre/database run generate
 
-# Compile les packages dans l'ordre de dépendance
+# Build packages in dependency order
 RUN pnpm --filter @vivre/types    run build
 RUN pnpm --filter @vivre/utils    run build
 RUN pnpm --filter @vivre/database run build
 RUN pnpm --filter @vivre/api      run build
 
-# Bundle de déploiement autonome (inclut node_modules aplatis + fichiers compilés)
+# Standalone production bundle (includes flattened node_modules)
 RUN pnpm deploy --filter @vivre/api --prod /prod/api
 
-# ─── Stage 3 : image de production ───────────────────────────────────────────
+# ─── Stage 2 : image de production ───────────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Prisma CLI pour les migrations au démarrage
+# Prisma CLI for migrations on startup
 RUN npm install -g prisma@5
 
 COPY --from=builder /prod/api          ./
