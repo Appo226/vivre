@@ -76,5 +76,4 @@ test-results/
 # ============================================================
 # UPLOADS LOCAUX — Stocker sur S3 en prod, jamais dans git
 # ============================================================
-uploads/
 public/uploads/
