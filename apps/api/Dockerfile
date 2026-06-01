@@ -22,7 +22,6 @@ RUN npm install -g pnpm@9.1.0
 
 COPY --from=deps /app/node_modules        ./node_modules
 COPY --from=deps /app/packages            ./packages
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules 2>/dev/null || true
 
 COPY packages/config   ./packages/config
 COPY packages/types    ./packages/types
