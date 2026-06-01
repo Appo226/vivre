@@ -6,7 +6,7 @@ WORKDIR /app
 RUN npm install -g pnpm@9.1.0
 
 # Copy workspace manifests first (layer-cached until deps change)
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY .npmrc pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/config/package.json  ./packages/config/
 COPY packages/types/package.json   ./packages/types/
 COPY packages/utils/package.json   ./packages/utils/
