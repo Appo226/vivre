@@ -37,9 +37,10 @@ RUN pnpm deploy --filter @vivre/api --prod /prod/api
 
 # pnpm deploy installs packages from lockfile but does NOT copy generated
 # .prisma/client/ artifacts — regenerate them inside the production bundle.
+# Use the globally installed prisma (from npm install -g prisma@5 above).
 RUN cp -r /app/packages/database/prisma /prod/api/prisma && \
     cd /prod/api && \
-    /app/node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+    prisma generate --schema=./prisma/schema.prisma
 
 # ─── Stage 2 : image de production ───────────────────────────────────────────
 # Use debian-slim instead of alpine: Prisma engines require glibc/openssl
