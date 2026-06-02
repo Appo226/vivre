@@ -28,6 +28,8 @@ services:
     region: oregon
     healthCheckPath: /v1/health
     autoDeploy: true
+    # Run migrations before new version goes live (zero-downtime)
+    preDeployCommand: prisma migrate deploy
 
     envVars:
       # ── Injected automatically by Render ──────────────────────────────────

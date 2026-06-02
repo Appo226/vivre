@@ -22,7 +22,9 @@
 // =============================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // native = local dev; linux-musl variants = Alpine Docker; debian-openssl = slim/Render
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
   // Preview features : fullTextSearch pour la recherche de restaurants/hôtels
   previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
