@@ -3,7 +3,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm@9.1.0
+RUN npm install -g pnpm@9.1.0 prisma@5
 
 # Copy workspace manifests first (layer-cached until deps change)
 COPY .npmrc pnpm-workspace.yaml package.json pnpm-lock.yaml ./
