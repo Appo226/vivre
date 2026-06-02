@@ -354,5 +354,32 @@ export async function buildApp(): Promise<FastifyInstance> {
     });
   });
 
+  /* === HOOK : CONNEXION DB AU DÉMARRAGE === */
+  /*
+   * On Render free tier, the PostgreSQL connection can be cold at startup.
+   * Explicitly connect with retries so the first request doesn't fail.
+   */
+  app.addHook("onReady", async () => {
+    const { prisma } = await import("@vivre/database");
+    let attempts = 0;
+    while (attempts < 5) {
+      try {
+        await prisma.$connect();
+        app.log.info("✅ Database connected");
+        return;
+      } catch (err) {
+        attempts++;
+        app.log.warn(`Database connect attempt ${attempts}/5 failed — retrying in 2s`);
+        await new Promise<void>((r) => setTimeout(r, 2000));
+      }
+    }
+    app.log.error("❌ Could not connect to database after 5 attempts");
+  });
+
+  app.addHook("onClose", async () => {
+    const { prisma } = await import("@vivre/database");
+    await prisma.$disconnect();
+  });
+
   return app;
 }

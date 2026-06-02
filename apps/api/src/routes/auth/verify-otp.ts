@@ -142,7 +142,7 @@ export const verifyOtpRoute: FastifyPluginAsync = async (app) => {
       /* --- 7. Construire le payload JWT --- */
       const roles = isNewUser
         ? ["customer"]
-        : user.roles.map((r) => r.role);
+        : user.roles.map((r: { role: string }) => r.role);
 
       const jwtPayload: JwtPayload = {
         sub: user.id,

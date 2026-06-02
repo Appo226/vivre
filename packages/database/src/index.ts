@@ -17,6 +17,21 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
+ * On Render free tier (and other serverless/constrained environments), the
+ * default Prisma connection pool is too large and idle connections get dropped.
+ * Append connection_limit=1 and pool_timeout so Prisma uses a single connection
+ * and waits gracefully instead of failing immediately on cold starts.
+ */
+function buildDatabaseUrl(): string {
+  const url = process.env["DATABASE_URL"] ?? "";
+  if (!url) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  // Skip if the user already set these params explicitly
+  if (url.includes("connection_limit")) return url;
+  return `${url}${sep}connection_limit=1&pool_timeout=20&connect_timeout=10`;
+}
+
+/**
  * Extension globale du type global de Node.js pour stocker l'instance Prisma.
  * Nécessaire pour TypeScript strict — on ne peut pas ajouter des propriétés
  * arbitraires à globalThis sans déclarer leur type.
@@ -31,6 +46,7 @@ declare global {
  */
 function createPrismaClient(): PrismaClient {
   return new PrismaClient({
+    datasources: { db: { url: buildDatabaseUrl() } },
     log:
       process.env["NODE_ENV"] === "development"
         ? [
