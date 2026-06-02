@@ -3,7 +3,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm@9.1.0 prisma@5
+RUN npm install -g pnpm@9.1.0
 
 # Copy workspace manifests first (layer-cached until deps change)
 COPY .npmrc pnpm-workspace.yaml package.json pnpm-lock.yaml ./
@@ -23,7 +23,7 @@ COPY packages/database ./packages/database
 COPY apps/api          ./apps/api
 COPY turbo.json        ./
 
-# Generate Prisma client
+# Generate Prisma client (Alpine/build-time — will regenerate in runner for correct platform)
 RUN pnpm --filter @vivre/database run generate
 
 # Build packages in dependency order
@@ -32,30 +32,26 @@ RUN pnpm --filter @vivre/utils    run build
 RUN pnpm --filter @vivre/database run build
 RUN pnpm --filter @vivre/api      run build
 
-# Standalone production bundle (includes flattened node_modules)
+# Standalone production bundle
 RUN pnpm deploy --filter @vivre/api --prod /prod/api
 
-# pnpm deploy installs packages from lockfile but does NOT copy generated
-# .prisma/client/ artifacts — regenerate them inside the production bundle.
-# Use the globally installed prisma (from npm install -g prisma@5 above).
-RUN cp -r /app/packages/database/prisma /prod/api/prisma && \
-    cd /prod/api && \
-    prisma generate --schema=./prisma/schema.prisma
+# Copy schema into the bundle so prisma generate works in the runner stage
+RUN cp -r /app/packages/database/prisma /prod/api/prisma
 
 # ─── Stage 2 : image de production ───────────────────────────────────────────
-# Use debian-slim instead of alpine: Prisma engines require glibc/openssl
+# node:20-slim = Debian Bookworm + glibc — required for Prisma query engine
 FROM node:20-slim AS runner
 WORKDIR /app
 
-# openssl + prisma CLI — must be installed before user switch
 RUN apt-get update -qq && apt-get install -y --no-install-recommends openssl && \
     rm -rf /var/lib/apt/lists/* && \
-    npm install -g prisma@5 && \
-    # Allow non-root user to write prisma engine cache
-    chmod -R a+w /usr/local/lib/node_modules/prisma/
+    npm install -g prisma@5
 
 COPY --from=builder /prod/api ./
-# /prod/api/prisma/ is already included above (copied there before prisma generate)
+
+# Regenerate Prisma client HERE on the correct OS (Debian OpenSSL 3.0.x).
+# This ensures the right query engine binary is used at runtime.
+RUN prisma generate --schema=./prisma/schema.prisma
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 fastify --ingroup nodejs && \

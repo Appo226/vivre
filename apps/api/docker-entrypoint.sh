@@ -1,12 +1,10 @@
 #!/bin/sh
 set -e
 
-# On Render, migrations run in preDeployCommand before this starts.
-# In local Docker / other envs, run them here as a fallback.
-if [ "${RENDER}" != "true" ]; then
-  echo "[VIVRE API] Applying database migrations..."
-  prisma migrate deploy
-fi
+# Migrations are handled by Render's preDeployCommand.
+# Run them here as a fallback (local Docker, first deploy, etc.)
+echo "[VIVRE API] Applying database migrations..."
+prisma migrate deploy
 
 echo "[VIVRE API] Starting server..."
 exec "$@"
