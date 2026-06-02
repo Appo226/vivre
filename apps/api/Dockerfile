@@ -36,17 +36,22 @@ RUN pnpm --filter @vivre/api      run build
 RUN pnpm deploy --filter @vivre/api --prod /prod/api
 
 # ─── Stage 2 : image de production ───────────────────────────────────────────
-FROM node:20-alpine AS runner
+# Use debian-slim instead of alpine: Prisma engines require glibc/openssl
+FROM node:20-slim AS runner
 WORKDIR /app
 
-# Prisma CLI for migrations on startup
-RUN npm install -g prisma@5
+# openssl + prisma CLI — must be installed before user switch
+RUN apt-get update -qq && apt-get install -y --no-install-recommends openssl && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g prisma@5 && \
+    # Allow non-root user to write prisma engine cache
+    chmod -R a+w /usr/local/lib/node_modules/prisma/
 
 COPY --from=builder /prod/api          ./
 COPY --from=builder /app/packages/database/prisma ./prisma
 
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser  --system --uid 1001 fastify && \
+    adduser  --system --uid 1001 fastify --ingroup nodejs && \
     chown -R fastify:nodejs /app
 
 COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
