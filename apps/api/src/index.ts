@@ -19,8 +19,8 @@ async function start(): Promise<void> {
   /* Construire l'application Fastify configurée */
   const app = await buildApp();
 
-  /* Port de l'API — 3001 par défaut pour ne pas entrer en conflit avec Next.js (3000) */
-  const port = parseInt(process.env["API_PORT"] ?? "3001", 10);
+  /* Render injects PORT; API_PORT is the legacy var; 3001 is the local default */
+  const port = parseInt(process.env["PORT"] ?? process.env["API_PORT"] ?? "3001", 10);
   const host = process.env["HOST"] ?? "0.0.0.0";
 
   try {

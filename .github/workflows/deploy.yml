@@ -1,134 +1,42 @@
-name: Build & Deploy VIVRE
+name: CI — Build & verify
+
+# Render auto-deploys from GitHub on push to main.
+# This workflow just validates the build still compiles cleanly
+# so broken code never reaches Render.
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        default: "production"
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_OWNER: ${{ github.repository_owner }}
+  pull_request:
+    branches: [main]
 
 jobs:
-  # ─── Build & Push Docker images ─────────────────────────────────────────────
-  build:
-    name: Build images
+  typecheck:
+    name: TypeScript check
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.version }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Lowercase image owner
-        run: echo "IMAGE_OWNER=$(echo '${{ env.IMAGE_OWNER }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: pnpm/action-setup@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          version: 9.1.0
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - uses: actions/setup-node@v4
         with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-api
-            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-web
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+          node-version: 20
+          cache: pnpm
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - run: pnpm install --frozen-lockfile
 
-      - name: Build & push API image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/api/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-api:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-api:latest
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
+      - name: Generate Prisma client
+        run: pnpm --filter @vivre/database run generate
 
-      - name: Build & push Web image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: apps/web/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-web:${{ steps.meta.outputs.version }},${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/vivre-web:latest
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
-            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
-            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-            NEXT_PUBLIC_FIREBASE_VAPID_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+      - name: Build packages
+        run: |
+          pnpm --filter @vivre/types    run build
+          pnpm --filter @vivre/utils    run build
+          pnpm --filter @vivre/database run build
 
-  # ─── Deploy to VPS ──────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy to production
-    runs-on: ubuntu-latest
-    needs: build
-    environment: production
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Copy deployment files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.prod.yml,nginx/,docker/"
-          target: "/opt/vivre"
-
-      - name: Deploy on VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /opt/vivre
-
-            # Authentification GHCR
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # Injecter le tag de l'image
-            export IMAGE_TAG=${{ needs.build.outputs.image_tag }}
-            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
-
-            # Charger les variables d'environnement de production
-            set -a; source /opt/vivre/.env.production; set +a
-
-            # Télécharger les nouvelles images
-            docker compose -f docker-compose.prod.yml pull api web
-
-            # Redémarrer les services (migrations lancées via entrypoint)
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
-            # Nettoyer les anciennes images
-            docker image prune -f
-
-            echo "✓ Déploiement terminé — image: $IMAGE_TAG"
+      - name: Typecheck all apps
+        run: pnpm typecheck
