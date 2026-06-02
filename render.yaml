@@ -72,7 +72,7 @@ services:
       # Render auto-assigns https://{service-name}.onrender.com
       # so we can hard-code the API URL here.
       - key: NEXT_PUBLIC_API_URL
-        value: https://vivre-api.onrender.com/v1
+        value: https://vivre-api-ndmq.onrender.com/v1
 
       # ── Set these manually after first deploy ─────────────────────────────
       #
