@@ -35,6 +35,12 @@ RUN pnpm --filter @vivre/api      run build
 # Standalone production bundle (includes flattened node_modules)
 RUN pnpm deploy --filter @vivre/api --prod /prod/api
 
+# pnpm deploy installs packages from lockfile but does NOT copy generated
+# .prisma/client/ artifacts — regenerate them inside the production bundle.
+RUN cp -r /app/packages/database/prisma /prod/api/prisma && \
+    cd /prod/api && \
+    /app/node_modules/.bin/prisma generate --schema=./prisma/schema.prisma
+
 # ─── Stage 2 : image de production ───────────────────────────────────────────
 # Use debian-slim instead of alpine: Prisma engines require glibc/openssl
 FROM node:20-slim AS runner
@@ -47,8 +53,8 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends openssl && 
     # Allow non-root user to write prisma engine cache
     chmod -R a+w /usr/local/lib/node_modules/prisma/
 
-COPY --from=builder /prod/api          ./
-COPY --from=builder /app/packages/database/prisma ./prisma
+COPY --from=builder /prod/api ./
+# /prod/api/prisma/ is already included above (copied there before prisma generate)
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser  --system --uid 1001 fastify --ingroup nodejs && \
