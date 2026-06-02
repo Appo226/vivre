@@ -233,6 +233,21 @@ export async function buildApp(): Promise<FastifyInstance> {
         environment: process.env["NODE_ENV"] ?? "development",
       }));
 
+      /* Endpoint de diagnostic DB — temporaire, à supprimer avant la prod réelle */
+      v1.get("/db-test", async (_req, reply) => {
+        const { prisma } = await import("@vivre/database");
+        try {
+          const rows = await prisma.$queryRaw<[{ test: bigint }]>`SELECT 1 AS test`;
+          const dbUrl = (process.env["DATABASE_URL"] ?? "").replace(/:([^:@]+)@/, ":***@");
+          return reply.send({ ok: true, rows, dbUrl });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack?.split("\n").slice(0, 5) : [];
+          const dbUrl = (process.env["DATABASE_URL"] ?? "").replace(/:([^:@]+)@/, ":***@");
+          return reply.status(500).send({ ok: false, error: msg, stack, dbUrl });
+        }
+      });
+
       /* Module 01 — Authentification */
       await v1.register(sendOtpRoute, { prefix: "/auth" });
       await v1.register(verifyOtpRoute, { prefix: "/auth" });
@@ -360,20 +375,27 @@ export async function buildApp(): Promise<FastifyInstance> {
    * Explicitly connect with retries so the first request doesn't fail.
    */
   app.addHook("onReady", async () => {
+    const rawUrl = process.env["DATABASE_URL"] ?? "(not set)";
+    const safeUrl = rawUrl.replace(/:([^:@]+)@/, ":***@");
+    app.log.info(`DB URL: ${safeUrl}`);
+
     const { prisma } = await import("@vivre/database");
     let attempts = 0;
     while (attempts < 5) {
       try {
         await prisma.$connect();
-        app.log.info("✅ Database connected");
+        /* Verify with a real query */
+        await prisma.$queryRaw`SELECT 1`;
+        app.log.info("✅ Database connected and query OK");
         return;
       } catch (err) {
         attempts++;
-        app.log.warn(`Database connect attempt ${attempts}/5 failed — retrying in 2s`);
-        await new Promise<void>((r) => setTimeout(r, 2000));
+        const msg = err instanceof Error ? err.message : String(err);
+        app.log.warn(`DB attempt ${attempts}/5 failed: ${msg} — retrying in 3s`);
+        await new Promise<void>((r) => setTimeout(r, 3000));
       }
     }
-    app.log.error("❌ Could not connect to database after 5 attempts");
+    app.log.error("❌ Could not connect to database after 5 attempts — server will start anyway");
   });
 
   app.addHook("onClose", async () => {
