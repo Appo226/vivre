@@ -22,35 +22,32 @@ let redisInstance: Redis | null = null;
 
 /**
  * Retourne le client Redis, en le créant si nécessaire.
- * Pattern singleton pour éviter les connexions multiples.
+ * Retourne null si Redis est définitivement inaccessible.
  */
-export function getRedis(): Redis {
-  if (redisInstance) return redisInstance;
+export function getRedis(): Redis | null {
+  if (redisInstance && redisInstance.status !== "end") return redisInstance;
 
   const redisUrl = process.env["REDIS_URL"] ?? "redis://localhost:6379";
 
   redisInstance = new Redis(redisUrl, {
-    /*
-     * Reconnexion automatique avec backoff exponentiel.
-     * Sur un réseau instable (Burkina Faso), Redis peut être temporairement inaccessible.
-     * retryStrategy évite un crash complet — l'API reste up mais le cache est indisponible.
-     */
     retryStrategy: (times: number) => {
       if (times > 5) {
-        /* Après 5 tentatives, abandonner pour ne pas bloquer indéfiniment */
-        console.error("Redis : impossible de se connecter après 5 tentatives");
-        return null; /* null = arrêter les retries */
+        console.error("[Redis] Abandon après 5 tentatives — fonctionnement dégradé");
+        /* Reset pour permettre une reconnexion lors de la prochaine requête */
+        redisInstance = null;
+        return null;
       }
-      /* Backoff exponentiel : 200ms, 400ms, 800ms, 1600ms, 3200ms */
       return Math.min(times * 200, 3000);
     },
-    /* Timeout de connexion — évite de bloquer les requêtes si Redis est lent */
     connectTimeout: 5000,
-    /* Préfixe sur toutes les clés — évite les collisions si Redis est partagé */
     keyPrefix: "vivre:",
-    /* Désactiver les reconnexions sur le mode "subscriber" (non utilisé ici) */
     enableReadyCheck: true,
-    lazyConnect: false,
+    /* lazyConnect évite un crash immédiat si Redis n'est pas encore prêt */
+    lazyConnect: true,
+  });
+
+  void redisInstance.connect().catch(() => {
+    /* Erreur de connexion initiale — ignorée, retryStrategy prend le relai */
   });
 
   redisInstance.on("connect", () => {
@@ -58,7 +55,6 @@ export function getRedis(): Redis {
   });
 
   redisInstance.on("error", (err: Error) => {
-    /* Log l'erreur mais ne crash pas le serveur — Redis est optionnel en dev */
     console.error("[Redis] Erreur :", err.message);
   });
 

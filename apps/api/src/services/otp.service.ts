@@ -49,7 +49,7 @@ export type RateLimitResult =
  */
 export async function saveOtp(phone: string, code: string): Promise<void> {
   const redis = getRedis();
-  /* SETEX = SET + EXPIRE atomique — évite les race conditions */
+  if (!redis) throw new Error("REDIS_UNAVAILABLE");
   await redis.setex(otpKey(phone), OTP_TTL_SECONDS, code);
 }
 
@@ -72,6 +72,7 @@ export async function verifyOtp(
   submittedCode: string
 ): Promise<OtpVerifyResult> {
   const redis = getRedis();
+  if (!redis) return { success: false, reason: "EXPIRED" };
   const storedCode = await redis.get(otpKey(phone));
 
   if (storedCode === null) {
@@ -112,6 +113,8 @@ export async function checkAndIncrementRateLimit(
   phone: string
 ): Promise<RateLimitResult> {
   const redis = getRedis();
+  /* Redis indisponible — on laisse passer sans rate limiting */
+  if (!redis) return { allowed: true, remaining: OTP_RATE_LIMIT_MAX - 1 };
   const key = otpRateLimitKey(phone);
 
   /*

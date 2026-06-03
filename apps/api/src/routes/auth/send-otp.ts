@@ -96,7 +96,15 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
 
       /* --- 4. Génération et stockage du code OTP --- */
       const code = generateOtpCode();
-      await saveOtp(phone, code);
+      try {
+        await saveOtp(phone, code);
+      } catch (redisErr) {
+        app.log.error({ phone, error: redisErr }, "Redis indisponible — impossible de stocker l'OTP");
+        return reply.status(503).send({
+          error: "Service temporairement indisponible. Réessayez dans quelques instants.",
+          code: "SERVICE_UNAVAILABLE",
+        });
+      }
 
       /* --- 5. Envoi SMS (console en dev, Twilio en prod) --- */
       try {

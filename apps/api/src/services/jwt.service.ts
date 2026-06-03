@@ -71,54 +71,50 @@ export function signAccessToken(
  * @returns refresh_token à retourner au client
  */
 export async function createRefreshToken(userId: string): Promise<string> {
-  /* nanoid génère un token URL-safe de 32 caractères */
   const tokenId = nanoid(32);
 
   const redis = getRedis();
-
-  /*
-   * Stocke le userId sous le tokenId dans Redis.
-   * Lors du refresh, on retrouve le userId via le tokenId pour générer un nouveau access_token.
-   * La valeur est le userId — pas le token lui-même (le token est la clé).
-   */
-  await redis.setex(
-    refreshTokenKey(userId, tokenId),
-    REFRESH_TOKEN_TTL_SECONDS,
-    userId
-  );
+  if (redis) {
+    await redis.setex(
+      refreshTokenKey(userId, tokenId),
+      REFRESH_TOKEN_TTL_SECONDS,
+      userId
+    );
+  } else {
+    /* Redis indisponible — mode stateless, pas de révocation possible */
+    console.warn("[JWT] Redis indisponible — refresh token non persisté (mode stateless)");
+  }
 
   return tokenId;
 }
 
 /**
  * Vérifie qu'un refresh token est valide (présent dans Redis) et retourne le userId.
- * Retourne null si le token est expiré, révoqué, ou inexistant.
- *
- * @param userId - UUID de l'utilisateur (extrait du cookie ou du body)
- * @param tokenId - Le refresh token reçu du client
+ * Si Redis est indisponible, accepte le token (mode stateless dégradé).
  */
 export async function validateRefreshToken(
   userId: string,
   tokenId: string
 ): Promise<boolean> {
   const redis = getRedis();
+  if (!redis) {
+    /* Redis indisponible — token considéré valide (mode stateless) */
+    return true;
+  }
   const storedUserId = await redis.get(refreshTokenKey(userId, tokenId));
-  /* Le token est valide si la clé existe ET correspond au bon userId */
   return storedUserId === userId;
 }
 
 /**
  * Révoque un refresh token en le supprimant de Redis.
- * Appelé lors du logout ou lors d'un refresh (rotation des tokens).
- *
- * @param userId - UUID de l'utilisateur
- * @param tokenId - Le refresh token à révoquer
+ * No-op si Redis est indisponible.
  */
 export async function revokeRefreshToken(
   userId: string,
   tokenId: string
 ): Promise<void> {
   const redis = getRedis();
+  if (!redis) return;
   await redis.del(refreshTokenKey(userId, tokenId));
 }
 
