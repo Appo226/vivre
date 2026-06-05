@@ -50,16 +50,16 @@ export default function AuthPage(): React.ReactElement {
     try {
       const normalizedPhone = normalizePhoneForDisplay(phone);
 
-      await apiClient.post<SendOtpResponse>(
+      const res = await apiClient.post<SendOtpResponse>(
         "/auth/send-otp",
         { phone: normalizedPhone },
         { skipAuth: true }
       );
 
-      /* Naviguer vers l'écran OTP en passant le numéro dans l'URL */
-      router.push(
-        `/auth/verify?phone=${encodeURIComponent(normalizedPhone)}`
-      );
+      /* In dev, the API returns the OTP code directly — pass it to verify page */
+      const devCode = (res as SendOtpResponse & { dev_code?: string }).dev_code;
+      const verifyUrl = `/auth/verify?phone=${encodeURIComponent(normalizedPhone)}${devCode ? `&dev_code=${devCode}` : ""}`;
+      router.push(verifyUrl);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 429) {
@@ -101,6 +101,15 @@ export default function AuthPage(): React.ReactElement {
             Entrez votre numéro de téléphone pour recevoir un code de connexion par SMS.
           </p>
 
+          {/* DEV MODE BANNER */}
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+              <p className="font-semibold mb-1">Mode développement</p>
+              <p>Entrez n&apos;importe quel numéro (ex: <strong>70000000</strong> pour BF ou <strong>+12025550001</strong> pour US).</p>
+              <p className="mt-1">Le code OTP apparaîtra directement dans la réponse — pas de SMS réel.</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 flex-1">
 
             {/* --- Champ téléphone --- */}
@@ -116,12 +125,11 @@ export default function AuthPage(): React.ReactElement {
               <div className="flex rounded-xl border border-gray-300 overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
                 {/* Indicatif +226 Burkina Faso */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-r border-gray-300 shrink-0">
-                  {/* Flag emoji BF */}
                   <span className="text-lg leading-none">🇧🇫</span>
                   <span className="text-sm font-medium text-gray-700">+226</span>
                 </div>
 
-                {/* Input numéro (8 derniers chiffres) */}
+                {/* Input — accepts local 8-digit or full international number */}
                 <input
                   id="phone"
                   type="tel"
@@ -130,7 +138,6 @@ export default function AuthPage(): React.ReactElement {
                   placeholder="70 00 00 00"
                   value={phone}
                   onChange={(e) => {
-                    /* Accepter chiffres, espaces et tirets — normalisation à l'envoi */
                     const val = e.target.value.replace(/[^\d\s\-+]/g, "");
                     setPhone(val);
                     setError(null);

@@ -28,11 +28,14 @@ function VerifyOtpContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get("phone") ?? "";
+  const devCode = searchParams.get("dev_code") ?? "";
 
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  /* 6 cases pour le code OTP */
-  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  /* 6 cases pour le code OTP — pre-filled in dev if dev_code is in URL */
+  const [digits, setDigits] = useState<string[]>(
+    devCode.length === 6 ? devCode.split("") : ["", "", "", "", "", ""]
+  );
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   /* Countdown */

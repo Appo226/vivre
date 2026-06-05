@@ -74,10 +74,9 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
 
       /* --- 2. Normalisation E.164 (+226XXXXXXXX) --- */
       const rawPhone = parseResult.data.phone;
-      /* In dev, pass through any +XX international number for testing */
       const isDev = process.env["NODE_ENV"] !== "production";
-      const phone = normalizePhone(rawPhone) ??
-        (isDev && rawPhone.startsWith("+") ? rawPhone : null);
+      /* Dev: accept any number as-is so testing works from any country */
+      const phone = normalizePhone(rawPhone) ?? (isDev ? rawPhone : null);
 
       if (!phone) {
         return reply.status(422).send({
