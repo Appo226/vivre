@@ -1,31 +1,23 @@
 /**
  * routes/auth/send-otp.ts — POST /v1/auth/send-otp
  *
- * Génère un code OTP à 6 chiffres, le stocke dans Redis (TTL 5min)
- * et l'envoie par SMS via Twilio.
+ * Triggers an OTP via Twilio Verify (production) or returns a dev_code
+ * directly in the response (development / no credentials).
  *
- * Règles métier :
- * - Max 3 envois par heure par numéro (anti-spam, contrôle coût SMS)
- * - Le code précédent est écrasé si un nouveau est demandé
- * - Le numéro est normalisé vers +226XXXXXXXX avant stockage
- * - En mode dev sans Twilio, le code s'affiche en console
- *
- * Rate limit spécifique : en plus du rate limit global (100/min/IP),
- * ce endpoint a un rate limit métier de 3 envois/heure/téléphone.
+ * Rate limit: max 3 sends/hour per number (Redis), on top of Twilio's own limits.
  */
 
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { normalizePhone } from "@vivre/utils";
 import { SendOtpBodySchema } from "../../schemas/auth.schema.js";
-import { generateOtpCode, sendOtpSms } from "../../services/sms.service.js";
-import { saveOtp, checkAndIncrementRateLimit } from "../../services/otp.service.js";
+import { sendVerification } from "../../services/sms.service.js";
+import { checkAndIncrementRateLimit } from "../../services/otp.service.js";
 
 export const sendOtpRoute: FastifyPluginAsync = async (app) => {
   app.post<{ Body: z.infer<typeof SendOtpBodySchema> }>(
     "/send-otp",
     {
-      /* Schéma JSON Schema pour Fastify (documentation Swagger automatique) */
       schema: {
         summary: "Envoyer un code OTP par SMS",
         tags: ["Authentification"],
@@ -35,7 +27,7 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
           properties: {
             phone: {
               type: "string",
-              description: "Numéro de téléphone burkinabè (+226 ou local)",
+              description: "Numéro de téléphone (+226 local ou international E.164)",
               example: "+22670123456",
             },
           },
@@ -44,17 +36,17 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
           200: {
             type: "object",
             properties: {
-              message: { type: "string" },
-              expires_in: { type: "number" },
-              remaining_attempts: { type: "number" },
-              dev_code: { type: "string" },
+              message:           { type: "string" },
+              expires_in:        { type: "number" },
+              remaining_attempts:{ type: "number" },
+              dev_code:          { type: "string" },
             },
           },
           429: {
             type: "object",
             properties: {
-              error: { type: "string" },
-              code: { type: "string" },
+              error:       { type: "string" },
+              code:        { type: "string" },
               retry_after: { type: "number" },
             },
           },
@@ -62,7 +54,7 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
       },
     },
     async (request, reply) => {
-      /* --- 1. Validation Zod (normalise aussi les espaces dans le numéro) --- */
+      /* --- 1. Validation Zod --- */
       const parseResult = SendOtpBodySchema.safeParse(request.body);
       if (!parseResult.success) {
         return reply.status(422).send({
@@ -72,11 +64,10 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
         });
       }
 
-      /* --- 2. Normalisation E.164 (+226XXXXXXXX) --- */
+      /* --- 2. Normalise to E.164; in dev accept any number --- */
       const rawPhone = parseResult.data.phone;
-      const isDev = process.env["NODE_ENV"] !== "production";
-      /* Dev: accept any number as-is so testing works from any country */
-      const phone = normalizePhone(rawPhone) ?? (isDev ? rawPhone : null);
+      const isDev    = process.env["NODE_ENV"] !== "production";
+      const phone    = normalizePhone(rawPhone) ?? (isDev ? rawPhone : null);
 
       if (!phone) {
         return reply.status(422).send({
@@ -85,9 +76,8 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
         });
       }
 
-      /* --- 3. Rate limiting : max 3 envois/heure par numéro --- */
+      /* --- 3. Rate limit (Redis) --- */
       const rateCheck = await checkAndIncrementRateLimit(phone);
-
       if (!rateCheck.allowed) {
         app.log.warn({ phone }, "Rate limit OTP atteint");
         return reply.status(429).send({
@@ -97,38 +87,24 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
         });
       }
 
-      /* --- 4. Génération et stockage du code OTP --- */
-      const code = generateOtpCode();
+      /* --- 4. Send via Twilio Verify (or dev fallback) --- */
       try {
-        await saveOtp(phone, code);
-      } catch (redisErr) {
-        app.log.error({ phone, error: redisErr }, "Redis indisponible — impossible de stocker l'OTP");
-        return reply.status(503).send({
-          error: "Service temporairement indisponible. Réessayez dans quelques instants.",
-          code: "SERVICE_UNAVAILABLE",
-        });
-      }
+        const { devCode } = await sendVerification(phone);
+        app.log.info({ phone }, "OTP envoyé");
 
-      /* --- 5. Envoi SMS (console en dev, Twilio en prod) --- */
-      try {
-        await sendOtpSms(phone, code);
-      } catch (smsError) {
-        app.log.error({ phone, error: smsError }, "Échec envoi SMS OTP");
+        return reply.status(200).send({
+          message:            "Code OTP envoyé par SMS",
+          expires_in:         300,
+          remaining_attempts: rateCheck.remaining,
+          ...(isDev && devCode && { dev_code: devCode }),
+        });
+      } catch (err) {
+        app.log.error({ phone, err }, "Échec envoi OTP");
         return reply.status(503).send({
           error: "Impossible d'envoyer le SMS. Vérifiez votre numéro et réessayez.",
           code: "SMS_SEND_FAILED",
         });
       }
-
-      app.log.info({ phone }, "OTP envoyé");
-
-      return reply.status(200).send({
-        message: "Code OTP envoyé par SMS",
-        expires_in: 300,
-        remaining_attempts: rateCheck.remaining,
-        /* Dev only — never sent in production */
-        ...(isDev && { dev_code: code }),
-      });
     }
   );
 };

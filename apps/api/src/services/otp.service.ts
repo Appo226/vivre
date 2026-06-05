@@ -140,3 +140,10 @@ export async function checkAndIncrementRateLimit(
 
   return { allowed: true, remaining: OTP_RATE_LIMIT_MAX - count };
 }
+
+/** Generates a cryptographically random 6-digit OTP code. */
+export function generateOtpCode(): string {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return ((array[0]! % 900000) + 100000).toString();
+}

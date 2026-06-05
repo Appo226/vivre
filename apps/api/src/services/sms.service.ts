@@ -1,100 +1,92 @@
 /**
- * services/sms.service.ts — Envoi de SMS via Twilio pour VIVRE
+ * services/sms.service.ts — OTP delivery via Twilio Verify
  *
- * Responsabilité unique : envoyer des SMS aux numéros burkinabè (+226).
- * En développement sans credentials Twilio, le code OTP est affiché en console
- * pour faciliter les tests sans frais SMS.
+ * Production: delegates everything (generation, storage, delivery) to
+ * Twilio Verify. No phone number owned by us is needed.
  *
- * Pourquoi Twilio et pas un opérateur local ?
- * Twilio dispose de routes directes vers Orange BF et Moov BF avec des taux
- * de livraison supérieurs à 95%. Les APIs des opérateurs locaux sont souvent
- * instables et peu documentées. Twilio offre aussi les webhooks de statut (delivered/failed).
+ * Dev (no credentials): falls back to local code generation + Redis
+ * storage, with the code returned in-band so testers don't need an SMS.
  */
 
 import Twilio from "twilio";
+import { generateOtpCode } from "./otp.service.js";
+import { saveOtp } from "./otp.service.js";
 
-/* ============================================================
- * INITIALISATION TWILIO
- * ============================================================ */
+/* ── Twilio client (lazy, nullable) ──────────────────────────────── */
 
-/**
- * Crée le client Twilio à la demande (lazy init).
- * Retourne null si les credentials ne sont pas configurés (mode dev).
- */
 function getTwilioClient(): ReturnType<typeof Twilio> | null {
-  const accountSid = process.env["TWILIO_ACCOUNT_SID"];
-  const authToken = process.env["TWILIO_AUTH_TOKEN"];
-
-  if (!accountSid || !authToken ||
-      accountSid === "CHANGE_ME" || authToken === "CHANGE_ME") {
-    return null; /* Mode développement — SMS simulé en console */
-  }
-
-  return Twilio(accountSid, authToken);
+  const sid   = process.env["TWILIO_ACCOUNT_SID"];
+  const token = process.env["TWILIO_AUTH_TOKEN"];
+  if (!sid || !token || sid === "CHANGE_ME" || token === "CHANGE_ME") return null;
+  return Twilio(sid, token);
 }
 
-/* ============================================================
- * ENVOI D'OTP
- * ============================================================ */
+function getVerifyServiceSid(): string | null {
+  const sid = process.env["TWILIO_VERIFY_SERVICE_SID"];
+  return sid && sid !== "CHANGE_ME" ? sid : null;
+}
+
+/* ── Send ─────────────────────────────────────────────────────────── */
 
 /**
- * Envoie un code OTP par SMS au numéro de téléphone indiqué.
- *
- * En développement (sans Twilio configuré) : affiche le code en console.
- * En production : envoie réellement le SMS via Twilio.
- *
- * @param phone - Numéro au format E.164 (+22670123456)
- * @param code - Code OTP à 6 chiffres
- * @throws Error si l'envoi SMS échoue en production
+ * Send an OTP to `phone`.
+ * Returns `{ devCode }` in dev mode so the caller can expose it in the
+ * API response without any real SMS being sent.
  */
-export async function sendOtpSms(phone: string, code: string): Promise<void> {
-  const client = getTwilioClient();
-  const fromNumber = process.env["TWILIO_PHONE_NUMBER"];
+export async function sendVerification(
+  phone: string
+): Promise<{ devCode?: string }> {
+  const client     = getTwilioClient();
+  const serviceSid = getVerifyServiceSid();
 
-  /* --- Mode développement : log en console --- */
-  if (!client || !fromNumber || fromNumber === "+12345678901") {
+  /* Dev fallback: no Twilio creds */
+  if (!client || !serviceSid) {
+    const code = generateOtpCode();
+    await saveOtp(phone, code);
     console.log("\n╔═══════════════════════════════════════╗");
-    console.log("║        MODE DEV — CODE OTP SMS        ║");
+    console.log("║      MODE DEV — TWILIO VERIFY OTP     ║");
     console.log(`║  Téléphone : ${phone.padEnd(22)} ║`);
     console.log(`║  Code OTP  : ${code.padEnd(22)} ║`);
-    console.log("║  (Twilio non configuré — mode console) ║");
     console.log("╚═══════════════════════════════════════╝\n");
-    return;
+    return { devCode: code };
   }
 
-  /* --- Mode production : envoi Twilio réel --- */
-  try {
-    await client.messages.create({
-      body: `Votre code VIVRE : ${code}\nValable 5 minutes. Ne partagez jamais ce code.`,
-      from: fromNumber,
-      to: phone,
-    });
-  } catch (error) {
-    /*
-     * Logguer l'erreur Twilio mais la relancer pour que le contrôleur
-     * puisse retourner une erreur 503 propre à l'utilisateur.
-     */
-    console.error("[SMS] Échec envoi Twilio :", error);
-    throw new Error("Impossible d'envoyer le SMS. Réessayez dans quelques instants.");
-  }
+  /* Production: Twilio Verify handles generation, storage and SMS */
+  await client.verify.v2
+    .services(serviceSid)
+    .verifications.create({ to: phone, channel: "sms" });
+
+  return {};
 }
 
-/* ============================================================
- * GÉNÉRATION DE CODE OTP
- * ============================================================ */
+/* ── Check ────────────────────────────────────────────────────────── */
 
 /**
- * Génère un code OTP à 6 chiffres aléatoires.
- * Utilise crypto.getRandomValues pour une entropie cryptographique.
- *
- * Pourquoi pas Math.random() ?
- * Math.random() n'est pas cryptographiquement sûr — un attaquant qui connaît
- * la seed du PRNG peut prédire les codes futurs. crypto garantit l'aléa vrai.
+ * Verify the OTP submitted by the user.
+ * Returns true if the code is correct and unused.
  */
-export function generateOtpCode(): string {
-  /* Génère un entier entre 100000 et 999999 (6 chiffres garantis) */
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const code = (array[0]! % 900000) + 100000;
-  return code.toString();
+export async function checkVerification(
+  phone: string,
+  code: string
+): Promise<boolean> {
+  const client     = getTwilioClient();
+  const serviceSid = getVerifyServiceSid();
+
+  /* Dev fallback: check against Redis */
+  if (!client || !serviceSid) {
+    const { verifyOtp } = await import("./otp.service.js");
+    const result = await verifyOtp(phone, code);
+    return result.success;
+  }
+
+  /* Production: Twilio Verify check */
+  try {
+    const check = await client.verify.v2
+      .services(serviceSid)
+      .verificationChecks.create({ to: phone, code });
+    return check.status === "approved";
+  } catch {
+    /* Twilio throws when the code is not found / already used */
+    return false;
+  }
 }

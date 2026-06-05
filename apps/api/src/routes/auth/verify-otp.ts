@@ -21,7 +21,7 @@ import { z } from "zod";
 import { prisma } from "@vivre/database";
 import { normalizePhone } from "@vivre/utils";
 import { VerifyOtpBodySchema } from "../../schemas/auth.schema.js";
-import { verifyOtp } from "../../services/otp.service.js";
+import { checkVerification } from "../../services/sms.service.js";
 import {
   signAccessToken,
   createRefreshToken,
@@ -70,19 +70,13 @@ export const verifyOtpRoute: FastifyPluginAsync = async (app) => {
         });
       }
 
-      /* --- 3. Vérification OTP dans Redis --- */
-      const otpResult = await verifyOtp(phone, code);
+      /* --- 3. Vérification OTP (Twilio Verify en prod, Redis en dev) --- */
+      const isValid = await checkVerification(phone, code);
 
-      if (!otpResult.success) {
-        const messages: Record<string, string> = {
-          INVALID_CODE: "Code incorrect. Vérifiez votre SMS et réessayez.",
-          EXPIRED: "Code expiré ou non demandé. Cliquez sur 'Renvoyer le code'.",
-          NOT_FOUND: "Aucun code OTP en attente pour ce numéro.",
-        };
-
+      if (!isValid) {
         return reply.status(401).send({
-          error: messages[otpResult.reason] ?? "Code invalide",
-          code: `OTP_${otpResult.reason}`,
+          error: "Code incorrect ou expiré. Cliquez sur 'Renvoyer le code'.",
+          code: "OTP_INVALID",
         });
       }
 
