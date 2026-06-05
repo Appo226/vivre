@@ -17,16 +17,11 @@ import { z } from "zod";
  * REGEX
  * ============================================================ */
 
-/**
- * Accepte les formats burkinabè courants :
- * - "+22670123456" (E.164 complet)
- * - "22670123456" (sans +)
- * - "70123456" (8 chiffres locaux)
- * - "070123456" (avec 0 local)
- *
- * La normalisation vers +226XXXXXXXX est faite dans le service.
- */
-const BURKINA_PHONE_REGEX = /^(\+226|226)?0?[567]\d{7}$/;
+/* Dev: accept any international number so testing works from any country.
+ * Prod: restrict to Burkina Faso numbers only. */
+const BURKINA_PHONE_REGEX = process.env["NODE_ENV"] === "production"
+  ? /^(\+226|226)?0?[567]\d{7}$/
+  : /^\+?\d{7,15}$/;
 
 /* Exactement 6 chiffres numériques */
 const OTP_CODE_REGEX = /^\d{6}$/;

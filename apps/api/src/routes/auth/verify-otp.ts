@@ -60,7 +60,10 @@ export const verifyOtpRoute: FastifyPluginAsync = async (app) => {
       const { code } = parseResult.data;
 
       /* --- 2. Normalisation du numéro E.164 --- */
-      const phone = normalizePhone(parseResult.data.phone);
+      const rawPhone = parseResult.data.phone;
+      const isDev = process.env["NODE_ENV"] !== "production";
+      const phone = normalizePhone(rawPhone) ??
+        (isDev && rawPhone.startsWith("+") ? rawPhone : null);
       if (!phone) {
         return reply.status(422).send({
           error: "Numéro de téléphone invalide",

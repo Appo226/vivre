@@ -47,6 +47,7 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
               message: { type: "string" },
               expires_in: { type: "number" },
               remaining_attempts: { type: "number" },
+              dev_code: { type: "string" },
             },
           },
           429: {
@@ -73,7 +74,10 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
 
       /* --- 2. Normalisation E.164 (+226XXXXXXXX) --- */
       const rawPhone = parseResult.data.phone;
-      const phone = normalizePhone(rawPhone);
+      /* In dev, pass through any +XX international number for testing */
+      const isDev = process.env["NODE_ENV"] !== "production";
+      const phone = normalizePhone(rawPhone) ??
+        (isDev && rawPhone.startsWith("+") ? rawPhone : null);
 
       if (!phone) {
         return reply.status(422).send({
@@ -121,8 +125,10 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
 
       return reply.status(200).send({
         message: "Code OTP envoyé par SMS",
-        expires_in: 300, /* 5 minutes en secondes */
+        expires_in: 300,
         remaining_attempts: rateCheck.remaining,
+        /* Dev only — never sent in production */
+        ...(isDev && { dev_code: code }),
       });
     }
   );
