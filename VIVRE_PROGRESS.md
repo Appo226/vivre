@@ -1,6 +1,6 @@
 # VIVRE — Progress Tracker
 > Living document. Read this at the start of every session to know exactly where we are.
-> Last updated: 2026-06-06
+> Last updated: 2026-06-06 (session 4)
 
 ---
 
@@ -216,6 +216,56 @@
 
 ---
 
+## AI ASSISTANT — "LAAFI" (ready to build next session)
+
+### Name
+**Laafi** — Mooré word meaning "peace / well-being / good health".
+Used daily in Burkina Faso as a greeting: *"Laafi bala?"* = "Are you well?"
+Friendly, local, meaningful. Short. Easy to remember.
+
+### Personality & Greeting
+- Addresses every user as **"Camarade"** (word of pride in BF right now — national solidarity)
+- Opening message: *"Camarade [prénom], bienvenue sur VIVRE ! Je suis Laafi, votre assistante. Comment puis-je vous aider ?"*
+- If no first name: *"Camarade, bienvenue sur VIVRE !..."*
+- Responds in **whatever language the user writes in** (FR, EN, Mooré, Dioula, etc.)
+- Never says "Propulsé par Claude" or mentions the underlying AI model
+
+### Admin controls (configurable from admin dashboard)
+Admin can change at any time:
+- The assistant's **name** (default: Laafi)
+- The **greeting word** (default: Camarade — could be changed to "Ami", "Citoyen", etc.)
+- The **opening message template**
+- Whether to use the user's first name or not
+These settings stored in a `app_settings` DB table (key/value).
+
+### What needs building
+- ❌ Rename "Assistant VIVRE" → "Laafi" in `AiChat.tsx`
+- ❌ Remove "Propulsé par Claude" subtitle
+- ❌ Update opening message to use Camarade + user first name
+- ❌ Update system prompt: respond in user's language, address as Camarade
+- ❌ Make AI name/greeting configurable (read from API `GET /settings/ai`)
+- ❌ Add `ANTHROPIC_API_KEY` to Render dashboard (AI currently broken — key is placeholder)
+- ❌ Add `ANTHROPIC_API_KEY` to local `.env.local` for dev testing
+- ❌ Test all 7 AI tools: cities, restaurants, properties, transport, emergency, ride price, events
+
+### Payment redesign — DONE ✅
+- Uber-style vertical list: brand SVG logos + name + subtitle + green radio
+- Orange Money, Moov Money, Telecel, Wave, Carte bancaire
+- Used in: wallet top-up, food cart, ride booking
+- No more colored circles
+
+### i18n — ALL pages must be bilingual (FR ↔ EN)
+- `next-intl` is installed but not configured
+- Profile page has basic FR/EN translation map — needs extending to ALL 54 pages
+- Approach: Context-based (no URL prefix change — stays /food not /fr/food)
+  1. Create `src/lib/translations/fr.json` and `src/lib/translations/en.json`
+  2. Create `src/hooks/useT.ts` hook reading from localStorage `vivre_lang`
+  3. Wrap layout in LangProvider
+  4. Update all pages page by page
+- Proper names (city names, people's names, product names) are NEVER translated
+
+---
+
 ## KNOWN TECHNICAL DEBT / ISSUES TO FIX
 
 ### Critical
@@ -274,13 +324,16 @@
 
 When resuming, do these in order:
 
-1. **Test all consumer flows end-to-end** (food, transport, hotels) — fix anything broken
-2. **Add real supplier data** — register a test restaurant, hotel, event so pages have content
-3. **Wire CinetPay checkout** — end-to-end payment for at least one flow (food delivery)
-4. **Profile photo upload** — set Firebase credentials on Render
-5. **Google Maps / Nominatim** — wire geocoder to ride booking and supplier address fields
-6. **Start Phase 2: Restaurant supplier interface** — menu, orders, analytics
-7. **Start Phase 2: Hotel supplier interface** — rooms, calendar, reservations
+1. **AI assistant "Laafi"** — rename, remove Claude branding, Camarade greeting, multilingual, add API key to Render + .env.local
+2. **i18n all pages** — FR/EN using useT hook + translations JSON, NO URL prefix change
+3. **Test all consumer flows end-to-end** (food, transport, hotels) — fix anything broken
+4. **Add real supplier data** — register a test restaurant, hotel, event so pages have content
+5. **Wire CinetPay checkout** — end-to-end payment for at least one flow (food delivery)
+6. **Profile photo upload** — set Firebase credentials on Render
+7. **Google Maps / Nominatim geocoder** — ride pickup/dropoff, supplier address fields
+8. **City management** — supplier can propose new city → auto-available everywhere after approval
+9. **Start Phase 2: Restaurant supplier interface** — menu management, opening hours, orders
+10. **Start Phase 2: Hotel supplier interface** — rooms, availability calendar, reservations
 
 ---
 
@@ -293,3 +346,4 @@ When resuming, do these in order:
 | 2026-06-03 | Redis on Render, DB seeded, Twilio Verify integration, OTP auth working |
 | 2026-06-05 | PostCSS config (Tailwind was broken!), real logos, payment SVG logos, city picker, dynamic banners, SOTRACO multi-operator, Twilio trial fix, international phone numbers |
 | 2026-06-06 | Core documents read, Wave payment added, profile VIVRE ID, FR/EN language toggle, Rejoindre VIVRE expanded (4 cards), supplier role notice, auth supplier banner, progress tracker created |
+| 2026-06-06 | Uber-style payment selector (real logos, vertical list, 5 methods), city picker, dynamic banners, SOTRACO multi-operator, profile icon fix, VIVRE ID, devenir-chauffeur card, organiser événement card, AI assistant "Laafi" spec written in VIVRE_PROGRESS.md |
