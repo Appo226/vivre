@@ -18,14 +18,19 @@ import { useRouter } from "next/navigation";
 import { apiClient, type SendOtpResponse, ApiError } from "@/lib/api";
 
 /**
- * Normalise un numéro de téléphone burkinabè pour l'affichage et l'envoi.
- * Ajoute +226 si l'utilisateur n'a saisi que les 8 derniers chiffres.
+ * Normalise a phone number before sending to the API.
+ * - Already has +  → return as-is
+ * - 8 bare digits  → assume Burkina Faso, prepend +226
+ * - Anything longer without + → prepend + (international number)
  */
 function normalizePhoneForDisplay(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("226")) return `+${digits}`;
+  const cleaned = raw.replace(/[\s\-().]/g, "");
+  if (cleaned.startsWith("+")) return cleaned;
+  const digits = cleaned.replace(/\D/g, "");
+  if (digits.startsWith("226") && digits.length === 11) return `+${digits}`;
   if (digits.length === 8) return `+226${digits}`;
-  return raw;
+  if (digits.length > 8) return `+${digits}`;
+  return cleaned;
 }
 
 export default function AuthPage(): React.ReactElement {
@@ -65,7 +70,7 @@ export default function AuthPage(): React.ReactElement {
         if (err.status === 429) {
           setError("Trop de demandes. Attendez quelques minutes avant de réessayer.");
         } else if (err.status === 422) {
-          setError("Numéro invalide. Format attendu : +226 70 00 00 00 ou 70000000");
+          setError("Numéro invalide. Exemples : 70000000 (BF), +22670000000, +15747100846 (US)");
         } else {
           setError("Impossible d'envoyer le SMS. Vérifiez votre connexion et réessayez.");
         }
@@ -121,21 +126,18 @@ export default function AuthPage(): React.ReactElement {
                 Numéro de téléphone
               </label>
 
-              {/* Conteneur avec indicatif pays */}
+              {/* Phone input — accepts local BF (70000000) or full international (+15747100846) */}
               <div className="flex rounded-xl border border-gray-300 overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
-                {/* Indicatif +226 Burkina Faso */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-r border-gray-300 shrink-0">
-                  <span className="text-lg leading-none">🇧🇫</span>
-                  <span className="text-sm font-medium text-gray-700">+226</span>
+                  <span className="text-lg leading-none">📱</span>
                 </div>
 
-                {/* Input — accepts local 8-digit or full international number */}
                 <input
                   id="phone"
                   type="tel"
-                  inputMode="numeric"
+                  inputMode="tel"
                   autoComplete="tel"
-                  placeholder="70 00 00 00"
+                  placeholder="70000000 ou +15747100846"
                   value={phone}
                   onChange={(e) => {
                     const val = e.target.value.replace(/[^\d\s\-+]/g, "");
