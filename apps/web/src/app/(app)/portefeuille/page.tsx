@@ -32,10 +32,38 @@ const TYPE_CONFIG: Record<string, { label: string; sign: string; color: string }
 };
 
 const TOP_UP_AMOUNTS = [1000, 2000, 5000, 10000, 25000, 50000];
+
+function OrangeMoneyLogo(): React.ReactElement {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Orange Money">
+      <circle cx="18" cy="18" r="18" fill="#FF6600" />
+      <text x="18" y="23" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold" fontFamily="Arial,sans-serif">OM</text>
+    </svg>
+  );
+}
+
+function MoovMoneyLogo(): React.ReactElement {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Moov Money">
+      <rect x="0" y="0" width="36" height="36" rx="8" fill="#0066CC" />
+      <text x="18" y="23" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold" fontFamily="Arial,sans-serif">MOOV</text>
+    </svg>
+  );
+}
+
+function TelecelMoneyLogo(): React.ReactElement {
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Telecel Money">
+      <circle cx="18" cy="18" r="18" fill="#E30613" />
+      <text x="18" y="24" textAnchor="middle" fill="white" fontSize="18" fontWeight="bold" fontFamily="Arial,sans-serif">T</text>
+    </svg>
+  );
+}
+
 const PAYMENT_METHODS = [
-  { key: "orange_money",  label: "Orange Money",  icon: "🟠" },
-  { key: "moov",          label: "Moov Money",    icon: "🔵" },
-  { key: "telecel_money", label: "Telecel Money", icon: "🔴" },
+  { key: "orange_money",  label: "Orange Money",  Logo: OrangeMoneyLogo },
+  { key: "moov",          label: "Moov Money",    Logo: MoovMoneyLogo },
+  { key: "telecel_money", label: "Telecel Money", Logo: TelecelMoneyLogo },
 ];
 
 export default function PortefeuillePage(): React.ReactElement {
@@ -221,7 +249,7 @@ export default function PortefeuillePage(): React.ReactElement {
                             : "border-gray-200",
                         ].join(" ")}
                       >
-                        <span className="text-xl">{m.icon}</span>
+                        <m.Logo />
                         <span className="font-jakarta font-semibold text-sm text-gray-900">{m.label}</span>
                       </button>
                     ))}

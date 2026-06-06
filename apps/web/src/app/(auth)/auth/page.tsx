@@ -88,10 +88,9 @@ export default function AuthPage(): React.ReactElement {
       {/* === EN-TÊTE AVEC DÉGRADÉ VERT VIVRE === */}
       <header className="bg-gradient-to-b from-green-800 to-green-700 px-6 pt-16 pb-12 text-white text-center">
         {/* Logo VIVRE */}
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm mb-4">
-          <span className="text-3xl font-bold font-sora">V</span>
+        <div className="inline-flex items-center justify-center w-24 h-16 rounded-2xl bg-white/20 backdrop-blur-sm mb-4">
+          <span className="text-xl font-bold font-sora text-white tracking-widest">VIVRE</span>
         </div>
-        <h1 className="text-3xl font-bold font-sora mb-1">VIVRE</h1>
         <p className="text-green-200 text-sm">Voyager. Manger. Découvrir.</p>
       </header>
 

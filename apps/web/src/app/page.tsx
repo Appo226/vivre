@@ -61,6 +61,36 @@ export default function HomePage(): React.ReactElement {
         <SearchBar />
       </header>
 
+      {/* === BANNIÈRES PROMOTIONNELLES === */}
+      <section className="px-4 pt-5 pb-1">
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
+          <a
+            href="/course"
+            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#1A6B3A] to-[#0f4222] text-white shadow-md active:scale-95 transition-all"
+          >
+            <p className="text-2xl mb-1">🚗</p>
+            <p className="font-sora font-bold text-sm leading-tight">Première course offerte</p>
+            <p className="text-green-200 text-xs mt-1 font-dm">Code : VIVRE1</p>
+          </a>
+          <a
+            href="/food"
+            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#EF2B2D] to-[#b85c00] text-white shadow-md active:scale-95 transition-all"
+          >
+            <p className="text-2xl mb-1">🍽️</p>
+            <p className="font-sora font-bold text-sm leading-tight">Livraison gratuite</p>
+            <p className="text-red-100 text-xs mt-1 font-dm">Restaurants partenaires</p>
+          </a>
+          <a
+            href="/hebergement"
+            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#1A1A2E] to-[#2d4a1e] text-white shadow-md active:scale-95 transition-all"
+          >
+            <p className="text-2xl mb-1">🏨</p>
+            <p className="font-sora font-bold text-sm leading-tight">-20% hébergement</p>
+            <p className="text-green-200 text-xs mt-1 font-dm">Ce weekend seulement</p>
+          </a>
+        </div>
+      </section>
+
       {/* === GRILLE DES MODULES === */}
       <section className="px-4 py-6">
         <h2 className="text-lg font-sora font-bold text-gray-900 mb-4">
@@ -112,7 +142,30 @@ export default function HomePage(): React.ReactElement {
         </a>
       </section>
 
-      {/* TODO Step 3+: Populaire près de vous, événements, promo banner */}
+      {/* === REJOIGNEZ VIVRE === */}
+      <section className="px-4 mb-6">
+        <h2 className="text-lg font-sora font-bold text-gray-900 mb-3">
+          Rejoignez VIVRE
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href="/devenir-livreur"
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#1A6B3A]/10 border border-[#1A6B3A]/20 hover:bg-[#1A6B3A]/15 active:scale-95 transition-all text-center"
+          >
+            <span className="text-3xl">🛵</span>
+            <p className="font-jakarta font-bold text-sm text-[#1A6B3A] leading-tight">Devenir livreur</p>
+            <p className="text-xs text-gray-500 font-dm">Gagnez à votre rythme</p>
+          </a>
+          <a
+            href="/fournisseur/restaurant"
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#F5A623]/10 border border-[#F5A623]/30 hover:bg-[#F5A623]/15 active:scale-95 transition-all text-center"
+          >
+            <span className="text-3xl">🏪</span>
+            <p className="font-jakarta font-bold text-sm text-[#b87415] leading-tight">Publier votre établissement</p>
+            <p className="text-xs text-gray-500 font-dm">Restaurants & hôtels</p>
+          </a>
+        </div>
+      </section>
 
       {/* === ESPACE POUR LA BOTTOM NAVIGATION === */}
       <div className="h-bottom-nav" aria-hidden="true" />

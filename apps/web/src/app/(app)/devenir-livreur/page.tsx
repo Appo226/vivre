@@ -59,9 +59,6 @@ const REQUIRED_DOCS = [
 export default function DevenirLivreurPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken } = useAuthStore();
-  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/devenir-livreur"); } }, [accessToken, router]);
-
-  if (!accessToken) return null;
 
   /* État du formulaire multi-étapes */
   const [step, setStep] = useState(1);
@@ -87,6 +84,9 @@ export default function DevenirLivreurPage(): React.ReactElement | null {
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
   const [citiesLoaded, setCitiesLoaded] = useState(false);
 
+  /* Rediriger si non connecté */
+  useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/devenir-livreur"); } }, [accessToken, router]);
+
   /* Charger les villes à l'affichage de l'étape 1 */
   React.useEffect(() => {
     if (!citiesLoaded) {
@@ -95,6 +95,8 @@ export default function DevenirLivreurPage(): React.ReactElement | null {
         .catch(() => {});
     }
   }, [citiesLoaded]);
+
+  if (!accessToken) return null;
 
   /**
    * Uploader un document vers Firebase Storage via l'API VIVRE.
