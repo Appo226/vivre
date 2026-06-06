@@ -219,27 +219,26 @@
 ## AI ASSISTANT — "LAAFI" (ready to build next session)
 
 ### Name
-**Laafi** — Mooré word meaning "peace / well-being / good health".
-Used daily in Burkina Faso as a greeting: *"Laafi bala?"* = "Are you well?"
-Friendly, local, meaningful. Short. Easy to remember.
+**Merlin** — The wizard. Young generation worldwide knows him. Short, wise, works in French and English.
+
 
 ### Personality & Greeting
 - Addresses every user as **"Camarade"** (word of pride in BF right now — national solidarity)
-- Opening message: *"Camarade [prénom], bienvenue sur VIVRE ! Je suis Laafi, votre assistante. Comment puis-je vous aider ?"*
+- Opening message: *"Camarade [prénom], bienvenue sur VIVRE ! Je suis Merlin, votre assistant. Comment puis-je vous aider ?"*
 - If no first name: *"Camarade, bienvenue sur VIVRE !..."*
 - Responds in **whatever language the user writes in** (FR, EN, Mooré, Dioula, etc.)
 - Never says "Propulsé par Claude" or mentions the underlying AI model
 
 ### Admin controls (configurable from admin dashboard)
 Admin can change at any time:
-- The assistant's **name** (default: Laafi)
+- The assistant's **name** (default: Merlin)
 - The **greeting word** (default: Camarade — could be changed to "Ami", "Citoyen", etc.)
 - The **opening message template**
 - Whether to use the user's first name or not
 These settings stored in a `app_settings` DB table (key/value).
 
 ### What needs building
-- ❌ Rename "Assistant VIVRE" → "Laafi" in `AiChat.tsx`
+- ❌ Rename "Assistant VIVRE" → "Merlin" in `AiChat.tsx`
 - ❌ Remove "Propulsé par Claude" subtitle
 - ❌ Update opening message to use Camarade + user first name
 - ❌ Update system prompt: respond in user's language, address as Camarade
@@ -324,7 +323,7 @@ These settings stored in a `app_settings` DB table (key/value).
 
 When resuming, do these in order:
 
-1. **AI assistant "Laafi"** — rename, remove Claude branding, Camarade greeting, multilingual, add API key to Render + .env.local
+1. **AI assistant "Merlin"** — rename, remove Claude branding, Camarade greeting, multilingual, add API key to Render + .env.local
 2. **i18n all pages** — FR/EN using useT hook + translations JSON, NO URL prefix change
 3. **Test all consumer flows end-to-end** (food, transport, hotels) — fix anything broken
 4. **Add real supplier data** — register a test restaurant, hotel, event so pages have content
@@ -346,4 +345,4 @@ When resuming, do these in order:
 | 2026-06-03 | Redis on Render, DB seeded, Twilio Verify integration, OTP auth working |
 | 2026-06-05 | PostCSS config (Tailwind was broken!), real logos, payment SVG logos, city picker, dynamic banners, SOTRACO multi-operator, Twilio trial fix, international phone numbers |
 | 2026-06-06 | Core documents read, Wave payment added, profile VIVRE ID, FR/EN language toggle, Rejoindre VIVRE expanded (4 cards), supplier role notice, auth supplier banner, progress tracker created |
-| 2026-06-06 | Uber-style payment selector (real logos, vertical list, 5 methods), city picker, dynamic banners, SOTRACO multi-operator, profile icon fix, VIVRE ID, devenir-chauffeur card, organiser événement card, AI assistant "Laafi" spec written in VIVRE_PROGRESS.md |
+| 2026-06-06 | Uber-style payment selector (real logos, vertical list, 5 methods), city picker, dynamic banners, SOTRACO multi-operator, profile icon fix, VIVRE ID, devenir-chauffeur card, organiser événement card, AI assistant "Merlin" spec written in VIVRE_PROGRESS.md |
