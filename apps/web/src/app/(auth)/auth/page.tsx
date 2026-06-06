@@ -87,16 +87,16 @@ export default function AuthPage(): React.ReactElement {
 
       {/* === EN-TÊTE AVEC DÉGRADÉ VERT VIVRE === */}
       <header className="bg-gradient-to-b from-green-800 to-green-700 px-6 pt-16 pb-12 text-white text-center">
-        {/* Real VIVRE logo — V chevron + gold dot + wordmark */}
-        <div className="inline-flex items-center justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="160" height="52" viewBox="0 0 280 72">
-            <rect x="10" y="10" width="52" height="52" rx="13" fill="rgba(255,255,255,0.2)"/>
-            <path d="M21 22 L36 52 L51 22" stroke="#FFFFFF" strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="36" cy="52" r="4.5" fill="#F5A623"/>
-            <text x="74" y="44" fontFamily="'Sora',sans-serif" fontWeight="800" fontSize="34" fill="#FFFFFF" letterSpacing="-1">VIVRE</text>
+        {/* VIVRE logo — icon box + wordmark + tagline (transparent bg for dark header) */}
+        <div className="inline-flex flex-col items-center gap-2 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="180" height="56" viewBox="0 0 600 220">
+            <rect x="40" y="30" width="140" height="140" rx="34" fill="#1A6B3A"/>
+            <path d="M67 64 L110 140 L153 64" stroke="#FFFFFF" strokeWidth="14" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="110" cy="140" r="11" fill="#F5A623"/>
+            <text x="204" y="128" fontFamily="'Sora','Plus Jakarta Sans',sans-serif" fontWeight="800" fontSize="88" fill="#FFFFFF" letterSpacing="-2">VIVRE</text>
+            <text x="206" y="166" fontFamily="'DM Sans',sans-serif" fontWeight="500" fontSize="18" fill="#F5A623" letterSpacing="4">voyager · manger · découvrir</text>
           </svg>
         </div>
-        <p className="text-green-200 text-sm">Voyager. Manger. Découvrir.</p>
       </header>
 
       {/* === FORMULAIRE === */}

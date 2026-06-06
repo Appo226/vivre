@@ -3,24 +3,23 @@
  *
  * Écran H-001 du ScreenMap VIVRE :
  * - Barre de recherche universelle
- * - Ville détectée (ou sélectionnée)
+ * - Ville détectée (ou sélectionnée) via CitySelector
  * - Grille des modules (Transport, Food, Hôtels, Guides, Attractions, Urgences)
- * - Section "Populaire près de vous"
- * - Événements à venir (FESPACO, SIAO)
- * - Bannière promotionnelle
+ * - Bannières marketing dynamiques via MarketingBanners
+ * - Section Urgences + Rejoindre VIVRE
  * - Bottom navigation à 5 onglets
  * - Bouton flottant AI (assistant IA)
  *
- * Server Component — rendu côté serveur pour le SEO.
- * Les sections dynamiques (données utilisateur, géolocalisation) utilisent Suspense.
- *
- * TODO Step 4+: Implémenter les composants interactifs progressivement.
+ * Server Component — les composants clients sont importés directement,
+ * Next.js gère la frontière RSC automatiquement.
  */
 
 import type { Metadata } from "next";
 import AiChat from "@/components/AiChat";
 import SearchBar from "@/components/SearchBar";
 import { BottomNav } from "@/components/BottomNav";
+import CitySelector from "@/components/CitySelector";
+import MarketingBanners from "@/components/MarketingBanners";
 
 /* Métadonnées spécifiques à la page d'accueil */
 export const metadata: Metadata = {
@@ -53,47 +52,15 @@ export default function HomePage(): React.ReactElement {
           </div>
         </div>
 
-        {/* Ville actuelle */}
-        <button className="flex items-center gap-1 text-green-100 text-sm mb-4">
-          {/* TODO: Icône MapPin */}
-          <span>📍</span>
-          <span className="font-dm">Ouagadougou</span>
-          <span>▾</span>
-        </button>
+        {/* Ville actuelle — sélecteur interactif */}
+        <CitySelector />
 
         {/* Barre de recherche universelle */}
         <SearchBar />
       </header>
 
-      {/* === BANNIÈRES PROMOTIONNELLES === */}
-      <section className="px-4 pt-5 pb-1">
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
-          <a
-            href="/course"
-            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#1A6B3A] to-[#0f4222] text-white shadow-md active:scale-95 transition-all"
-          >
-            <p className="text-2xl mb-1">🚗</p>
-            <p className="font-sora font-bold text-sm leading-tight">Première course offerte</p>
-            <p className="text-green-200 text-xs mt-1 font-dm">Code : VIVRE1</p>
-          </a>
-          <a
-            href="/food"
-            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#EF2B2D] to-[#b85c00] text-white shadow-md active:scale-95 transition-all"
-          >
-            <p className="text-2xl mb-1">🍽️</p>
-            <p className="font-sora font-bold text-sm leading-tight">Livraison gratuite</p>
-            <p className="text-red-100 text-xs mt-1 font-dm">Restaurants partenaires</p>
-          </a>
-          <a
-            href="/hebergement"
-            className="flex-shrink-0 w-52 rounded-2xl p-4 bg-gradient-to-br from-[#1A1A2E] to-[#2d4a1e] text-white shadow-md active:scale-95 transition-all"
-          >
-            <p className="text-2xl mb-1">🏨</p>
-            <p className="font-sora font-bold text-sm leading-tight">-20% hébergement</p>
-            <p className="text-green-200 text-xs mt-1 font-dm">Ce weekend seulement</p>
-          </a>
-        </div>
-      </section>
+      {/* === BANNIÈRES MARKETING (statiques + dynamiques) === */}
+      <MarketingBanners />
 
       {/* === GRILLE DES MODULES === */}
       <section className="px-4 py-6">
