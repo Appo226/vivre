@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="72" viewBox="0 0 280 72">
+  <rect width="280" height="72" fill="#FFFFFF"/>
+  <rect x="10" y="10" width="52" height="52" rx="13" fill="#1A6B3A"/>
+  <path d="M21 22 L36 52 L51 22" stroke="#FFFFFF" stroke-width="5.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="36" cy="52" r="4.5" fill="#F5A623"/>
+  <text x="74" y="44" font-family="'Sora',sans-serif" font-weight="800" font-size="34" fill="#1A1A2E" letter-spacing="-1">VIVRE</text>
+</svg>

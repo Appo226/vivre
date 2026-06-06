@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 600 220">
+  <rect width="600" height="220" fill="#FFFFFF"/>
+  <rect x="40" y="30" width="140" height="140" rx="34" fill="#1A6B3A"/>
+  <path d="M67 64 L110 140 L153 64" stroke="#FFFFFF" stroke-width="14" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="110" cy="140" r="11" fill="#F5A623"/>
+  <text x="204" y="128" font-family="'Sora','Plus Jakarta Sans',sans-serif" font-weight="800" font-size="88" fill="#1A1A2E" letter-spacing="-2">VIVRE</text>
+  <text x="206" y="166" font-family="'DM Sans',sans-serif" font-weight="500" font-size="18" fill="#1A6B3A" letter-spacing="4">voyager · manger · découvrir</text>
+</svg>

@@ -39,8 +39,12 @@ export default function HomePage(): React.ReactElement {
         {/* Logo + salutation */}
         <div className="flex items-center justify-between mb-4 pt-4">
           <div>
-            <h1 className="text-2xl font-sora font-bold">VIVRE</h1>
-            <p className="text-green-100 text-sm font-dm">Voyager. Manger. Découvrir.</p>
+            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="32" viewBox="0 0 280 72">
+              <rect x="10" y="10" width="52" height="52" rx="13" fill="rgba(255,255,255,0.25)"/>
+              <path d="M21 22 L36 52 L51 22" stroke="#FFFFFF" strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="36" cy="52" r="4.5" fill="#F5A623"/>
+              <text x="74" y="44" fontFamily="'Sora',sans-serif" fontWeight="800" fontSize="34" fill="#FFFFFF" letterSpacing="-1">VIVRE</text>
+            </svg>
           </div>
           {/* Avatar utilisateur ou bouton connexion */}
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">

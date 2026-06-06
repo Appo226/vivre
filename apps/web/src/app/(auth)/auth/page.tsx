@@ -87,9 +87,14 @@ export default function AuthPage(): React.ReactElement {
 
       {/* === EN-TÊTE AVEC DÉGRADÉ VERT VIVRE === */}
       <header className="bg-gradient-to-b from-green-800 to-green-700 px-6 pt-16 pb-12 text-white text-center">
-        {/* Logo VIVRE */}
-        <div className="inline-flex items-center justify-center w-24 h-16 rounded-2xl bg-white/20 backdrop-blur-sm mb-4">
-          <span className="text-xl font-bold font-sora text-white tracking-widest">VIVRE</span>
+        {/* Real VIVRE logo — V chevron + gold dot + wordmark */}
+        <div className="inline-flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="160" height="52" viewBox="0 0 280 72">
+            <rect x="10" y="10" width="52" height="52" rx="13" fill="rgba(255,255,255,0.2)"/>
+            <path d="M21 22 L36 52 L51 22" stroke="#FFFFFF" strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="36" cy="52" r="4.5" fill="#F5A623"/>
+            <text x="74" y="44" fontFamily="'Sora',sans-serif" fontWeight="800" fontSize="34" fill="#FFFFFF" letterSpacing="-1">VIVRE</text>
+          </svg>
         </div>
         <p className="text-green-200 text-sm">Voyager. Manger. Découvrir.</p>
       </header>
