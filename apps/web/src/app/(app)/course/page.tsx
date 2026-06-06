@@ -21,6 +21,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { apiClient, ApiError } from "@/lib/api";
+import PaymentSelector from "@/components/PaymentSelector";
 
 /* ============================================================
  * TYPES
@@ -63,11 +64,6 @@ const RIDE_TYPES = [
   },
 ] as const;
 
-const PAYMENT_METHODS = [
-  { key: "orange_money", label: "Orange Money", icon: "🟠" },
-  { key: "moov",         label: "Moov Money",   icon: "🔵" },
-  { key: "telecel_money",label: "Telecel Money", icon: "🔴" },
-] as const;
 
 /* ============================================================
  * PAGE PRINCIPALE
@@ -342,25 +338,11 @@ export default function CoursePage(): React.ReactElement {
 
         {/* Paiement */}
         <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Paiement Mobile Money</p>
-          <p className="text-xs text-gray-400">Les paiements en espèces ne sont pas acceptés</p>
-
-          <div className="grid grid-cols-3 gap-2">
-            {PAYMENT_METHODS.map((method) => (
-              <button
-                key={method.key}
-                onClick={() => setPaymentMethod(method.key)}
-                className={`rounded-xl p-3 text-center border-2 transition-all ${
-                  paymentMethod === method.key
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-gray-100 bg-gray-50"
-                }`}
-              >
-                <span className="text-xl block mb-1">{method.icon}</span>
-                <span className="text-xs font-medium text-gray-700">{method.label}</span>
-              </button>
-            ))}
-          </div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Paiement</p>
+          <PaymentSelector
+            selected={paymentMethod}
+            onChange={(key) => setPaymentMethod(key as typeof paymentMethod)}
+          />
 
           <input
             type="tel"

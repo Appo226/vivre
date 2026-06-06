@@ -10,7 +10,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
-import { PAYMENT_METHODS } from "@/components/PaymentLogos";
+import PaymentSelector from "@/components/PaymentSelector";
 
 interface WalletTransaction {
   id: string;
@@ -204,24 +204,11 @@ export default function PortefeuillePage(): React.ReactElement {
 
                 {/* Méthode de paiement */}
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 font-dm">Méthode de paiement</p>
-                  <div className="space-y-2">
-                    {PAYMENT_METHODS.map((m) => (
-                      <button
-                        key={m.key}
-                        onClick={() => setTopupMethod(m.key)}
-                        className={[
-                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors",
-                          topupMethod === m.key
-                            ? "border-green-600 bg-green-50"
-                            : "border-gray-200",
-                        ].join(" ")}
-                      >
-                        <m.Logo />
-                        <span className="font-jakarta font-semibold text-sm text-gray-900">{m.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-xs font-semibold text-gray-500 mb-3 font-dm uppercase tracking-wide">Méthode de paiement</p>
+                  <PaymentSelector
+                    selected={topupMethod}
+                    onChange={setTopupMethod}
+                  />
                 </div>
 
                 <button

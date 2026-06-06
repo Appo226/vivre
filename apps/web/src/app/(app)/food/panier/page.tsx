@@ -20,20 +20,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { useCartStore } from "@/store/cart.store";
 import { apiClient, ApiError } from "@/lib/api";
-
-/* ============================================================
- * CONSTANTES
- * ============================================================ */
-
-/*
- * Cash exclu — vecteur de fraude (livraisons non payées à la porte).
- * "wallet" = paiement interne via portefeuille VIVRE (pas de redirection CinetPay).
- */
-const MOBILE_MONEY_METHODS = [
-  { value: "orange_money",  label: "Orange Money",  icon: "🟠", desc: "Réseau Orange Burkina" },
-  { value: "moov",          label: "Moov Money",    icon: "🔵", desc: "Réseau Moov Burkina" },
-  { value: "telecel_money", label: "Telecel Money", icon: "🟣", desc: "Réseau Telecel Burkina" },
-];
+import PaymentSelector from "@/components/PaymentSelector";
 
 const DELIVERY_FEE_ESTIMATE = 1000; /* FCFA — affiché si pas de coordonnées GPS */
 
@@ -290,62 +277,11 @@ export default function PanierPage(): React.ReactElement {
         {/* Mode de paiement */}
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <p className="font-bold text-gray-900 mb-3">Paiement</p>
-          <div className="space-y-2">
-
-            {/* Portefeuille VIVRE */}
-            {walletBalance !== null && (
-              <button
-                onClick={() => walletBalance >= total && setPaymentMethod("wallet")}
-                disabled={walletBalance < total}
-                className={[
-                  "w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
-                  walletBalance < total ? "border-gray-100 opacity-50 cursor-not-allowed" :
-                    paymentMethod === "wallet" ? "border-[#EF2B2D] bg-[#EF2B2D]/5" : "border-gray-200",
-                ].join(" ")}
-              >
-                <span className="text-2xl">💰</span>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900 text-sm">Portefeuille VIVRE</p>
-                  <p className="text-xs text-gray-500">
-                    Solde : {walletBalance.toLocaleString("fr-FR")} FCFA
-                    {walletBalance < total && " — insuffisant"}
-                  </p>
-                </div>
-                <div className={[
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                  paymentMethod === "wallet" ? "border-[#EF2B2D] bg-[#EF2B2D]" : "border-gray-300",
-                ].join(" ")}>
-                  {paymentMethod === "wallet" && <div className="w-2 h-2 bg-white rounded-full" />}
-                </div>
-              </button>
-            )}
-
-            {/* Mobile Money */}
-            {MOBILE_MONEY_METHODS.map((method) => (
-              <button
-                key={method.value}
-                onClick={() => setPaymentMethod(method.value)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                  paymentMethod === method.value
-                    ? "border-[#EF2B2D] bg-[#EF2B2D]/5"
-                    : "border-gray-200"
-                }`}
-              >
-                <span className="text-2xl">{method.icon}</span>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{method.label}</p>
-                  <p className="text-xs text-gray-500">{method.desc}</p>
-                </div>
-                <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  paymentMethod === method.value ? "border-[#EF2B2D] bg-[#EF2B2D]" : "border-gray-300"
-                }`}>
-                  {paymentMethod === method.value && (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+          <PaymentSelector
+            selected={paymentMethod}
+            onChange={setPaymentMethod}
+            walletBalance={walletBalance}
+          />
         </div>
 
         {/* Récapitulatif des prix */}
