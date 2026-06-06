@@ -20,47 +20,48 @@ const BURKINA_COUNTRY_CODE = "+226";
 const LOCAL_NUMBER_LENGTH = 8;
 
 /**
- * Normalise un numéro de téléphone burkinabè au format E.164 (+226XXXXXXXX).
- * Gère les formats courants saisis par les utilisateurs.
+ * Normalises a phone number to E.164 format.
  *
- * Exemples de normalisation :
- * "0660000001" → "+22660000001" (supprime le 0 initial puis ajoute +226)
- * "+22660000001" → "+22660000001" (déjà normalisé)
- * "60000001" → "+22660000001" (8 chiffres directs)
- * "226 60 00 00 01" → "+22660000001" (espaces supprimés)
+ * International numbers (already E.164) are returned as-is.
+ * Burkina Faso local shortcuts are expanded to +226XXXXXXXX.
  *
- * @returns null si le numéro ne peut pas être normalisé
+ * Examples:
+ *   "+15747100846"  → "+15747100846"  (US, unchanged)
+ *   "+22670123456"  → "+22670123456"  (BF E.164, unchanged)
+ *   "70123456"      → "+22670123456"  (BF local 8-digit)
+ *   "070123456"     → "+22670123456"  (BF local with leading 0)
+ *   "0022670123456" → "+22670123456"  (BF with 00 prefix)
+ *
+ * @returns null if the number cannot be normalised
  */
 export function normalizePhone(raw: string): string | null {
-  /* Supprimer tous les espaces, tirets, parenthèses */
   const cleaned = raw.replace(/[\s\-().]/g, "");
 
-  /* Déjà au format international +226XXXXXXXX */
-  if (cleaned.startsWith("+226") && cleaned.length === 4 + LOCAL_NUMBER_LENGTH) {
+  /* Already valid E.164 (+[1-9] followed by 6-14 more digits) */
+  if (/^\+[1-9]\d{6,14}$/.test(cleaned)) {
     return cleaned;
   }
 
-  /* Format 00226XXXXXXXX */
+  /* 00226XXXXXXXX → +226XXXXXXXX */
   if (cleaned.startsWith("00226") && cleaned.length === 5 + LOCAL_NUMBER_LENGTH) {
     return `+226${cleaned.slice(5)}`;
   }
 
-  /* Format 226XXXXXXXX (sans le +) */
+  /* 226XXXXXXXX (no +) → +226XXXXXXXX */
   if (cleaned.startsWith("226") && cleaned.length === 3 + LOCAL_NUMBER_LENGTH) {
     return `+${cleaned}`;
   }
 
-  /* Format local 0XXXXXXXX (0 + 8 chiffres = 9 chiffres) */
+  /* 0XXXXXXXX (9 digits, BF local with leading 0) → +226XXXXXXXX */
   if (cleaned.startsWith("0") && cleaned.length === LOCAL_NUMBER_LENGTH + 1) {
     return `${BURKINA_COUNTRY_CODE}${cleaned.slice(1)}`;
   }
 
-  /* Format local XXXXXXXX (8 chiffres directs) */
+  /* XXXXXXXX (8 bare digits, BF local) → +226XXXXXXXX */
   if (/^\d{8}$/.test(cleaned)) {
     return `${BURKINA_COUNTRY_CODE}${cleaned}`;
   }
 
-  /* Numéro non reconnu */
   return null;
 }
 

@@ -64,14 +64,11 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
         });
       }
 
-      /* --- 2. Normalise to E.164; in dev accept any number --- */
-      const rawPhone = parseResult.data.phone;
-      const isDev    = process.env["NODE_ENV"] !== "production";
-      const phone    = normalizePhone(rawPhone) ?? (isDev ? rawPhone : null);
-
+      /* --- 2. Normalise to E.164 --- */
+      const phone = normalizePhone(parseResult.data.phone);
       if (!phone) {
         return reply.status(422).send({
-          error: "Format de numéro invalide. Utilisez +22670123456 ou 70123456",
+          error: "Format de numéro invalide. Utilisez +15747100846, +22670123456 ou 70123456",
           code: "PHONE_INVALID",
         });
       }
@@ -88,6 +85,7 @@ export const sendOtpRoute: FastifyPluginAsync = async (app) => {
       }
 
       /* --- 4. Send via Twilio Verify (or dev fallback) --- */
+      const isDev = process.env["NODE_ENV"] !== "production";
       try {
         const { devCode } = await sendVerification(phone);
         app.log.info({ phone }, "OTP envoyé");

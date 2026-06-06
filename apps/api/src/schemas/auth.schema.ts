@@ -17,11 +17,10 @@ import { z } from "zod";
  * REGEX
  * ============================================================ */
 
-/* Dev: accept any international number so testing works from any country.
- * Prod: restrict to Burkina Faso numbers only. */
-const BURKINA_PHONE_REGEX = process.env["NODE_ENV"] === "production"
-  ? /^(\+226|226)?0?[567]\d{7}$/
-  : /^\+?\d{7,15}$/;
+/* E.164 international format (+[country][number], 8-16 chars total)
+ * OR Burkina local shortcuts: 8 bare digits or 0XXXXXXXX.
+ * VIVRE serves both locals and international tourists. */
+const PHONE_REGEX = /^(\+[1-9]\d{6,14}|0?\d{8})$/;
 
 /* Exactement 6 chiffres numériques */
 const OTP_CODE_REGEX = /^\d{6}$/;
@@ -38,8 +37,8 @@ export const SendOtpBodySchema = z.object({
     /* Supprimer les espaces et tirets (ex: "70 12 34 56" → "70123456") */
     .transform((val) => val.replace(/[\s\-().]/g, ""))
     .refine(
-      (val) => BURKINA_PHONE_REGEX.test(val),
-      "Numéro de téléphone burkinabè invalide (ex: +22670123456 ou 70123456)"
+      (val) => PHONE_REGEX.test(val),
+      "Numéro invalide. Format E.164 international (ex: +15747100846, +22670123456) ou local 8 chiffres"
     ),
 });
 export type SendOtpBody = z.infer<typeof SendOtpBodySchema>;
@@ -51,7 +50,7 @@ export const VerifyOtpBodySchema = z.object({
     .trim()
     .transform((val) => val.replace(/[\s\-().]/g, ""))
     .refine(
-      (val) => BURKINA_PHONE_REGEX.test(val),
+      (val) => PHONE_REGEX.test(val),
       "Numéro de téléphone invalide"
     ),
   code: z
