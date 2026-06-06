@@ -15,6 +15,7 @@
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import AiChat from "@/components/AiChat";
 import SearchBar from "@/components/SearchBar";
 import { BottomNav } from "@/components/BottomNav";
@@ -46,10 +47,11 @@ export default function HomePage(): React.ReactElement {
             </svg>
           </div>
           {/* Avatar utilisateur ou bouton connexion */}
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-            {/* TODO: Avatar ou icône User de lucide-react */}
-            <span className="text-white text-sm font-jakarta">👤</span>
-          </div>
+          <Link href="/profile">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <span className="text-white text-sm font-jakarta">👤</span>
+            </div>
+          </Link>
         </div>
 
         {/* Ville actuelle — sélecteur interactif */}
@@ -134,6 +136,22 @@ export default function HomePage(): React.ReactElement {
             <span className="text-3xl">🏪</span>
             <p className="font-jakarta font-bold text-sm text-[#b87415] leading-tight">Publier votre établissement</p>
             <p className="text-xs text-gray-500 font-dm">Restaurants & hôtels</p>
+          </a>
+          <a
+            href="/devenir-livreur"
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#1A6B3A]/10 border border-[#1A6B3A]/20 hover:bg-[#1A6B3A]/15 active:scale-95 transition-all text-center"
+          >
+            <span className="text-3xl">🚕</span>
+            <p className="font-jakarta font-bold text-sm text-[#1A6B3A] leading-tight">Devenir chauffeur</p>
+            <p className="text-xs text-gray-500 font-dm">Taxi · Zémidjan · Transport</p>
+          </a>
+          <a
+            href="/evenements/publier"
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#6B21A8]/10 border border-[#6B21A8]/20 hover:bg-[#6B21A8]/15 active:scale-95 transition-all text-center"
+          >
+            <span className="text-3xl">🎟️</span>
+            <p className="font-jakarta font-bold text-sm text-[#6B21A8] leading-tight">Organiser un événement</p>
+            <p className="text-xs text-gray-500 font-dm">FESPACO · SIAO · concerts</p>
           </a>
         </div>
       </section>

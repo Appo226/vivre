@@ -13,9 +13,21 @@
 
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient, type SendOtpResponse, ApiError } from "@/lib/api";
+
+/** Bannière contextuelle pour les redirections fournisseur */
+function SupplierBanner(): React.ReactElement | null {
+  const params = useSearchParams();
+  const redirect = params.get("redirect") ?? "";
+  if (!redirect.includes("fournisseur")) return null;
+  return (
+    <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
+      🏪 <strong>Connexion fournisseur</strong> — Connectez-vous pour accéder à votre espace partenaire.
+    </div>
+  );
+}
 
 /**
  * Normalise a phone number before sending to the API.
@@ -109,6 +121,11 @@ export default function AuthPage(): React.ReactElement {
           <p className="text-gray-500 text-sm mb-8">
             Entrez votre numéro de téléphone pour recevoir un code de connexion par SMS.
           </p>
+
+          {/* SUPPLIER CONTEXT BANNER */}
+          <Suspense>
+            <SupplierBanner />
+          </Suspense>
 
           {/* DEV MODE BANNER */}
           {process.env.NODE_ENV !== "production" && (

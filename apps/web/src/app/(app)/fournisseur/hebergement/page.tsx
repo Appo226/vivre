@@ -25,7 +25,8 @@ interface MyProperty {
 
 export default function FournisseurHebergementPage(): React.ReactElement {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
+  const isSupplier = user?.roles?.includes("supplier") ?? false;
   const [properties, setProperties] = useState<MyProperty[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +49,17 @@ export default function FournisseurHebergementPage(): React.ReactElement {
       </header>
 
       <div className="px-4 pt-4 space-y-3">
+        {/* Bannière activation compte fournisseur */}
+        {!isSupplier && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-amber-800 mb-1">Compte fournisseur en cours d&apos;activation</p>
+            <p className="text-xs text-amber-700 font-dm">
+              Votre compte fournisseur est en cours d&apos;activation. Contactez-nous à{" "}
+              <a href="mailto:fournisseurs@vivre.bf" className="underline">fournisseurs@vivre.bf</a>
+              {" "}ou continuez à configurer votre établissement.
+            </p>
+          </div>
+        )}
         {loading && [1, 2].map((i) => (
           <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
             <div className="h-5 bg-gray-200 rounded w-2/3 mb-2" />

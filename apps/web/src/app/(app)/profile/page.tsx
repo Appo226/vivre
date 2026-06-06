@@ -10,6 +10,31 @@ import { apiClient, ApiError } from "@/lib/api";
 import type { MeResponse } from "@/lib/api";
 
 /* ============================================================
+ * TRANSLATIONS
+ * ============================================================ */
+
+const T = {
+  fr: {
+    my_profile: "Mon profil", edit: "Modifier", verified: "Vérifié",
+    my_activity: "MON ACTIVITÉ", settings: "PARAMÈTRES", finances: "FINANCES", account: "COMPTE",
+    bookings: "Toutes mes réservations", orders: "Mes commandes", rides: "Mes courses",
+    reservations: "Mes réservations", tickets: "Mes billets", events: "Mes événements",
+    language: "Langue", notifications: "Notifications", wallet: "Portefeuille VIVRE",
+    become_driver: "Devenir livreur", help: "Aide & support", logout: "Se déconnecter",
+  },
+  en: {
+    my_profile: "My profile", edit: "Edit", verified: "Verified",
+    my_activity: "MY ACTIVITY", settings: "SETTINGS", finances: "FINANCES", account: "ACCOUNT",
+    bookings: "All my bookings", orders: "My orders", rides: "My rides",
+    reservations: "My reservations", tickets: "My tickets", events: "My events",
+    language: "Language", notifications: "Notifications", wallet: "VIVRE Wallet",
+    become_driver: "Become a driver", help: "Help & support", logout: "Sign out",
+  },
+} as const;
+
+type Lang = keyof typeof T;
+
+/* ============================================================
  * HELPERS
  * ============================================================ */
 
@@ -21,6 +46,11 @@ function initials(first: string | null, last: string | null, phone: string): str
 
 function memberSince(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+}
+
+function vivreId(uuid: string): string {
+  // Format: VIV-XXXXXX (first 6 hex chars of UUID, uppercase)
+  return `VIV-${uuid.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 }
 
 /* ============================================================
@@ -46,7 +76,14 @@ export default function ProfilePage(): React.ReactElement {
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [lang, setLang] = useState<Lang>("fr");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /* Lire la langue depuis localStorage au montage */
+  useEffect(() => {
+    const stored = localStorage.getItem("vivre_lang");
+    if (stored === "en" || stored === "fr") setLang(stored);
+  }, []);
 
   /* Charger le profil frais depuis l'API */
   useEffect(() => {
@@ -156,13 +193,17 @@ export default function ProfilePage(): React.ReactElement {
 
   async function toggleLanguage() {
     if (!profile) return;
-    const next = profile.preferred_language === "fr" ? "en" : "fr";
+    const next: Lang = (profile.preferred_language === "fr" ? "en" : "fr") as Lang;
     try {
       await apiClient.put("/users/me", { preferred_language: next });
       setProfile((p) => p ? { ...p, preferred_language: next } : p);
       if (user) setUser({ ...user, preferred_language: next });
+      localStorage.setItem("vivre_lang", next);
+      window.location.reload();
     } catch { /* silently fail */ }
   }
+
+  const t = T[lang];
 
   const displayName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.phone
@@ -177,13 +218,13 @@ export default function ProfilePage(): React.ReactElement {
       {/* ===== HEADER VERT ===== */}
       <div className="bg-[#1A6B3A] text-white px-4 pt-safe-top pb-20">
         <div className="flex items-center justify-between pt-4 mb-1">
-          <h1 className="text-xl font-bold">Mon profil</h1>
+          <h1 className="text-xl font-bold">{t.my_profile}</h1>
           {!editing && (
             <button
               onClick={startEditing}
               className="text-sm text-green-200 hover:text-white font-medium"
             >
-              Modifier
+              {t.edit}
             </button>
           )}
         </div>
@@ -235,12 +276,18 @@ export default function ProfilePage(): React.ReactElement {
               {profile?.created_at && (
                 <p className="text-xs text-gray-400 mt-0.5">Membre depuis {memberSince(profile.created_at)}</p>
               )}
+              {profile?.id && (
+                <p className="text-xs font-mono text-gray-500 mt-0.5">
+                  <span className="text-gray-400 mr-1">ID VIVRE</span>
+                  🪪 {vivreId(profile.id)}
+                </p>
+              )}
             </div>
 
             {/* Badge vérifié */}
             {profile?.is_verified && (
               <span className="flex-shrink-0 text-xs bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-full border border-green-200">
-                ✓ Vérifié
+                ✓ {t.verified}
               </span>
             )}
           </div>
@@ -307,15 +354,15 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== MON ACTIVITÉ ===== */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Mon activité
+            {t.my_activity}
           </p>
           {[
-            { href: "/mes-reservations",             icon: "📋", label: "Toutes mes réservations", sub: "Vue unifiée" },
-            { href: "/food/mes-commandes",          icon: "📦", label: "Mes commandes",    sub: "Repas livrés" },
-            { href: "/course",                      icon: "🛵", label: "Mes courses",      sub: "Taxi & zémidjan" },
-            { href: "/hebergement/mes-reservations", icon: "🏨", label: "Mes réservations", sub: "Hôtels & maisons" },
-            { href: "/transport/mes-billets",       icon: "🎫", label: "Mes billets",      sub: "Bus & voyages" },
-            { href: "/evenements/mes-billets",      icon: "🎟️", label: "Mes événements",   sub: "FESPACO, SIAO…" },
+            { href: "/mes-reservations",             icon: "📋", label: t.bookings,      sub: "Vue unifiée" },
+            { href: "/food/mes-commandes",          icon: "📦", label: t.orders,         sub: "Repas livrés" },
+            { href: "/course",                      icon: "🛵", label: t.rides,          sub: "Taxi & zémidjan" },
+            { href: "/hebergement/mes-reservations", icon: "🏨", label: t.reservations,  sub: "Hôtels & maisons" },
+            { href: "/transport/mes-billets",       icon: "🎫", label: t.tickets,        sub: "Bus & voyages" },
+            { href: "/evenements/mes-billets",      icon: "🎟️", label: t.events,         sub: "FESPACO, SIAO…" },
           ].map((item) => (
             <Link
               key={item.href}
@@ -335,7 +382,7 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== PARAMÈTRES ===== */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Paramètres
+            {t.settings}
           </p>
 
           {/* Langue */}
@@ -343,7 +390,7 @@ export default function ProfilePage(): React.ReactElement {
             <div className="flex items-center gap-4">
               <span className="text-xl w-8 text-center">🌐</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Langue</p>
+                <p className="text-sm font-semibold text-gray-900">{t.language}</p>
                 <p className="text-xs text-gray-400">Interface de l&apos;application</p>
               </div>
             </div>
@@ -373,7 +420,7 @@ export default function ProfilePage(): React.ReactElement {
           >
             <span className="text-xl w-8 text-center">🔔</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Notifications</p>
+              <p className="text-sm font-semibold text-gray-900">{t.notifications}</p>
               <p className="text-xs text-gray-400">Gérer les alertes</p>
             </div>
             <span className="text-gray-300 text-sm">›</span>
@@ -383,7 +430,7 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== PORTEFEUILLE ===== */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Finances
+            {t.finances}
           </p>
           <Link
             href="/portefeuille"
@@ -391,7 +438,7 @@ export default function ProfilePage(): React.ReactElement {
           >
             <span className="text-xl w-8 text-center">💰</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Portefeuille VIVRE</p>
+              <p className="text-sm font-semibold text-gray-900">{t.wallet}</p>
               <p className="text-xs text-gray-400">Solde, recharge & historique</p>
             </div>
             <span className="text-gray-300 text-sm">›</span>
@@ -448,7 +495,7 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== COMPTE ===== */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Compte
+            {t.account}
           </p>
 
           {/* Devenir livreur — seulement si pas encore driver */}
@@ -459,7 +506,7 @@ export default function ProfilePage(): React.ReactElement {
             >
               <span className="text-xl w-8 text-center">🛵</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Devenir livreur</p>
+                <p className="text-sm font-semibold text-gray-900">{t.become_driver}</p>
                 <p className="text-xs text-gray-400">Gagnez de l&apos;argent en livrant</p>
               </div>
               <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">
@@ -487,7 +534,7 @@ export default function ProfilePage(): React.ReactElement {
           <div className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50">
             <span className="text-xl w-8 text-center">❓</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">Aide & support</p>
+              <p className="text-sm font-semibold text-gray-900">{t.help}</p>
               <p className="text-xs text-gray-400">Contacter l&apos;équipe VIVRE</p>
             </div>
             <span className="text-gray-300 text-sm">›</span>
@@ -499,7 +546,7 @@ export default function ProfilePage(): React.ReactElement {
             className="w-full flex items-center gap-4 px-5 py-4 border-t border-gray-50 hover:bg-red-50 active:bg-red-100 transition-colors text-left"
           >
             <span className="text-xl w-8 text-center">🚪</span>
-            <p className="text-sm font-semibold text-red-600">Se déconnecter</p>
+            <p className="text-sm font-semibold text-red-600">{t.logout}</p>
           </button>
         </div>
 
