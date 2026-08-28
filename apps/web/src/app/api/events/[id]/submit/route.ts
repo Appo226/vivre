@@ -1,17 +1,41 @@
 /**
  * PATCH /api/events/[id]/submit — Soumettre un événement.
  *
- * Règle du lancement (voir schema.prisma section 12) :
- * - Si TOUS les types de billets sont gratuits (price_fcfa = 0 partout) → approbation
- *   automatique, publication immédiate. Aucune friction pour les petits organisateurs.
- * - S'il y a au moins un billet payant → passe en "pending_approval", un admin doit
- *   approuver/rejeter avant publication (garde-fou sur les événements où l'argent circule).
+ * TOUT événement (gratuit ou payant côté billets) paie désormais des frais de mise en ligne
+ * à la soumission — plus d'approbation automatique sans paiement pour les événements
+ * gratuits (règle précédente, changée à la demande explicite : "even free events pays us").
+ * L'organisateur peut en plus ajouter une publicité (photo ou vidéo, X jours) réglée dans le
+ * même paiement — elle ne s'active qu'à l'approbation admin de l'événement (voir
+ * events/[id]/approve), jamais avant, même si elle est déjà payée.
+ *
+ * Le montant total (frais de mise en ligne + pub éventuelle) passe par
+ * effectiveListingFeeFcfa/effectiveAdPricePerDayFcfa — 0 si free_period_enabled est actif
+ * (interrupteur global) ou si ce compte a une remise à 100% (voir User.fee_discount_percent).
+ *
+ * Deux chemins :
+ *   - Total = 0 → passe directement en "pending_approval", pas de paiement à faire.
+ *   - Total > 0 → crée un Payment (booking_type="event_listing"), initie CinetPay (mode
+ *     seamless — le frontend ouvre le widget avec le payment_token, pas de redirection),
+ *     reste en "draft" jusqu'à confirmation par webhook (voir payments/webhook/route.ts).
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
+import { getPlatformSettings, effectiveListingFeeFcfa, effectiveAdPricePerDayFcfa } from "@/lib/platform-settings";
+import { cinetpayConfigured, initiateCinetPayPayment, buildReturnUrl, buildNotifyUrl } from "@/lib/cinetpay";
+import { notify } from "@/lib/notifications";
+
+const SubmitBodySchema = z.object({
+  ad_media_url: z.string().url().optional(),
+  ad_media_type: z.enum(["image", "video"]).optional(),
+  ad_days: z.number().int().min(1).max(60).optional(),
+}).refine(
+  (v) => (v.ad_media_url === undefined) === (v.ad_media_type === undefined) && (v.ad_media_url === undefined) === (v.ad_days === undefined),
+  { message: "ad_media_url, ad_media_type et ad_days doivent être fournis ensemble, ou pas du tout" }
+);
 
 export async function PATCH(
   request: NextRequest,
@@ -22,17 +46,28 @@ export async function PATCH(
 
   const { id } = params;
 
+  const bodyRaw: unknown = await request.json().catch(() => ({}));
+  const parsedBody = SubmitBodySchema.safeParse(bodyRaw ?? {});
+  if (!parsedBody.success) {
+    return apiError(422, "VALIDATION_ERROR", "Données invalides", parsedBody.error.errors[0]?.message);
+  }
+  const ad = parsedBody.data.ad_media_url
+    ? { url: parsedBody.data.ad_media_url, mediaType: parsedBody.data.ad_media_type!, days: parsedBody.data.ad_days! }
+    : null;
+
   const event = await prisma.event.findUnique({
     where: { id },
     select: {
       id: true,
       organizer_id: true,
       status: true,
+      title: true,
       cover_url: true,
       gallery_urls: true,
       latitude: true,
       longitude: true,
       ticket_types: { select: { price_fcfa: true } },
+      organizer: { select: { id: true, phone: true, email: true, first_name: true, last_name: true, fee_discount_percent: true } },
     },
   });
 
@@ -65,7 +100,8 @@ export async function PATCH(
   const isFullyFree = event.ticket_types.every((tt: (typeof event.ticket_types)[number]) => tt.price_fcfa === 0);
 
   // Événement payant → l'organisateur doit être vérifié (pièce d'identité + appel confirmé)
-  // avant toute mise en vente de billets payants. Les événements gratuits restent sans friction.
+  // avant toute mise en vente de billets payants. Les événements gratuits restent sans friction
+  // SUR CE POINT PRÉCIS — ils paient quand même les frais de mise en ligne ci-dessous.
   if (!isFullyFree) {
     const verification = await prisma.organizerVerification.findUnique({
       where: { user_id: auth.sub },
@@ -81,22 +117,96 @@ export async function PATCH(
     }
   }
 
-  if (isFullyFree) {
+  const settings = await getPlatformSettings();
+  const discount = event.organizer.fee_discount_percent;
+  const listingFee = effectiveListingFeeFcfa(settings, discount);
+  const adFee = ad ? effectiveAdPricePerDayFcfa(settings, ad.mediaType, discount) * ad.days : 0;
+  const totalFcfa = listingFee + adFee;
+
+  // Toujours explicite (jamais omis) : un événement rejeté puis resoumis SANS pub cette
+  // fois doit effacer la pub de la tentative précédente, pas la laisser traîner pour une
+  // future approbation qui ne devrait plus la concerner.
+  const pendingAdData = ad
+    ? { pending_ad_media_url: ad.url, pending_ad_media_type: ad.mediaType, pending_ad_days: ad.days, pending_ad_price_fcfa: adFee }
+    : { pending_ad_media_url: null, pending_ad_media_type: null, pending_ad_days: null, pending_ad_price_fcfa: null };
+
+  if (totalFcfa === 0) {
     await prisma.event.update({
       where: { id },
-      data: { status: "approved", approved_at: new Date() },
+      data: {
+        status: "pending_approval",
+        publishing_fee_fcfa: 0,
+        has_paid_publishing: true,
+        ...pendingAdData,
+      },
     });
+
+    void notify({
+      userId: event.organizer.id,
+      type: "event_approved", // réutilisé volontairement — pas de nouveau type pour un simple accusé de réception
+      title: "Événement soumis",
+      body: `${event.title} est en attente d'approbation. Vous serez notifié dès la décision.`,
+      data: { event_id: id },
+    });
+
     return NextResponse.json({
-      message: "Événement gratuit — publié immédiatement, aucune approbation requise.",
+      message: "Événement soumis pour approbation — aucun frais à payer.",
       event_id: id,
-      status: "approved",
+      status: "pending_approval",
+      total_fcfa: 0,
     });
   }
 
-  await prisma.event.update({ where: { id }, data: { status: "pending_approval" } });
-  return NextResponse.json({
-    message: "Événement avec billets payants soumis pour approbation. Notre équipe répond sous 48h.",
-    event_id: id,
-    status: "pending_approval",
+  if (!cinetpayConfigured()) {
+    return apiError(
+      503,
+      "PAYMENTS_NOT_CONFIGURED",
+      "Les paiements ne sont pas encore configurés. Réessayez plus tard ou contactez le support."
+    );
+  }
+
+  const payment = await prisma.payment.create({
+    data: {
+      user_id: auth.sub,
+      amount: totalFcfa,
+      payment_method: "pending",
+      status: "pending",
+      booking_type: "event_listing",
+      booking_id: event.id,
+      platform_fee: totalFcfa,
+      supplier_amount: 0,
+    },
+    select: { id: true },
   });
+
+  const organizerName = [event.organizer.first_name, event.organizer.last_name].filter(Boolean).join(" ") || "Organisateur VIVRE";
+
+  try {
+    const result = await initiateCinetPayPayment({
+      transactionId: payment.id,
+      amountFcfa: totalFcfa,
+      description: `Mise en ligne — ${event.title}`,
+      customerName: organizerName,
+      customerPhone: event.organizer.phone,
+      ...(event.organizer.email && { customerEmail: event.organizer.email }),
+      returnUrl: buildReturnUrl(payment.id),
+      notifyUrl: buildNotifyUrl(),
+    });
+
+    await prisma.payment.update({ where: { id: payment.id }, data: { provider_ref: result.paymentToken } });
+    await prisma.event.update({
+      where: { id },
+      data: { publishing_fee_fcfa: totalFcfa, ...pendingAdData },
+    });
+
+    return NextResponse.json({
+      payment_id: payment.id,
+      payment_token: result.paymentToken,
+      total_fcfa: totalFcfa,
+      listing_fee_fcfa: listingFee,
+      ad_fee_fcfa: adFee,
+    });
+  } catch (err) {
+    return apiError(502, "CINETPAY_ERROR", "Impossible d'initier le paiement", (err as Error).message);
+  }
 }

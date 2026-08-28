@@ -88,6 +88,16 @@ export function eventApprovedEmail(params: { eventTitle: string; eventUrl: strin
   `);
 }
 
+export function eventPendingApprovalEmail(params: { eventTitle: string }): string {
+  return emailShell(`
+    <h1 style="font-size:20px; margin:0 0 12px; color:#14231C;">Paiement confirmé ✅</h1>
+    <p style="font-size:14.5px; line-height:1.6; color:#4B5B53; margin:0;">
+      Le paiement pour <strong>${params.eventTitle}</strong> est confirmé. Votre événement est
+      maintenant en attente d'approbation par notre équipe — vous serez notifié dès la décision.
+    </p>
+  `);
+}
+
 export function eventRejectedEmail(params: { eventTitle: string; reason: string; editUrl: string }): string {
   return emailShell(`
     <h1 style="font-size:20px; margin:0 0 12px; color:#14231C;">Événement non approuvé</h1>

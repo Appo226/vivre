@@ -44,10 +44,14 @@ export function effectiveListingFeeFcfa(
   return Math.round(settings.event_listing_fee_fcfa * (1 - organizerDiscountPercent / 100));
 }
 
-/** Tarif pub par jour selon le type de média choisi (photo ou vidéo) pour une pub liée à un événement. */
+/**
+ * Tarif pub par jour selon le type de média choisi pour une pub liée à un événement.
+ * "image"/"video" — même vocabulaire que AdCampaign.media_type et /api/uploads/ad-creative,
+ * pas de traduction à faire entre la soumission et la création de la campagne.
+ */
 export function effectiveAdPricePerDayFcfa(
   settings: { free_period_enabled: boolean; ad_price_photo_fcfa_per_day: number; ad_price_video_fcfa_per_day: number },
-  mediaType: "photo" | "video",
+  mediaType: "image" | "video",
   organizerDiscountPercent = 0
 ): number {
   if (settings.free_period_enabled) return 0;

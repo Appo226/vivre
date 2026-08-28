@@ -1292,10 +1292,24 @@ model Event {
   refund_enabled      Boolean @default(false) // true = l'organisateur autorise les remboursements
   refund_cutoff_hours Int?    // Heures avant l'événement jusqu'auxquelles on peut annuler
 
-  // Revenue VIVRE — valeurs par défaut, modifiables par l'admin par accord commercial
-  publishing_fee_fcfa Int   @default(0)     // Frais fixes de publication — non collecté par défaut, réservé à un futur accord négocié
+  // Revenue VIVRE — figés au moment de la soumission (voir events/[id]/submit et
+  // effectiveListingFeeFcfa) : un changement de tarif admin plus tard n'affecte que les
+  // événements pas encore soumis, jamais celui-ci a posteriori.
+  publishing_fee_fcfa Int   @default(0)     // Frais de mise en ligne — même montant gratuit ou payant
   commission_percent  Float @default(0)     // % commission sur chaque vente de ticket — 0 en phase de lancement gratuite
-  has_paid_publishing Boolean @default(false) // true = frais de publication réglés
+  has_paid_publishing Boolean @default(false) // true = frais de mise en ligne réglés (webhook CinetPay)
+
+  // Publicité optionnelle choisie à la soumission (photo ou vidéo + nombre de jours) — voir
+  // events/[id]/submit. Reste "en attente" jusqu'à confirmation du paiement (webhook), puis
+  // jusqu'à l'approbation admin de l'événement lui-même (voir events/[id]/approve) qui crée
+  // la vraie AdCampaign et vide ces 3 champs — la pub ne tourne jamais avant que l'événement
+  // soit réellement approuvé, même si elle est déjà payée.
+  pending_ad_media_url  String?
+  pending_ad_media_type String? // "image" | "video" — même vocabulaire que AdCampaign.media_type
+  pending_ad_days       Int?
+  pending_ad_price_fcfa Int?    // Montant RÉELLEMENT facturé à la soumission — recalculer au
+                                 // moment de l'approbation donnerait un prix différent si les
+                                 // tarifs admin ont changé entre-temps
 
   // Avis clients agrégés
   rating_avg    Float @default(0)

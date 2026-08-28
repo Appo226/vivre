@@ -79,10 +79,16 @@ async function getOrangeAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-async function sendViaOrangeSms(phone: string, code: string): Promise<void> {
+/**
+ * Envoie un SMS Orange à texte libre — utilisé pour l'OTP (voir sendViaOrangeSms ci-dessous)
+ * et pour les notifications transactionnelles hors-OTP (paiement confirmé, événement
+ * approuvé...). N'échoue jamais l'action principale à l'appelant : chaque site d'appel
+ * attrape déjà l'erreur et continue (une notification manquée n'est jamais bloquante).
+ */
+export async function sendOrangeSms(phone: string, message: string): Promise<void> {
   const sender = process.env["ORANGE_SENDER_NUMBER"]; // ex: "22654162130", sans le "+"
   if (!sender) {
-    throw new Error("OTP_CHANNEL=sms mais ORANGE_SENDER_NUMBER manquant");
+    throw new Error("ORANGE_SENDER_NUMBER manquant");
   }
 
   const token = await getOrangeAccessToken();
@@ -99,14 +105,7 @@ async function sendViaOrangeSms(phone: string, code: string): Promise<void> {
         outboundSMSMessageRequest: {
           address: `tel:+${recipient}`,
           senderAddress: `tel:+${sender}`,
-          outboundSMSTextMessage: {
-            // La dernière ligne suit le format exigé par la WebOTP API (Android Chrome) pour
-            // l'auto-remplissage du code sans que l'utilisateur ouvre le SMS : domaine exact
-            // de l'origine (sans protocole), espace, puis "#" + code. Cassé (mauvais domaine,
-            // ligne pas en dernière position) = pas d'auto-remplissage, mais le SMS reste lisible
-            // normalement dans tous les cas — dégradation silencieuse, pas un risque.
-            message: `Votre code VIVRE : ${code} (valable 10 minutes)\n@vivrebf.com #${code}`,
-          },
+          outboundSMSTextMessage: { message },
         },
       }),
     }
@@ -116,6 +115,15 @@ async function sendViaOrangeSms(phone: string, code: string): Promise<void> {
     const detail = await response.text();
     throw new Error(`Échec envoi SMS Orange : ${response.status} ${detail}`);
   }
+}
+
+async function sendViaOrangeSms(phone: string, code: string): Promise<void> {
+  // La dernière ligne suit le format exigé par la WebOTP API (Android Chrome) pour
+  // l'auto-remplissage du code sans que l'utilisateur ouvre le SMS : domaine exact de
+  // l'origine (sans protocole), espace, puis "#" + code. Cassé (mauvais domaine, ligne pas
+  // en dernière position) = pas d'auto-remplissage, mais le SMS reste lisible normalement
+  // dans tous les cas — dégradation silencieuse, pas un risque.
+  await sendOrangeSms(phone, `Votre code VIVRE : ${code} (valable 10 minutes)\n@vivrebf.com #${code}`);
 }
 
 function isAllowlistedForDevCode(phone: string): boolean {

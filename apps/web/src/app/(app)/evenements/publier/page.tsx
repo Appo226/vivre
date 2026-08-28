@@ -6,9 +6,13 @@ export const dynamic = "force-dynamic";
  * /evenements/publier — Formulaire de création d'événement (organisateurs)
  *
  * Flux :
- *   1. POST /events         → crée en "draft", retourne event.id
- *   2. PATCH /events/:id/submit → soumet pour approbation (→ pending_approval)
- *   3. Redirection → /fournisseur/evenements
+ *   1. POST /events              → crée en "draft", retourne event.id
+ *   2. PATCH /events/:id/submit  → calcule le total (frais de mise en ligne + pub
+ *      optionnelle), initie CinetPay si > 0 (payment_token, pas de redirection)
+ *   3. Si payment_token : widget CinetPay seamless intégré à la page, puis on attend la
+ *      confirmation (webhook CinetPay → événement passe en "pending_approval") avant de
+ *      rediriger — le webhook est la seule source de vérité, jamais le seul callback JS.
+ *   4. Redirection → /fournisseur/evenements
  */
 
 import React, { useState, useEffect } from "react";
@@ -18,12 +22,74 @@ import { useAuthStore } from "@/store/auth.store";
 import { LocationPicker } from "@/components/LocationPicker";
 import { MediaUploader } from "@/components/MediaUploader";
 
+const CINETPAY_SEAMLESS_SRC = "https://cdn.cinetpay.com/seamless/main.js";
+
+/** Injecte le SDK CinetPay seamless une seule fois (mis en cache par le navigateur ensuite). */
+function loadCinetPaySeamlessScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${CINETPAY_SEAMLESS_SRC}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = CINETPAY_SEAMLESS_SRC;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Impossible de charger le module de paiement CinetPay"));
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Ouvre le widget de paiement CinetPay directement dans la page (pas de redirection vers un
+ * site externe — c'est le mode "seamless"). Se résout quand le widget se ferme, que le
+ * paiement ait réussi ou non — la confirmation réelle vient du webhook CinetPay côté serveur
+ * (voir waitForEventPending), jamais de ce seul callback front.
+ */
+async function openCinetPaySeamless(paymentToken: string): Promise<void> {
+  await loadCinetPaySeamlessScript();
+  const seamless = (window as unknown as {
+    CinetPaySeamless?: { open: (opts: { paymentToken: string; onClose?: () => void }) => void };
+  }).CinetPaySeamless;
+  if (!seamless) {
+    throw new Error("Module de paiement indisponible — réessayez dans un instant.");
+  }
+  await new Promise<void>((resolve) => {
+    seamless.open({ paymentToken, onClose: () => resolve() });
+  });
+}
+
+/**
+ * Attend que le webhook CinetPay ait confirmé le paiement (l'événement passe de "draft" à
+ * "pending_approval" côté serveur) — interroge /events/mine toutes les 3s, jusqu'à 2 minutes.
+ * Si le délai expire, on redirige quand même : la confirmation arrivera par notification
+ * (SMS/email/in-app) même si personne ne regarde encore l'écran.
+ */
+async function waitForEventPending(eventId: string): Promise<void> {
+  const maxAttempts = 40; // ~2 min à 3s d'intervalle
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await apiClient.get<{ events: { id: string; status: string }[] }>("/events/mine?limit=5");
+      const match = res.events.find((e) => e.id === eventId);
+      if (match && match.status !== "draft") return;
+    } catch {
+      // Réseau instable — on retente au prochain tour plutôt que d'abandonner tout de suite.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
+
 /* ============================================================
  * TYPES
  * ============================================================ */
 
 interface City     { id: string; name: string }
 interface Category { id: string; name: string; icon: string }
+interface ListingPricing {
+  free_period_enabled: boolean;
+  listing_fee_fcfa: number;
+  ad_price_photo_fcfa_per_day: number;
+  ad_price_video_fcfa_per_day: number;
+}
 
 /* Valeur choisie dans le <select> Ville pour déclencher les champs "nouvelle ville" —
    ne collide jamais avec un vrai UUID de City. */
@@ -163,17 +229,57 @@ export default function PublierEvenementPage(): React.ReactElement {
   const [error,      setError]      = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [pricing, setPricing] = useState<ListingPricing | null>(null);
+  const [adEnabled, setAdEnabled] = useState(false);
+  const [adMediaUrl, setAdMediaUrl] = useState("");
+  const [adMediaType, setAdMediaType] = useState<"image" | "video">("image");
+  const [adUploading, setAdUploading] = useState(false);
+  const [adDays, setAdDays] = useState(7);
+  const [payingMessage, setPayingMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (!hasHydrated) return; // store encore en train de relire localStorage — pas encore fiable
     if (!accessToken) { router.push("/auth"); return; }
     void Promise.all([
       apiClient.get<{ cities: City[] }>("/cities"),
       apiClient.get<{ categories: Category[] }>("/events/categories"),
-    ]).then(([c, cat]) => {
+      apiClient.get<ListingPricing>("/events/listing-pricing"),
+    ]).then(([c, cat, p]) => {
       setCities(c.cities);
       setCategories(cat.categories);
+      setPricing(p);
     }).catch(() => {});
   }, [hasHydrated, accessToken, router]);
+
+  async function handleAdUpload(file: File | undefined): Promise<void> {
+    if (!file) return;
+    setError(null);
+    setAdUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads/ad-creative", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken ?? ""}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? "Échec de l'envoi du fichier");
+      }
+      const data = (await res.json()) as { url: string; media_type: "image" | "video" };
+      setAdMediaUrl(data.url);
+      setAdMediaType(data.media_type);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Échec de l'envoi");
+    } finally {
+      setAdUploading(false);
+    }
+  }
+
+  const adFeePerDay = pricing ? (adMediaType === "video" ? pricing.ad_price_video_fcfa_per_day : pricing.ad_price_photo_fcfa_per_day) : 0;
+  const adTotal = adEnabled ? adFeePerDay * adDays : 0;
+  const grandTotal = (pricing?.listing_fee_fcfa ?? 0) + adTotal;
 
   /* ---- helpers de mise à jour ---- */
 
@@ -338,12 +444,31 @@ export default function PublierEvenementPage(): React.ReactElement {
       };
 
       const created = await apiClient.post<{ id: string }>("/events", payload);
-      await apiClient.patch(`/events/${created.id}/submit`, {});
+      const submitBody = adEnabled && adMediaUrl
+        ? { ad_media_url: adMediaUrl, ad_media_type: adMediaType, ad_days: adDays }
+        : {};
+      const result = await apiClient.patch<{
+        status?: string;
+        total_fcfa: number;
+        payment_token?: string;
+      }>(`/events/${created.id}/submit`, submitBody);
+
+      if (result.total_fcfa === 0 || !result.payment_token) {
+        router.push("/fournisseur/evenements?submitted=1");
+        return;
+      }
+
+      // Paiement requis — widget CinetPay intégré (pas de redirection hors de l'app).
+      setPayingMessage("Ouverture du paiement…");
+      await openCinetPaySeamless(result.payment_token);
+      setPayingMessage("Paiement en cours de confirmation…");
+      await waitForEventPending(created.id);
       router.push("/fournisseur/evenements?submitted=1");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Une erreur est survenue.";
       setError(msg);
       setSubmitting(false);
+      setPayingMessage(null);
     }
   }
 
@@ -814,22 +939,104 @@ export default function PublierEvenementPage(): React.ReactElement {
               </button>
             </div>
 
+            {/* Publicité optionnelle */}
+            <div className="bg-white dark:bg-dark-800 border border-gray-100 dark:border-dark-700 rounded-2xl p-4">
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <div>
+                  <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">
+                    Ajouter une publicité (optionnel)
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    Photo ou vidéo mise en avant sur l&apos;accueil, dès l&apos;approbation de votre événement.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={adEnabled}
+                  onChange={(e) => setAdEnabled(e.target.checked)}
+                  className="w-5 h-5 accent-green-700 shrink-0"
+                />
+              </label>
+
+              {adEnabled && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-2">
+                    {(["image", "video"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setAdMediaType(t)}
+                        className={[
+                          "flex-1 py-2 rounded-lg text-sm font-semibold border",
+                          adMediaType === t
+                            ? "bg-green-700 text-white border-green-700"
+                            : "bg-white dark:bg-dark-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-dark-600",
+                        ].join(" ")}
+                      >
+                        {t === "image" ? "Photo" : "Vidéo"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="file"
+                    accept={adMediaType === "video" ? "video/*" : "image/*"}
+                    onChange={(e) => void handleAdUpload(e.target.files?.[0])}
+                    disabled={adUploading}
+                    className="text-sm"
+                  />
+                  {adUploading && <p className="text-xs text-gray-400">Envoi…</p>}
+                  {adMediaUrl && (
+                    <p className="text-xs text-green-700">✓ Fichier envoyé</p>
+                  )}
+
+                  <Field label="Nombre de jours">
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={adDays}
+                      onChange={(e) => setAdDays(Math.max(1, Number(e.target.value)))}
+                      className={inputCls}
+                    />
+                  </Field>
+
+                  {pricing && (
+                    <p className="text-xs text-gray-500">
+                      {adFeePerDay.toLocaleString("fr-FR")} FCFA/jour × {adDays} jour{adDays > 1 ? "s" : ""} ={" "}
+                      <strong>{adTotal.toLocaleString("fr-FR")} FCFA</strong>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Récapitulatif */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 font-dm">
               <p className="font-semibold mb-1">Avant publication</p>
-              {form.ticket_types.every((t) => Number(t.price_fcfa) === 0) ? (
-                <p>Événement 100% gratuit → publié immédiatement, aucune approbation requise.</p>
-              ) : (
-                <p>
-                  Au moins un billet payant → votre compte organisateur doit être vérifié (pièce
-                  d&apos;identité + appel de confirmation) et l&apos;événement sera examiné par notre
-                  équipe avant publication.
-                </p>
-              )}
+              <p>
+                {pricing?.free_period_enabled
+                  ? "Période de lancement gratuite — aucun frais à payer pour le moment."
+                  : `Frais de mise en ligne : ${(pricing?.listing_fee_fcfa ?? 0).toLocaleString("fr-FR")} FCFA${adEnabled ? ` + ${adTotal.toLocaleString("fr-FR")} FCFA de publicité = ${grandTotal.toLocaleString("fr-FR")} FCFA au total` : ""}, réglés par mobile money à l'étape suivante.`}
+              </p>
+              <p className="mt-1.5">
+                {form.ticket_types.every((t) => Number(t.price_fcfa) === 0)
+                  ? "Une fois payé, votre événement passe en attente d'approbation."
+                  : "Au moins un billet payant → votre compte organisateur doit être vérifié (pièce d'identité + appel de confirmation) en plus du paiement, avant examen par notre équipe."}
+              </p>
             </div>
           </div>
         )}
       </div>
+
+      {payingMessage && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+          <div className="bg-white dark:bg-dark-800 rounded-2xl px-6 py-8 text-center max-w-xs">
+            <div className="w-8 h-8 border-2 border-green-700 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{payingMessage}</p>
+          </div>
+        </div>
+      )}
 
       {/* Bouton bas de page */}
       <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-bottom pt-3 bg-white dark:bg-dark-800 border-t border-gray-100 dark:border-dark-700 z-20">
