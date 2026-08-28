@@ -39,6 +39,10 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
+function formatCheckInTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function ReservationsPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -319,6 +323,34 @@ export default function ReservationsPage(): React.ReactElement {
           <p className="text-sm text-gray-400 text-center py-8">Aucune réservation pour l&apos;instant.</p>
         )}
 
+        {/* Tableau de bord des entrées — billets scannés vs total valide, mis à jour à
+            chaque rechargement de cette page (pas juste le compteur de session du scanner,
+            qui repart à zéro à chaque ouverture de la page scanner). */}
+        {!loading && bookings.length > 0 && (() => {
+          const validBookings = bookings.filter((b) => b.status === "confirmed" || b.status === "checked_in");
+          const totalQty = validBookings.reduce((sum, b) => sum + b.quantity, 0);
+          const checkedInQty = validBookings
+            .filter((b) => b.status === "checked_in")
+            .reduce((sum, b) => sum + b.quantity, 0);
+          if (totalQty === 0) return null;
+          const pct = Math.round((checkedInQty / totalQty) * 100);
+          return (
+            <div className="bg-white rounded-xl border border-gray-100 p-4">
+              <div className="flex items-baseline justify-between mb-2">
+                <p className="font-jakarta font-semibold text-gray-900 text-sm">Entrées scannées</p>
+                <p className="text-xs text-gray-500 font-dm">{pct}%</p>
+              </div>
+              <div className="flex items-baseline gap-1.5 mb-2">
+                <span className="text-2xl font-sora font-extrabold text-gray-900">{checkedInQty}</span>
+                <span className="text-sm text-gray-400 font-dm">/ {totalQty} billets</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-700 rounded-full transition-all" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })()}
+
         {bookings.map((b) => {
           const statusCfg = STATUS_LABELS[b.status] ?? { label: b.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
           const buyerName = [b.user.first_name, b.user.last_name].filter(Boolean).join(" ") || b.user.phone;
@@ -337,6 +369,9 @@ export default function ReservationsPage(): React.ReactElement {
               <p className="text-xs text-gray-600 font-dm">
                 {b.quantity} × {b.ticket_type.name} — {b.total_amount.toLocaleString("fr-FR")} FCFA
               </p>
+              {b.status === "checked_in" && b.checked_in_at && (
+                <p className="text-xs text-gray-400 font-dm">Scanné à {formatCheckInTime(b.checked_in_at)}</p>
+              )}
               {b.payment?.payment_method === "manual_mobile_money" && b.payment.provider_ref && (
                 <p className="text-xs text-gray-400 font-dm">Réf. paiement : {b.payment.provider_ref}</p>
               )}
