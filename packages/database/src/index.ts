@@ -17,10 +17,21 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
- * On Render free tier (and other serverless/constrained environments), the
- * default Prisma connection pool is too large and idle connections get dropped.
- * Append connection_limit=1 and pool_timeout so Prisma uses a single connection
- * and waits gracefully instead of failing immediately on cold starts.
+ * connection_limit=1 était hérité d'un ancien hébergement Render en tier gratuit — hors
+ * sujet pour ce déploiement (Vercel + Supavisor). Sur Vercel Fluid Compute, une même
+ * instance chaude sert PLUSIEURS requêtes concurrentes avec le même client Prisma
+ * singleton : avec une seule connexion, deux requêtes simultanées (ou une seule requête
+ * qui fait un Promise.all de plusieurs appels Prisma — plusieurs endpoints le font) se
+ * mettent en file d'attente sur cette unique connexion, et peuvent expirer après
+ * pool_timeout (erreur P2024, exactement celle vue en boucle en dev local dès que deux
+ * scripts se disputaient la connexion). Le pooler Supabase (Supavisor, port 6543,
+ * pgbouncer=true) multiplexe déjà les connexions côté serveur — le client Prisma n'a pas
+ * besoin d'être artificiellement limité à 1 pour ça.
+ *
+ * DATABASE_CONNECTION_LIMIT permet d'ajuster cette valeur sans redéploiement de code une
+ * fois la vraie capacité du pooler Supabase confirmée dans son dashboard (Database →
+ * Connection Pooling → Pool Size) — 5 est une valeur de départ raisonnable pour l'échelle
+ * pilote (quelques organisateurs), pas un chiffre dérivé de cette capacité réelle.
  */
 function buildDatabaseUrl(): string {
   const url = process.env["DATABASE_URL"] ?? "";
@@ -28,7 +39,8 @@ function buildDatabaseUrl(): string {
   const sep = url.includes("?") ? "&" : "?";
   // Skip if the user already set these params explicitly
   if (url.includes("connection_limit")) return url;
-  return `${url}${sep}connection_limit=1&pool_timeout=20&connect_timeout=10`;
+  const connectionLimit = process.env["DATABASE_CONNECTION_LIMIT"] ?? "5";
+  return `${url}${sep}connection_limit=${connectionLimit}&pool_timeout=15&connect_timeout=10`;
 }
 
 /**

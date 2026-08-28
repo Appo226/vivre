@@ -133,6 +133,49 @@ export const updateProfileSchema = z.object({
   avatar_url: z.string().url("URL invalide").optional(),
 });
 
+/**
+ * Mot de passe — minimum 8 caractères. Pas d'exigence de complexité (majuscule/chiffre/
+ * symbole) au-delà de la longueur : les règles de complexité poussent souvent vers des
+ * mots de passe prévisibles (Password1!) plutôt que réellement plus solides — la longueur
+ * seule est un meilleur signal, et un MVP n'a pas besoin de plus de friction ici.
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, "Le mot de passe doit faire au moins 8 caractères")
+  .max(72, "Mot de passe trop long"); // 72 = limite de bcrypt
+
+export const usernameSchema = z
+  .string()
+  .regex(/^[a-zA-Z0-9_]{3,20}$/, "3 à 20 caractères, lettres/chiffres/underscore uniquement");
+
+export const registerSchema = z.object({
+  username: usernameSchema,
+  first_name: z.string().min(1, "Le prénom est obligatoire").max(50),
+  last_name: z.string().min(1, "Le nom est obligatoire").max(50),
+  phone: phoneSchema,
+  password: passwordSchema,
+  email: z.string().email("Email invalide").optional(),
+});
+
+export const loginSchema = z.object({
+  phone: phoneSchema,
+  password: z.string().min(1, "Mot de passe requis"),
+});
+
+export const verifyPhoneSchema = z.object({
+  code: otpCodeSchema,
+});
+
+export const forgotPasswordSendSchema = z.object({
+  phone: phoneSchema,
+});
+
+export const forgotPasswordResetSchema = z.object({
+  phone: phoneSchema,
+  code: otpCodeSchema,
+  new_password: passwordSchema,
+});
+
 /* ============================================================
  * SCHÉMAS GÉOGRAPHIQUES
  * ============================================================ */

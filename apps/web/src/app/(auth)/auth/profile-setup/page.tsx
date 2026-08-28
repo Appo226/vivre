@@ -5,7 +5,7 @@
  * L'utilisateur renseigne son prénom et son nom.
  * Email et langue sont optionnels mais suggérés.
  *
- * Après soumission → PUT /users/me → redirection vers le hub (/home).
+ * Après soumission → PATCH /auth/me → redirection vers le hub (/home).
  */
 
 "use client";
@@ -16,6 +16,7 @@ import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 interface UpdateProfileBody {
+  username?: string;
   first_name?: string;
   last_name?: string;
   email?: string;
@@ -26,6 +27,7 @@ interface UpdateProfileResponse {
   user: {
     id: string;
     phone: string;
+    username: string | null;
     first_name: string | null;
     last_name: string | null;
     email: string | null;
@@ -39,6 +41,7 @@ export default function ProfileSetupPage(): React.ReactElement {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
 
+  const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,6 +60,11 @@ export default function ProfileSetupPage(): React.ReactElement {
       return;
     }
 
+    if (username.trim() && !/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) {
+      setError("Nom d'utilisateur : 3 à 20 caractères, lettres/chiffres/underscore uniquement.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -65,11 +73,12 @@ export default function ProfileSetupPage(): React.ReactElement {
         preferred_language: language,
       };
 
+      if (username.trim()) updates.username = username.trim();
       if (lastName.trim()) updates.last_name = lastName.trim();
       if (email.trim()) updates.email = email.trim();
 
-      const response = await apiClient.put<UpdateProfileResponse>(
-        "/users/me",
+      const response = await apiClient.patch<UpdateProfileResponse>(
+        "/auth/me",
         updates
       );
 
@@ -77,6 +86,7 @@ export default function ProfileSetupPage(): React.ReactElement {
       if (user) {
         setUser({
           ...user,
+          username: response.user.username,
           first_name: response.user.first_name,
           last_name: response.user.last_name,
           email: response.user.email,
@@ -88,8 +98,10 @@ export default function ProfileSetupPage(): React.ReactElement {
       router.push("/");
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.code === "EMAIL_ALREADY_EXISTS") {
+        if (err.code === "EMAIL_TAKEN") {
           setError("Cet email est déjà utilisé par un autre compte.");
+        } else if (err.code === "USERNAME_TAKEN") {
+          setError("Ce nom d'utilisateur est déjà pris.");
         } else {
           setError("Impossible de sauvegarder. Vérifiez votre connexion.");
         }
@@ -126,6 +138,24 @@ export default function ProfileSetupPage(): React.ReactElement {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
+            {/* --- Nom d'utilisateur (optionnel — l'identité que la personne choisit d'afficher) --- */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Nom d&apos;utilisateur <span className="text-gray-400 text-xs">(optionnel)</span>
+              </label>
+              <input
+                type="text"
+                autoComplete="off"
+                autoFocus
+                placeholder="awa_bf"
+                value={username}
+                onChange={(e) => { setUsername(e.target.value); setError(null); }}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900"
+                disabled={isLoading}
+              />
+              <p className="text-xs text-gray-400 mt-1">3 à 20 caractères, lettres/chiffres/underscore. Affiché à la place de votre nom si renseigné.</p>
+            </div>
+
             {/* --- Prénom (obligatoire) --- */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -134,7 +164,6 @@ export default function ProfileSetupPage(): React.ReactElement {
               <input
                 type="text"
                 autoComplete="given-name"
-                autoFocus
                 placeholder="Aminata"
                 value={firstName}
                 onChange={(e) => { setFirstName(e.target.value); setError(null); }}

@@ -14,11 +14,12 @@
 
 import type { Metadata } from "next";
 
+/*
+ * Titre simple (pas de template ici) : le layout racine applique déjà
+ * "%s | VIVRE" — un template ici doublerait le suffixe ("Connexion | VIVRE | VIVRE").
+ */
 export const metadata: Metadata = {
-  title: {
-    default: "Connexion | VIVRE",
-    template: "%s | VIVRE",
-  },
+  title: "Connexion",
 };
 
 interface AuthLayoutProps {

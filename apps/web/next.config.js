@@ -12,6 +12,7 @@
 
 const fs   = require("fs");
 const path = require("path");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /**
  * Plugin webpack qui génère public/firebase-config.js au moment du build.
@@ -162,25 +163,36 @@ const nextConfig = {
     ];
   },
 
-  /* === REDIRECTION API === */
-  /*
-   * Optionnel : rediriger /api/* vers l'API Fastify sur :3001.
-   * En production, c'est le reverse proxy Nginx qui gère cette redirection.
-   */
-  async rewrites() {
-    return process.env.NODE_ENV === "development"
-      ? [
-          {
-            source: "/api/:path*",
-            destination: "http://localhost:3001/:path*",
-          },
-        ]
-      : [];
-  },
-
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
+
+  experimental: {
+    /*
+     * Monorepo pnpm : sans ça, le traceur de fichiers de Next.js (utilisé par
+     * output: "standalone" pour les fonctions serverless Vercel) part de apps/web
+     * et ne remonte pas jusqu'au store pnpm à la racine. Sur Next 14.2.x cette
+     * option vit sous experimental (elle n'est passée en top-level que dans des
+     * versions plus récentes) — au top-level, Next l'ignore silencieusement
+     * ("Unrecognized key(s)"), ce qui a fait échouer une première tentative ici.
+     */
+    outputFileTracingRoot: path.join(__dirname, "../.."),
+
+    /*
+     * Le moteur Prisma natif (libquery_engine-*.so.node) est chargé par un chemin
+     * calculé à l'exécution, pas par un require() statique — le traceur de fichiers
+     * (analyse statique) ne peut donc jamais le découvrir tout seul, même avec
+     * outputFileTracingRoot correct. Sans cette inclusion explicite, la fonction
+     * serverless Vercel est déployée sans le moteur → PrismaClientInitializationError
+     * en production (voir https://pris.ly/d/engine-not-found-nextjs).
+     */
+    outputFileTracingIncludes: {
+      "/api/**/*": [
+        "./node_modules/.prisma/client/**/*",
+        "./node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/**/*",
+      ],
+    },
+  },
 
   webpack(config, { isServer }) {
     /* Injecter la config Firebase dans le SW uniquement côté client */
@@ -205,4 +217,22 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+/*
+ * withSentryConfig ajoute l'upload des source maps au build (silencieux si SENTRY_AUTH_TOKEN
+ * n'est pas défini — n'échoue jamais le build tant qu'aucun projet Sentry n'existe) et
+ * instrumente automatiquement les routes API. Voir instrumentation.ts pour l'initialisation
+ * elle-même — délibérément serveur + edge uniquement (pas de instrumentation-client.ts) :
+ * la version client faisait passer le First Load JS partagé de 87 à 162 Ko sur CHAQUE page,
+ * pour capturer des erreurs de rendu React qui ne sont pas la priorité immédiate (celle-ci
+ * est le backend : paiements, réservations, DB, admin — déjà couverts côté serveur, sans
+ * aucun coût de poids de page).
+ */
+module.exports = withSentryConfig(withPWA(nextConfig), {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  webpack: { treeshake: { removeDebugLogging: true } },
+  /* Pas de tunnel de contournement d'ad-blocker — inutile à l'échelle pilote et ajoute
+     de la complexité qu'on peut se permettre de ne pas avoir maintenant. */
+});

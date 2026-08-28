@@ -29,11 +29,13 @@ import { persist, createJSONStorage } from "zustand/middleware";
 export interface AuthUser {
   id: string;
   phone: string;
+  username: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
   avatar_url: string | null;
   preferred_language: string;
+  is_verified: boolean;
   roles: string[];
 }
 
@@ -80,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      /* --- Mise à jour du profil seul (PUT /users/me) --- */
+      /* --- Mise à jour du profil seul (après un appel à PATCH /auth/me) --- */
       setUser: (user) => {
         set({ user });
       },

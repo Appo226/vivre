@@ -23,15 +23,17 @@
 
 generator client {
   provider        = "prisma-client-js"
-  // native = local dev; linux-musl variants = Alpine Docker; debian-openssl = slim/Render
-  binaryTargets   = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+  // native = local dev; rhel-openssl = Vercel serverless functions (Amazon Linux);
+  // linux-musl/debian-openssl kept for Alpine Docker / Render, unused today but harmless.
+  binaryTargets   = ["native", "rhel-openssl-3.0.x", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
   // Preview features : fullTextSearch pour la recherche de restaurants/hôtels
   previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // =============================================================
@@ -44,11 +46,16 @@ datasource db {
 // Un utilisateur peut avoir plusieurs rôles (voir user_roles).
 model User {
   id                 String   @id @default(uuid())
-  // Numéro de téléphone au format E.164 (+226XXXXXXXX) — identifiant principal
+  // Numéro de téléphone au format E.164 (+226XXXXXXXX) — identifiant de connexion principal
   phone              String   @unique
-  // Email optionnel — requis pour les fournisseurs et l'admin
+  // Email optionnel — utile pour les reçus/notifications, pas requis pour se connecter
   email              String?  @unique
+  // Nom d'utilisateur optionnel — identité choisie par la personne, affichée en priorité
+  // sur son profil si renseigné (sinon on retombe sur first_name/last_name)
+  username           String?  @unique
   password_hash      String?  // Null = connexion uniquement par OTP
+  failed_login_attempts Int    @default(0)  // Remis à 0 à chaque connexion réussie
+  login_locked_until    DateTime? // Verrouillage temporaire après trop d'essais de mot de passe
   first_name         String?
   last_name          String?
   avatar_url         String?  // URL S3 de la photo de profil
@@ -85,6 +92,9 @@ model User {
   received_event_bookings   EventBooking[]    @relation("EventBookingTransfer")
   // Portefeuille VIVRE (crédits remboursements)
   wallet                    VivreWallet?
+  organizer_verification    OrganizerVerification?
+  event_payouts             EventPayout[]
+  ad_campaigns              AdCampaign[]
 
   @@map("users")
 }
@@ -109,17 +119,25 @@ model UserRole {
   @@map("user_roles")
 }
 
-// Codes OTP temporaires envoyés par SMS via Twilio.
-// expires_at = created_at + 5 minutes (configurable via env).
+// Codes OTP temporaires envoyés par téléphone (identifiant de connexion principal).
+// Canal de livraison configurable derrière OTP_CHANNEL (voir src/lib/otp-channel.ts) :
+// "dev" (code retourné dans la réponse API, gratuit, par défaut) ou "whatsapp" (WhatsApp
+// Cloud API, à connecter plus tard une fois les identifiants Meta Business disponibles).
+// expires_at = created_at + 10 minutes (configurable via env).
 // used_at non-null = code déjà consommé (ne peut pas être réutilisé).
 model OtpCode {
-  id         String   @id @default(uuid())
-  phone      String   // +226XXXXXXXX
-  code       String   @db.Char(6) // 6 chiffres
-  purpose    String   // "login" | "verify" | "reset"
-  expires_at DateTime
-  used_at    DateTime? // null = pas encore utilisé
-  created_at DateTime @default(now())
+  id              String   @id @default(uuid())
+  phone           String   // +226XXXXXXXX
+  code            String   @db.Char(6) // 6 chiffres
+  purpose         String   // "login" | "verify" | "reset"
+  expires_at      DateTime
+  used_at         DateTime? // null = pas encore utilisé
+  created_at      DateTime @default(now())
+  // Tentatives de vérification incorrectes contre CE code. L'envoi (send-otp) est déjà
+  // limité à 3/heure, mais rien ne limitait jusqu'ici le nombre d'essais de code contre
+  // un envoi déjà effectué — un attaquant pouvait deviner en boucle pendant les 5 minutes
+  // de validité. Au-delà du seuil, tous les codes actifs pour ce numéro sont invalidés.
+  failed_attempts Int      @default(0)
 
   // Relation optionnelle vers User (null si user non encore créé)
   user_id    String?
@@ -147,6 +165,11 @@ model City {
   longitude     Float
   population    Int?
   is_active     Boolean @default(true)
+  // Auto-créée par un organisateur dont la ville n'était pas dans la liste (self-serve,
+  // jamais bloquant) — false = à vérifier/nettoyer par un admin (doublon, faute de frappe...),
+  // mais reste visible et utilisable partout dès sa création, aucune approbation requise.
+  is_verified   Boolean @default(true)
+  created_by_user_id String?
   // Modules activés pour cette ville
   has_transport Boolean @default(false)
   has_food      Boolean @default(false)
@@ -1024,16 +1047,24 @@ model PromoCode {
   max_uses            Int?     // Null = usage illimité
   uses_count          Int      @default(0)
   max_uses_per_user   Int      @default(1)
-  applies_to          String   @default("all") // "all" | "transport" | "food" | etc.
-  supplier_id         String?  // Si défini → promo spécifique à un fournisseur
+  applies_to          String   @default("all") // "all" | "transport" | "food" | "event" | etc.
+  supplier_id         String?  // Si défini → promo spécifique à un fournisseur (modules hérités)
+  // Codes événements : event_id défini = créé par l'organisateur pour SON événement.
+  // event_id null + applies_to="event" = code plateforme (admin), valable sur tous les événements.
+  event_id            String?
+  created_by          String?  // UUID de l'organisateur ou de l'admin qui a créé le code
   valid_from          DateTime
   valid_until         DateTime
   is_active           Boolean  @default(true)
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
+  event               Event?   @relation(fields: [event_id], references: [id])
+  bookings            EventBooking[]
+
   @@index([code, is_active])
   @@index([valid_from, valid_until, is_active])
+  @@index([event_id])
   @@map("promo_codes")
 }
 
@@ -1146,16 +1177,18 @@ model ServiceCorrection {
 // SECTION 12 — ÉVÉNEMENTS & BILLETS
 // 4 tables : event_categories, events, event_ticket_types, event_bookings
 //
-// Flux de vie d'un événement :
-//   Organisateur soumet → status "pending_approval"
-//   Admin vérifie → "approved" ou "rejected"
-//   Organisateur paie les frais de publication → has_paid_publishing = true
-//   Billetterie ouverte → utilisateurs réservent des EventBooking
-//   Après validation de chaque billet à l'entrée → status "checked_in"
+// Flux de vie d'un événement (modèle "gratuit d'abord", voir docs/LEGACY_SUPERAPP_ROADMAP.md
+// et la conversation de pivot ticketing) :
+//   - Événement 100% gratuit (tous les ticket_types à price_fcfa=0) → approbation automatique,
+//     publié immédiatement. Pas de friction pour les petits organisateurs.
+//   - Événement avec au moins un billet payant → passe par "pending_approval" → admin
+//     approuve/rejette (garde-fou fraude/sécurité sur les événements où l'argent circule).
+//   - Après validation de chaque billet à l'entrée → status "checked_in"
 //
-// Revenue VIVRE :
-//   - Frais de publication : publishing_fee_fcfa (défaut 5 000 FCFA, négociable)
-//   - Commission sur ventes : commission_percent (défaut 5%, négociable)
+// Revenue VIVRE : aucun frais de publication (publishing_fee_fcfa reste disponible pour un
+// futur accord commercial négocié au cas par cas, mais n'est plus collecté par défaut).
+// commission_percent démarre à 0% (phase de lancement gratuite) — l'admin l'augmentera une
+// fois l'usage réel mesuré, jamais sur les billets gratuits.
 // =============================================================
 
 // Catégories d'événements (concert, sport, festival, conférence…)
@@ -1167,9 +1200,26 @@ model EventCategory {
   color_hex String  @default("#1A6B3A")
   is_active Boolean @default(true)
 
-  events    Event[]
+  events          Event[]           // Catégorie primaire — pilote le badge/couleur affichés
+  secondary_of    EventCategoryTag[] // Catégories additionnelles pour la découverte
 
   @@map("event_categories")
+}
+
+// Catégories additionnelles d'un événement, en plus de sa catégorie primaire (Event.category_id).
+// La primaire pilote l'affichage (badge, couleur) — les tags secondaires ne servent qu'à la
+// découverte : un événement "Concert" avec le tag "Religieux" apparaît aussi quand on filtre
+// sur Religieux, sans changer son badge visuel. Additif exprès — ne touche pas category_id.
+model EventCategoryTag {
+  event_id    String
+  category_id String
+
+  event    Event         @relation(fields: [event_id], references: [id])
+  category EventCategory @relation(fields: [category_id], references: [id])
+
+  @@id([event_id, category_id])
+  @@index([category_id])
+  @@map("event_category_tags")
 }
 
 // Événement organisé sur la plateforme VIVRE.
@@ -1217,13 +1267,30 @@ model Event {
   rejection_reason String?    // Si rejected : explication pour l'organisateur
   is_featured      Boolean @default(false) // Mis en avant par l'admin sur la home
 
+  // Annulation — action explicite de l'organisateur ou d'un admin. Distincte du cas où
+  // l'événement n'a simplement pas eu lieu sans annonce (voir Refund / report-issue) :
+  // ici VIVRE SAIT que c'est annulé, donc le remboursement est automatique, pas litigieux.
+  cancelled_at        DateTime?
+  cancellation_reason String?
+
+  // Report — l'organisateur change la date avant l'événement. original_starts_at ne se
+  // fixe qu'une seule fois, à la première reprogrammation — trace le décalage total
+  // même après plusieurs changements successifs.
+  rescheduled_at      DateTime?
+  reschedule_reason   String?
+  original_starts_at  DateTime?
+
+  // Suivi léger pour les analytics organisateur — incrémenté à chaque consultation
+  // publique de la page événement (GET /api/events/[id]).
+  view_count Int @default(0)
+
   // Politique de remboursement — configurée par l'organisateur
   refund_enabled      Boolean @default(false) // true = l'organisateur autorise les remboursements
   refund_cutoff_hours Int?    // Heures avant l'événement jusqu'auxquelles on peut annuler
 
   // Revenue VIVRE — valeurs par défaut, modifiables par l'admin par accord commercial
-  publishing_fee_fcfa Int   @default(5000)  // Frais fixes de publication
-  commission_percent  Float @default(5.0)   // % commission sur chaque vente de ticket
+  publishing_fee_fcfa Int   @default(0)     // Frais fixes de publication — non collecté par défaut, réservé à un futur accord négocié
+  commission_percent  Float @default(0)     // % commission sur chaque vente de ticket — 0 en phase de lancement gratuite
   has_paid_publishing Boolean @default(false) // true = frais de publication réglés
 
   // Avis clients agrégés
@@ -1246,12 +1313,35 @@ model Event {
   category     EventCategory   @relation(fields: [category_id], references: [id])
   ticket_types EventTicketType[]
   bookings     EventBooking[]
+  payout       EventPayout?
+  promo_codes  PromoCode[]
+  staff        EventStaff[]
+  category_tags EventCategoryTag[]
+  merch_items  EventMerchItem[]
 
   @@index([city_id, status, starts_at])        // Découverte par ville
   @@index([organizer_id, status])              // Dashboard organisateur
   @@index([status, starts_at])                 // Événements approuvés futurs (home)
   @@index([slug])                              // Lookup par slug (page événement)
   @@map("events")
+}
+
+// Accès scan délégué par l'organisateur à un membre de son staff, pour un événement donné.
+// Le staff n'a pas besoin d'un compte préexistant : l'organisateur ajoute juste le numéro,
+// et quiconque se connecte avec ce numéro (OTP normal) peut scanner CET événement précis —
+// rien d'autre. revoked_at (plutôt qu'une suppression) garde une trace de qui a eu accès.
+model EventStaff {
+  id         String    @id @default(uuid())
+  event_id   String
+  phone      String    // Numéro E.164 — vérifié contre request.user.phone au moment du scan
+  added_by   String    // UUID de l'organisateur qui a accordé l'accès
+  created_at DateTime  @default(now())
+  revoked_at DateTime?
+
+  event Event @relation(fields: [event_id], references: [id])
+
+  @@index([event_id, phone, revoked_at])
+  @@map("event_staff")
 }
 
 // Type de billet pour un événement — un événement peut avoir plusieurs types.
@@ -1266,6 +1356,11 @@ model EventTicketType {
   quantity    Int     // Nombre total de billets disponibles pour ce type
   max_per_order Int @default(10) // Limite anti-scalping par réservation
 
+  // Merch mandatoire (bundle) — déjà compris dans price_fcfa, pas d'achat séparé.
+  // Chaque organisateur écrit ses propres libellés, VIVRE n'impose aucune structure.
+  included_items  String[] @default([]) // ex: ["1 T-shirt VIVRE", "Cocktail offert"]
+  variant_options String[] @default([]) // ex: ["S", "M", "L", "XL"] — vide = pas de choix requis
+
   // Période de vente — null = pas de restriction de date
   sale_starts_at DateTime?
   sale_ends_at   DateTime?
@@ -1279,6 +1374,49 @@ model EventTicketType {
   @@map("event_ticket_types")
 }
 
+// Produit optionnel qu'un acheteur peut ajouter à sa commande, indépendamment du type de
+// billet choisi (Pattern B — merch add-on, vs. included_items sur EventTicketType qui est
+// le merch mandatoire déjà inclus dans le prix). Organisateur 100% libre du contenu — VIVRE
+// n'impose ni catalogue ni structure de bundle.
+model EventMerchItem {
+  id       String @id @default(uuid())
+  event_id String
+
+  name            String   // ex: "Tote bag VIVRE" — libellé libre de l'organisateur
+  description     String?
+  price_fcfa      Int
+  quantity        Int      // Stock total disponible
+  variant_options String[] @default([]) // ex: tailles — vide = pas de choix requis
+
+  is_active Boolean @default(true)
+
+  event         Event                    @relation(fields: [event_id], references: [id])
+  booking_items EventBookingMerchItem[]
+
+  @@index([event_id, is_active])
+  @@map("event_merch_items")
+}
+
+// Ligne de commande merch — un booking peut avoir zéro ou plusieurs de ces lignes, en plus
+// de son type de billet. price_fcfa_at_purchase fige le prix au moment de l'achat, comme
+// unit_price_fcfa sur EventBooking, pour ne jamais changer rétroactivement une commande passée.
+model EventBookingMerchItem {
+  id            String  @id @default(uuid())
+  booking_id    String
+  merch_item_id String
+
+  quantity                Int
+  variant                 String?
+  price_fcfa_at_purchase  Int
+
+  booking    EventBooking   @relation(fields: [booking_id], references: [id])
+  merch_item EventMerchItem @relation(fields: [merch_item_id], references: [id])
+
+  @@index([booking_id])
+  @@index([merch_item_id])
+  @@map("event_booking_merch_items")
+}
+
 // Réservation de billet(s) par un utilisateur.
 // Un EventBooking = une commande (potentiellement plusieurs billets du même type).
 // Le QR code est unique par booking et scanné une seule fois à l'entrée.
@@ -1289,9 +1427,19 @@ model EventBooking {
   ticket_type_id String
 
   quantity        Int
+  // Variante choisie par l'acheteur si le type de billet a des variant_options (ex: taille de
+  // t-shirt) — s'applique à toute la commande (quantity billets), pas billet par billet.
+  // Simplification volontaire : suffisant tant qu'on ne voit pas de vraie demande pour du
+  // "1 M + 1 L" dans une même commande.
+  selected_variant String?
   unit_price_fcfa Int  // Snapshot du prix unitaire au moment de la réservation
-  total_amount    Int  // FCFA = quantity × unit_price_fcfa
-  commission_fcfa Int  // Part VIVRE (commission_percent × total_amount / 100)
+  subtotal_fcfa   Int  @default(0) // quantity × unit_price_fcfa, avant réduction
+  discount_fcfa   Int  @default(0) // Montant retiré par le code promo, le cas échéant
+  buyer_fee_fcfa  Int  @default(0) // Frais acheteur — 0 par défaut (modèle "prix affiché = prix payé")
+  total_amount    Int  // FCFA = subtotal_fcfa - discount_fcfa + buyer_fee_fcfa (ce que paie réellement l'acheteur)
+  commission_fcfa Int  // Part VIVRE retenue au versement organisateur (commission_percent × total_amount / 100)
+
+  promo_code_id   String?
 
   status String @default("pending")
   // "pending"    : en attente de paiement (billet réservé 10 min)
@@ -1310,6 +1458,10 @@ model EventBooking {
   transferred_to_id String?   // UUID de l'utilisateur destinataire
   transferred_at    DateTime?
 
+  // Rappel "l'événement approche" — posé une fois par le cron quotidien pour ne jamais
+  // renvoyer deux fois le même rappel si le job tourne plusieurs jours de suite avant l'événement.
+  reminder_sent_at DateTime?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -1318,10 +1470,189 @@ model EventBooking {
   event           Event           @relation(fields: [event_id], references: [id])
   ticket_type     EventTicketType @relation(fields: [ticket_type_id], references: [id])
   payment         Payment?        @relation(fields: [payment_id], references: [id])
+  promo_code      PromoCode?      @relation(fields: [promo_code_id], references: [id])
+  merch_items     EventBookingMerchItem[]
 
   @@index([event_id, status])
+  @@index([promo_code_id])
   @@index([user_id, status])
   @@map("event_bookings")
+}
+
+// =============================================================
+// SECTION 12b — VÉRIFICATION ORGANISATEUR & PAIEMENTS ÉVÉNEMENTS
+//
+// Modèle de confiance : la vérification (pièce d'identité + appel téléphonique
+// de confirmation) se fait UNE FOIS par organisateur, pas par événement — la
+// friction ne doit frapper qu'une seule fois. Elle est exigée avant qu'un
+// organisateur puisse soumettre un événement PAYANT (les événements gratuits
+// restent sans friction).
+//
+// Modèle de paiement : aucun virement automatique. L'argent des ventes reste
+// dans le compte agrégateur VIVRE jusqu'à la fin de l'événement + un délai
+// (voir EventPayout.eligible_at), puis un admin déclenche manuellement le
+// virement. C'est la principale protection anti-fraude — voir docs de pivot.
+// =============================================================
+
+// Vérification d'identité d'un organisateur — un enregistrement par User.
+model OrganizerVerification {
+  id                    String    @id @default(uuid())
+  user_id               String    @unique
+
+  // Pièce d'identité — stockée dans un bucket Supabase Storage PRIVÉ,
+  // jamais d'URL publique. Accès admin uniquement via URL signée.
+  id_document_url        String?
+  id_document_type       String?   // "cnib" | "passeport" | "permis_conduire"
+  id_document_holder_name String?  // Nom tel qu'il apparaît sur la pièce — comparé au nom du compte de versement
+
+  // Appel de confirmation téléphonique — trace manuelle laissée par l'équipe VIVRE
+  phone_call_confirmed_at DateTime?
+  phone_call_notes        String?  @db.Text
+  phone_call_by            String? // UUID de l'admin qui a passé l'appel
+
+  // Compte de versement (mobile money) — le nom DOIT correspondre à id_document_holder_name
+  payout_provider        String?   // "orange_money" | "moov" | "telecel_money" | "wave"
+  payout_phone            String?
+  payout_account_name     String?
+  name_match_confirmed    Boolean  @default(false) // Admin confirme manuellement la correspondance des noms
+
+  status                 String    @default("unverified") // "unverified" | "pending_review" | "verified" | "rejected"
+  rejection_reason        String?
+  verified_by             String?  // UUID de l'admin
+  verified_at              DateTime?
+
+  created_at             DateTime  @default(now())
+  updated_at              DateTime @updatedAt
+
+  user                   User      @relation(fields: [user_id], references: [id])
+
+  @@index([status])
+  @@map("organizer_verifications")
+}
+
+// Paramètres globaux de la plateforme — ligne singleton (id fixe "default").
+// Modifiable depuis le dashboard admin sans redéploiement.
+model PlatformSettings {
+  id                     String   @id @default("default")
+
+  // Frais — modèle "organisateur seulement" : l'acheteur paie le prix affiché,
+  // sans surcharge. Le prélèvement se fait uniquement sur le versement organisateur.
+  organizer_fee_percent  Float    @default(8.0)
+  buyer_fee_percent      Float    @default(0)
+  buyer_fee_flat_fcfa    Int      @default(0)
+
+  // Interrupteurs globaux
+  free_period_enabled    Boolean  @default(false) // true = tous les frais à 0%, quel que soit l'événement
+  discounts_enabled      Boolean  @default(true)   // false = désactive tous les codes promo, même actifs
+
+  // Délai de versement (modèle de confiance graduel)
+  payout_delay_new_organizer_days     Int @default(4) // Premier événement, ou aucun événement "completed" encore
+  payout_delay_trusted_organizer_days Int @default(2) // Après N événements réussis sans litige
+  trusted_organizer_event_threshold   Int @default(3)
+
+  // Tarifs publicité — FCFA par jour, par emplacement. Prix de lancement volontairement bas
+  // (pas de trafic organique prouvé encore) — à ajuster ici une fois qu'on a de vraies données
+  // de vues/mois, sans toucher au code.
+  ad_price_home_feed_fcfa_per_day Int @default(3000) // Section sponsorisée de l'accueil (sous "À l'affiche") — tiers annonceurs, pas lié à un événement
+  ad_price_browse_fcfa_per_day    Int @default(1000) // Tuile "Sponsorisé" dans la grille de découverte
+
+  // Message d'accueil chaleureux — affiché sous le "Bonjour/Bonsoir, {prénom}" sur le profil.
+  // Modifiable par un admin à tout moment, sans redéploiement.
+  greeting_message         String  @default("Contente de vous revoir sur VIVRE !")
+  greeting_message_enabled Boolean @default(true)
+
+  // Sous-titre du hero de l'accueil, sous "Vivez le Faso. Un billet à la fois."
+  home_subtitle String @default("Concerts, mariages, kermesses, conférences et bien plus — trouvez votre prochain événement.")
+
+  // Bannière du hero de l'accueil — contenu propre à VIVRE (pas une campagne tierce payante,
+  // pas de table dédiée : juste une image/vidéo que l'admin change de temps en temps).
+  // Le fond vert de marque du hero reste inchangé, que la bannière soit activée ou non.
+  hero_banner_enabled    Boolean @default(false)
+  hero_banner_media_type String  @default("image") // "image" | "video"
+  hero_banner_image_url  String?
+  hero_banner_link_url   String?
+
+  updated_at             DateTime @updatedAt
+  updated_by             String?  // UUID de l'admin
+
+  @@map("platform_settings")
+}
+
+// Campagne publicitaire — soumission → pré-approbation admin → paiement → diffusion automatique
+// sur la fenêtre [start_date, end_date]. Aucune tâche planifiée nécessaire pour démarrer/arrêter :
+// tout endroit qui sert des publicités filtre en direct sur (status=paid AND now() dans la fenêtre),
+// exactement comme sale_starts_at/sale_ends_at sur EventTicketType.
+model AdCampaign {
+  id            String @id @default(uuid())
+  advertiser_id String // N'importe quel utilisateur authentifié — organisateur ou tiers
+
+  title      String // Référence interne (admin + tableau de bord annonceur), pas forcément affichée
+  image_url  String // Malgré le nom, peut être une vidéo — voir media_type
+  media_type String @default("image") // "image" | "video"
+  link_url   String // Où mène le clic — externe ou une page VIVRE (ex: un événement)
+  placement  String // "home_feed" | "browse_tile"
+
+  start_date DateTime
+  end_date   DateTime
+  price_fcfa Int      // Figé à l'approbation (jours × tarif de l'emplacement au moment de l'approbation)
+
+  status String @default("pending_review")
+  // "pending_review"   : en attente de revue admin
+  // "rejected"         : refusée, voir rejection_reason
+  // "approved_unpaid"  : approuvée, en attente du paiement (mobile money manuel, comme les billets)
+  // "paid"              : payée — diffusée automatiquement dès que now() entre dans [start_date, end_date]
+
+  rejection_reason String?
+  approved_by      String?
+  approved_at      DateTime?
+
+  payment_reference_note String?   // Réf. transaction fournie par l'annonceur
+  payment_submitted_at   DateTime? // Distingue "en attente de confirmation admin" de "pas encore envoyé"
+  paid_at                DateTime?
+  confirmed_by            String?  // UUID de l'admin qui a confirmé la réception du paiement
+
+  impressions_count Int @default(0)
+  clicks_count      Int @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  advertiser User @relation(fields: [advertiser_id], references: [id])
+
+  @@index([status, placement, start_date, end_date])
+  @@index([advertiser_id])
+  @@map("ad_campaigns")
+}
+
+// Versement à un organisateur pour un événement — une ligne par événement une fois terminé.
+// Rien n'est payé automatiquement : ce modèle sert de file d'attente pour l'action
+// manuelle de l'admin, avec la date d'éligibilité calculée selon le modèle de confiance.
+model EventPayout {
+  id              String    @id @default(uuid())
+  event_id        String    @unique
+  organizer_id    String
+
+  gross_amount_fcfa      Int // Somme des billets payants confirmés/checked_in
+  commission_fcfa         Int // Part VIVRE retenue (organizer_fee_percent au moment du calcul)
+  net_amount_fcfa          Int // Ce que l'organisateur recevra
+
+  status           String   @default("held") // "held" | "eligible" | "paid" | "on_hold_dispute"
+  eligible_at      DateTime // Calculé : fin de l'événement + délai selon confiance organisateur
+
+  paid_at          DateTime?
+  paid_by          String?   // UUID de l'admin qui a déclenché le virement
+  payout_reference String?   // Référence de la transaction mobile money sortante
+  hold_reason      String?   // Si status = on_hold_dispute
+
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  event            Event     @relation(fields: [event_id], references: [id])
+  organizer        User      @relation(fields: [organizer_id], references: [id])
+
+  @@index([organizer_id, status])
+  @@index([status, eligible_at])
+  @@map("event_payouts")
 }
 
 // =============================================================
