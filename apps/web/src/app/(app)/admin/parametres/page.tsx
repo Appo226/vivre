@@ -23,6 +23,9 @@ interface Settings {
   trusted_organizer_event_threshold: number;
   ad_price_home_feed_fcfa_per_day: number;
   ad_price_browse_fcfa_per_day: number;
+  event_listing_fee_fcfa: number;
+  ad_price_photo_fcfa_per_day: number;
+  ad_price_video_fcfa_per_day: number;
   greeting_message: string;
   greeting_message_enabled: boolean;
   home_subtitle: string;
@@ -348,6 +351,41 @@ function SettingsForm(): React.ReactElement {
               </p>
             </div>
 
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+                Mise en ligne d&apos;événement
+              </p>
+              <NumberField
+                label="Frais de mise en ligne"
+                value={settings.event_listing_fee_fcfa}
+                step={100}
+                suffix="FCFA"
+                onChange={(v) => setSettings({ ...settings, event_listing_fee_fcfa: v })}
+              />
+              <NumberField
+                label="Publicité photo (par jour)"
+                value={settings.ad_price_photo_fcfa_per_day}
+                step={100}
+                suffix="FCFA"
+                onChange={(v) => setSettings({ ...settings, ad_price_photo_fcfa_per_day: v })}
+              />
+              <NumberField
+                label="Publicité vidéo (par jour)"
+                value={settings.ad_price_video_fcfa_per_day}
+                step={100}
+                suffix="FCFA"
+                onChange={(v) => setSettings({ ...settings, ad_price_video_fcfa_per_day: v })}
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                Payé par l&apos;organisateur à la soumission (frais de mise en ligne + jours de
+                publicité s&apos;il en ajoute une) — même montant que l&apos;événement soit
+                gratuit ou payant. Désactivé entièrement si &quot;Période gratuite&quot; est
+                actif ci-dessus.
+              </p>
+            </div>
+
+            <OrganizerDiscountCard />
+
             <button
               onClick={() => void save()}
               disabled={saving}
@@ -359,6 +397,76 @@ function SettingsForm(): React.ReactElement {
         )}
       </div>
     </main>
+  );
+}
+
+/* Réduction ponctuelle sur les frais d'un organisateur donné — action instantanée, pas liée
+ * au bouton "Enregistrer" ci-dessous (qui ne couvre que les réglages globaux). */
+function OrganizerDiscountCard(): React.ReactElement {
+  const [phone, setPhone] = useState("");
+  const [discount, setDiscount] = useState(100);
+  const [applying, setApplying] = useState(false);
+  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  async function apply(): Promise<void> {
+    setApplying(true);
+    setMessage(null);
+    try {
+      const res = await apiClient.patch<{ message: string; user: { first_name: string | null; last_name: string | null; phone: string } }>(
+        "/admin/organizer-discount",
+        { phone: phone.trim(), discount_percent: discount }
+      );
+      const name = [res.user.first_name, res.user.last_name].filter(Boolean).join(" ") || res.user.phone;
+      setMessage({ text: `${name} : réduction de ${discount}% appliquée.`, isError: false });
+      setPhone("");
+    } catch (err) {
+      setMessage({ text: err instanceof ApiError ? err.message : "Erreur réseau.", isError: true });
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+        Réduction organisateur (bêta-testeurs, promos)
+      </p>
+      <p className="text-xs text-gray-400 mb-3">
+        Applique une réduction (0-100%) sur les frais de mise en ligne, publicité et commission
+        pour UN compte précis, sans toucher aux tarifs de toute la plateforme. 100% = gratuit
+        pour lui.
+      </p>
+      <div className="flex flex-col gap-2">
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Numéro de téléphone (ex: +22670000000)"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={discount}
+            onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
+            className="w-20 text-right rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm font-semibold"
+          />
+          <span className="text-sm text-gray-500">%</span>
+          <button
+            onClick={() => void apply()}
+            disabled={applying || !phone.trim()}
+            className="ml-auto bg-[#1A6B3A] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50"
+          >
+            {applying ? "…" : "Appliquer"}
+          </button>
+        </div>
+      </div>
+      {message && (
+        <p className={`text-xs mt-2 ${message.isError ? "text-red-600" : "text-green-700"}`}>{message.text}</p>
+      )}
+    </div>
   );
 }
 

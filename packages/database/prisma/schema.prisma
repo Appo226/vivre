@@ -62,6 +62,10 @@ model User {
   preferred_language String   @default("fr") // "fr" ou "en"
   is_verified        Boolean  @default(false) // true après premier OTP validé
   is_active          Boolean  @default(true)  // false = compte bloqué par admin
+  // Réduction admin (0-100) sur les frais organisateur de CE compte — frais de mise en ligne,
+  // publicité, commission transaction. 100 = tout gratuit pour lui (bêta-testeurs), sans
+  // devoir désactiver les frais pour toute la plateforme via free_period_enabled.
+  fee_discount_percent Int    @default(0)
   last_login_at      DateTime?
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
@@ -1555,6 +1559,16 @@ model PlatformSettings {
   // de vues/mois, sans toucher au code.
   ad_price_home_feed_fcfa_per_day Int @default(3000) // Section sponsorisée de l'accueil (sous "À l'affiche") — tiers annonceurs, pas lié à un événement
   ad_price_browse_fcfa_per_day    Int @default(1000) // Tuile "Sponsorisé" dans la grille de découverte
+
+  // Frais de mise en ligne d'un événement — payé à la soumission (voir events/[id]/submit),
+  // même montant que l'événement soit gratuit ou payant. La publicité liée à un événement
+  // (photo/vidéo) est ensuite tarifée par TYPE de média plutôt que par emplacement — plus
+  // simple à comprendre pour un organisateur qui choisit juste "photo" ou "vidéo" au moment
+  // de soumettre, pas un emplacement. Les tarifs par emplacement ci-dessus restent utilisés
+  // par le marketplace pub général (/publicite/creer, annonceurs tiers non liés à un événement).
+  event_listing_fee_fcfa      Int @default(0)
+  ad_price_photo_fcfa_per_day Int @default(1000)
+  ad_price_video_fcfa_per_day Int @default(2000)
 
   // Message d'accueil chaleureux — affiché sous le "Bonjour/Bonsoir, {prénom}" sur le profil.
   // Modifiable par un admin à tout moment, sans redéploiement.

@@ -123,7 +123,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const slug = generateEventSlug(data.title, data.starts_at);
-  const settings = await getPlatformSettings();
+  const [settings, organizer] = await Promise.all([
+    getPlatformSettings(),
+    prisma.user.findUnique({ where: { id: auth.sub }, select: { fee_discount_percent: true } }),
+  ]);
 
   const event = await prisma.event.create({
     data: {
@@ -146,7 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       expected_profile: data.expected_profile ?? null,
       // Frais figés au moment de la création — un changement de réglage plus tard
       // n'affecte pas les événements déjà créés, seulement les nouveaux.
-      commission_percent: effectiveOrganizerFeePercent(settings),
+      commission_percent: effectiveOrganizerFeePercent(settings, organizer?.fee_discount_percent ?? 0),
       status: "draft",
       ticket_types: {
         create: data.ticket_types.map((tt: (typeof data.ticket_types)[number]) => ({
