@@ -34,7 +34,7 @@ interface SponsoredAd {
   title: string;
   image_url: string;
   media_type: string;
-  link_url: string;
+  link_url: string | null;
 }
 
 const AUTO_ADVANCE_MS = 5000; // Durée d'affichage d'une photo — les vidéos ignorent ce chiffre.
@@ -157,36 +157,51 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
           onPointerDown={pauseAutoAdvance}
           className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
-          {ads.map((ad, i) => (
-            <a
-              key={ad.id}
-              href={ad.link_url}
-              target="_blank"
-              rel="noopener noreferrer sponsored"
-              title={ad.title}
-              onClick={() => trackClick(ad.id)}
-              className="relative flex-shrink-0 w-full snap-center aspect-video block"
-            >
-              {ad.media_type === "video" ? (
-                <video
-                  src={ad.image_url}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  muted
-                  playsInline
-                  onEnded={() => { if (i === activeIndex && !paused) advance(); }}
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- créative externe, pas dans /public
-                <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
-              )}
-
-              <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 bg-[#1A6B3A] text-white text-xs font-jakarta font-bold px-3 py-1.5 rounded-full shadow-md">
-                En savoir plus
-                <span aria-hidden="true">→</span>
-              </span>
-            </a>
-          ))}
+          {ads.map((ad, i) => {
+            const media = (
+              <>
+                {ad.media_type === "video" ? (
+                  <video
+                    src={ad.image_url}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    muted
+                    playsInline
+                    onEnded={() => { if (i === activeIndex && !paused) advance(); }}
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- créative externe, pas dans /public
+                  <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                )}
+                {ad.link_url && (
+                  <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 bg-[#1A6B3A] text-white text-xs font-jakarta font-bold px-3 py-1.5 rounded-full shadow-md">
+                    En savoir plus
+                    <span aria-hidden="true">→</span>
+                  </span>
+                )}
+              </>
+            );
+            const className = "relative flex-shrink-0 w-full snap-center aspect-video block";
+            // Pas tous les annonceurs n'ont un lien — une pub sans link_url s'affiche mais ne
+            // mène nulle part (pas de <a>, pas de tracking de clic qui n'aurait pas de sens).
+            return ad.link_url ? (
+              <a
+                key={ad.id}
+                href={ad.link_url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                title={ad.title}
+                onClick={() => trackClick(ad.id)}
+                className={className}
+              >
+                {media}
+              </a>
+            ) : (
+              <div key={ad.id} title={ad.title} className={className}>
+                {media}
+              </div>
+            );
+          })}
         </div>
 
         {ads.length > 1 && (

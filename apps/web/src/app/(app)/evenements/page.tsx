@@ -84,6 +84,8 @@ function formatEventTime(iso: string): string {
  * COMPOSANT PRINCIPAL
  * ============================================================ */
 
+interface BrowseAd { id: string; title: string; image_url: string; media_type: string; link_url: string | null }
+
 export default function EvenementsPage(): React.ReactElement {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -110,7 +112,6 @@ export default function EvenementsPage(): React.ReactElement {
   const cities = citiesData?.cities ?? [];
 
   /* Pub "Tuile découverte" — insérée dans la grille, jamais en tête de résultats */
-  interface BrowseAd { id: string; title: string; image_url: string; media_type: string; link_url: string }
   const { data: adsData } = useQuery<{ campaigns: BrowseAd[] }>({
     queryKey: ["ads-browse-tile"],
     queryFn: () => apiClient.get<{ campaigns: BrowseAd[] }>("/ads/active?placement=browse_tile"),
@@ -435,17 +436,9 @@ function EventCardComponent({
  * Tuile "Sponsorisé" — même gabarit que EventCardComponent pour s'intégrer naturellement
  * à la grille (native ad), mais toujours étiquetée clairement, jamais déguisée en événement réel.
  */
-function AdBrowseTile({ ad }: { ad: { id: string; title: string; image_url: string; media_type: string; link_url: string } }): React.ReactElement {
-  return (
-    <a
-      href={ad.link_url}
-      target="_blank"
-      rel="noopener noreferrer sponsored"
-      onClick={() => {
-        void fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
-      }}
-      className="bg-white dark:bg-dark-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98] block"
-    >
+function AdBrowseTile({ ad }: { ad: BrowseAd }): React.ReactElement {
+  const content = (
+    <>
       <div className="relative">
         {ad.media_type === "video" ? (
           <video src={ad.image_url} className="w-full h-28 object-cover" autoPlay muted loop playsInline />
@@ -462,6 +455,25 @@ function AdBrowseTile({ ad }: { ad: { id: string; title: string; image_url: stri
           {ad.title}
         </p>
       </div>
+    </>
+  );
+  const className = "bg-white dark:bg-dark-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98] block";
+
+  // Pas tous les annonceurs n'ont un lien — une pub sans link_url s'affiche mais ne mène nulle part.
+  if (!ad.link_url) {
+    return <div className={className}>{content}</div>;
+  }
+  return (
+    <a
+      href={ad.link_url}
+      target="_blank"
+      rel="noopener noreferrer sponsored"
+      onClick={() => {
+        void fetch(`/api/ads/${ad.id}/click`, { method: "POST" }).catch(() => {});
+      }}
+      className={className}
+    >
+      {content}
     </a>
   );
 }

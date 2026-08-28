@@ -1617,7 +1617,7 @@ model AdCampaign {
   title      String // Référence interne (admin + tableau de bord annonceur), pas forcément affichée
   image_url  String // Malgré le nom, peut être une vidéo — voir media_type
   media_type String @default("image") // "image" | "video"
-  link_url   String // Où mène le clic — externe ou une page VIVRE (ex: un événement)
+  link_url   String? // Où mène le clic — externe ou une page VIVRE (ex: un événement) ; null = pub non cliquable, juste affichée
   placement  String // "home_feed" | "browse_tile"
 
   start_date DateTime

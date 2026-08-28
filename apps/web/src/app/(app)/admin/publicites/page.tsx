@@ -21,7 +21,7 @@ interface Campaign {
   title: string;
   image_url: string;
   media_type: string;
-  link_url: string;
+  link_url: string | null;
   placement: string;
   start_date: string;
   end_date: string;
@@ -91,9 +91,13 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
         <p className="text-xs text-gray-400 mt-2">
           {fmtDate(c.start_date)} → {fmtDate(c.end_date)}
         </p>
-        <a href={c.link_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1A6B3A] underline mt-1 inline-block break-all">
-          {c.link_url}
-        </a>
+        {c.link_url ? (
+          <a href={c.link_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1A6B3A] underline mt-1 inline-block break-all">
+            {c.link_url}
+          </a>
+        ) : (
+          <p className="text-xs text-gray-400 mt-1">Aucun lien — pub non cliquable</p>
+        )}
 
         {error && <p className="text-xs text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
 

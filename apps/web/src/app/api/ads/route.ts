@@ -31,7 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       title: data.title,
       image_url: data.image_url,
       media_type: data.media_type,
-      link_url: data.link_url,
+      link_url: data.link_url ?? null,
       placement: data.placement,
       start_date: new Date(data.start_date),
       end_date: new Date(data.end_date),

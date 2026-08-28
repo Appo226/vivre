@@ -169,6 +169,12 @@ function FournisseurEvenementsContent(): React.ReactElement {
                   >
                     Voir la page
                   </Link>
+                  <Link
+                    href={`/fournisseur/evenements/${event.id}/modifier`}
+                    className="text-center border border-gray-200 text-gray-700 text-xs font-jakarta font-semibold py-2.5 rounded-xl"
+                  >
+                    ✏️ Modifier
+                  </Link>
                 </div>
               )}
             </div>

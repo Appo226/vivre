@@ -13,6 +13,7 @@ import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
 import { notify } from "@/lib/notifications";
+import { sendOrangeSms } from "@/lib/otp-channel";
 
 const RescheduleSchema = z.object({
   starts_at: z.string().datetime(),
@@ -74,17 +75,20 @@ export async function PATCH(
 
   const affectedBookings = await prisma.eventBooking.findMany({
     where: { event_id: params.id, status: { in: ["pending", "confirmed"] } },
-    select: { user_id: true },
+    select: { user: { select: { id: true, phone: true } } },
   });
+  const uniqueBuyers = new Map(affectedBookings.map((b: (typeof affectedBookings)[number]) => [b.user.id, b.user.phone]));
   const newDateLabel = newStarts.toLocaleDateString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-  for (const userId of new Set(affectedBookings.map((b: (typeof affectedBookings)[number]) => b.user_id))) {
+  const messageBody = `${event.title} a une nouvelle date : ${newDateLabel}. Vous pouvez annuler librement si ça ne vous convient plus.`;
+  for (const [userId, phone] of uniqueBuyers) {
     void notify({
       userId,
       type: "event_updated",
       title: "Événement reprogrammé",
-      body: `${event.title} a une nouvelle date : ${newDateLabel}. Vous pouvez annuler librement si ça ne vous convient plus.`,
+      body: messageBody,
       data: { event_id: params.id },
     });
+    sendOrangeSms(phone, `VIVRE : ${messageBody}`).catch(() => {});
   }
 
   return NextResponse.json({

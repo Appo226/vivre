@@ -169,7 +169,6 @@ export default function CreateAdPage(): React.ReactElement {
     setError(null);
     if (title.trim().length < 3) { setError("Titre trop court."); return; }
     if (!imageUrl) { setError("Ajoutez un visuel."); return; }
-    if (!linkUrl.trim()) { setError("Ajoutez un lien de destination."); return; }
     if (!startDate || !endDate) { setError("Choisissez les dates de diffusion."); return; }
 
     setSubmitting(true);
@@ -178,7 +177,7 @@ export default function CreateAdPage(): React.ReactElement {
         title: title.trim(),
         image_url: imageUrl,
         media_type: mediaType,
-        link_url: linkUrl.trim(),
+        ...(linkUrl.trim() && { link_url: linkUrl.trim() }),
         placement,
         start_date: new Date(startDate).toISOString(),
         end_date: new Date(endDate).toISOString(),
@@ -262,12 +261,12 @@ export default function CreateAdPage(): React.ReactElement {
           )}
         </Field>
 
-        <Field label="Lien de destination" required>
+        <Field label="Lien de destination (optionnel)">
           <input
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
-            placeholder="https://…"
+            placeholder="https://… — laissez vide si vous n'avez pas de lien"
             className={inputCls}
           />
         </Field>
