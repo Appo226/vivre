@@ -10,6 +10,14 @@
 .env.*.local
 .env.production
 
+# Vercel CLI link + pulled env files (.vercel/.env.*.local contains real secrets)
+.vercel/
+
+# Agent worktrees — full nested git checkouts from background agent runs,
+# never meant to be committed into this repo
+.claude/worktrees/
+.claude/settings.local.json
+
 # ============================================================
 # DÉPENDANCES — Gérées par pnpm, reconstruites via pnpm install
 # ============================================================
