@@ -9,13 +9,22 @@
  * sa propre carte blanche, entre "À l'affiche" et "Organisez votre événement", pour qu'elle
  * ne se confonde jamais avec le contenu propre à VIVRE au-dessus.
  *
- * Carrousel glissable ET auto-rotatif — mais le minuteur fixe (AUTO_ADVANCE_MS) ne sert
- * QUE pour les photos, qui n'ont pas de durée propre. Une vidéo a déjà son propre temps —
- * elle joue une fois en entier (pas de loop) et c'est SA fin (onEnded), pas un minuteur
- * arbitraire, qui déclenche le passage à l'annonceur suivant. Ça évite de couper une vidéo
- * payée en plein milieu simplement parce que 5s se sont écoulées, tout en gardant un rythme
- * pour les photos qui, elles, n'ont aucun signal naturel de "fin". /publicite/creer plafonne
- * déjà la durée d'upload vidéo (MAX_VIDEO_SECONDS = 15s) — donc aucune pub ne peut monopoliser
+ * Transition : fondu + zoom (la carte qui devient inactive rétrécit légèrement en
+ * disparaissant, celle qui devient active grandit légèrement en apparaissant) — pas un
+ * scroll horizontal. Version précédente utilisait scrollIntoView() + un carrousel scrollable,
+ * dont les événements onScroll intermédiaires (déclenchés par l'animation smooth elle-même)
+ * pouvaient être mal interprétés comme un swipe manuel et annuler silencieusement l'avancée
+ * automatique — un vrai bug vécu en prod. Empiler les cartes en absolu et transitionner
+ * opacity/scale élimine complètement cette classe de bug (plus de scroll du tout à
+ * distinguer d'un swipe) et donne un rendu plus soigné qu'un slide brut.
+ *
+ * Carrousel swipeable ET auto-rotatif — mais le minuteur fixe (AUTO_ADVANCE_MS) ne sert QUE
+ * pour les photos, qui n'ont pas de durée propre. Une vidéo a déjà son propre temps — elle
+ * joue une fois en entier (pas de loop) et c'est SA fin (onEnded), pas un minuteur arbitraire,
+ * qui déclenche le passage à l'annonceur suivant. Ça évite de couper une vidéo payée en plein
+ * milieu simplement parce que 5s se sont écoulées, tout en gardant un rythme pour les photos
+ * qui, elles, n'ont aucun signal naturel de "fin". /publicite/creer plafonne déjà la durée
+ * d'upload vidéo (MAX_VIDEO_SECONDS = 15s) — donc aucune pub ne peut monopoliser
  * indéfiniment le carrousel. Une interaction manuelle (swipe, tap sur un point) met
  * l'auto-rotation en pause pendant RESUME_AFTER_MS avant de reprendre, pour ne jamais couper
  * la personne en pleine lecture. Le cadre est un 16:9 fixe et le visuel le remplit entièrement
@@ -39,6 +48,7 @@ interface SponsoredAd {
 
 const AUTO_ADVANCE_MS = 5000; // Durée d'affichage d'une photo — les vidéos ignorent ce chiffre.
 const RESUME_AFTER_MS = 8000;
+const SWIPE_THRESHOLD_PX = 40;
 /*
  * Une pub démarre/s'arrête toute seule selon start_date/end_date (voir /api/ads/active) —
  * mais la home est un Server Component rendu une fois par navigation ("force-dynamic",
@@ -54,20 +64,9 @@ function trackClick(adId: string): void {
 }
 
 export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): React.ReactElement | null {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<Array<HTMLElement | null>>([]);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /*
-   * scrollIntoView({behavior:"smooth"}) fires many intermediate onScroll events while it
-   * animates — handleScroll (built to detect a real manual swipe) was recomputing
-   * activeIndex from the rounded in-flight scroll position on EVERY one of those events,
-   * which for most of the transit distance rounds back to the OLD index, silently
-   * overwriting the very index change that triggered the scroll. Since that old video had
-   * already ended, the restart-from-ended-video logic below then replayed it — looked
-   * exactly like "the same video loops instead of advancing." This flag makes handleScroll
-   * ignore scroll events we triggered ourselves; only a real user swipe should move the index.
-   */
-  const programmaticScrollRef = useRef(false);
-  const scrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeStartXRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -86,19 +85,6 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
     if (activeIndex >= ads.length && ads.length > 0) setActiveIndex(0);
   }, [ads.length, activeIndex]);
 
-  function scrollToIndex(index: number): void {
-    const el = scrollRef.current;
-    const target = el?.children[index];
-    if (target instanceof HTMLElement) {
-      programmaticScrollRef.current = true;
-      if (scrollSettleTimeoutRef.current) clearTimeout(scrollSettleTimeoutRef.current);
-      // Filet de sécurité si "scrollend" n'est pas déclenché/supporté — une transition smooth
-      // ne dépasse jamais ~500ms en pratique, largement de la marge.
-      scrollSettleTimeoutRef.current = setTimeout(() => { programmaticScrollRef.current = false; }, 600);
-      target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    }
-  }
-
   function advance(): void {
     setActiveIndex((i) => (i + 1) % ads.length);
   }
@@ -113,49 +99,26 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ads, activeIndex, paused]);
 
-  /* Fait défiler physiquement vers activeIndex, que le changement vienne de l'auto-rotation,
-     d'un tap sur un point, ou d'un swipe manuel (voir handleScroll). Si l'annonceur qui
-     devient actif est une vidéo, la relance depuis le début — sinon on retomberait sur
-     l'image figée de sa dernière lecture (les vidéos ne bouclent plus, voir plus bas). */
+  /* Relance la vidéo de la carte qui redevient active — si elle avait déjà fini (tour complet
+     du carrousel), on la reprend depuis le début plutôt que de retomber sur son image figée. */
   useEffect(() => {
-    scrollToIndex(activeIndex);
-    const activeEl = scrollRef.current?.children[activeIndex];
-    const video = activeEl instanceof HTMLElement ? activeEl.querySelector("video") : null;
-    if (video) {
-      const tryPlay = (): void => { void video.play().catch(() => {}); };
-      if (video.ended) {
-        // Retour sur une vidéo déjà terminée (tour complet du carrousel) — la relancer
-        // depuis le début. Appeler play() juste après currentTime=0 le ferait échouer en
-        // silence (le seek vers 0 est asynchrone et interrompt un play() immédiat) : on
-        // attend l'événement "seeked" avant de relancer la lecture.
-        video.addEventListener("seeked", tryPlay, { once: true });
-        video.currentTime = 0;
-      } else {
-        // Première apparition — la lecture native (autoPlay) est déjà en cours ou en train
-        // de démarrer ; appeler play() ici est un no-op idempotent, pas un redémarrage (le
-        // Strict Mode de React double-invoque cet effet, donc ça doit rester sans effet
-        // de bord destructeur).
-        tryPlay();
-      }
+    const video = slideRefs.current[activeIndex]?.querySelector("video") ?? null;
+    if (!video) return;
+    const tryPlay = (): void => { void video.play().catch(() => {}); };
+    if (video.ended) {
+      // Appeler play() juste après currentTime=0 échouerait en silence (le seek est
+      // asynchrone et interrompt un play() immédiat) : on attend "seeked" d'abord.
+      video.addEventListener("seeked", tryPlay, { once: true });
+      video.currentTime = 0;
+    } else {
+      tryPlay();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
 
   useEffect(() => {
     return () => {
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-      if (scrollSettleTimeoutRef.current) clearTimeout(scrollSettleTimeoutRef.current);
     };
-  }, []);
-
-  /* Signal plus réactif que le filet de sécurité ci-dessus, quand le navigateur le supporte —
-   * lève le drapeau dès que le scroll animé s'arrête vraiment, pas après un délai fixe. */
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onScrollEnd = (): void => { programmaticScrollRef.current = false; };
-    el.addEventListener("scrollend", onScrollEnd);
-    return () => el.removeEventListener("scrollend", onScrollEnd);
   }, []);
 
   if (ads.length === 0) return null;
@@ -167,12 +130,21 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
     resumeTimeoutRef.current = setTimeout(() => setPaused(false), RESUME_AFTER_MS);
   }
 
-  function handleScroll(): void {
-    if (programmaticScrollRef.current) return; // scroll qu'on a nous-même déclenché — pas un swipe réel
-    const el = scrollRef.current;
-    if (!el) return;
-    const index = Math.round(el.scrollLeft / el.clientWidth);
-    setActiveIndex(Math.max(0, Math.min(ads.length - 1, index)));
+  function handlePointerDown(e: React.PointerEvent): void {
+    swipeStartXRef.current = e.clientX;
+    pauseAutoAdvance();
+  }
+
+  function handlePointerUp(e: React.PointerEvent): void {
+    const startX = swipeStartXRef.current;
+    swipeStartXRef.current = null;
+    if (startX === null || ads.length <= 1) return;
+    const delta = e.clientX - startX;
+    if (delta > SWIPE_THRESHOLD_PX) {
+      setActiveIndex((i) => (i - 1 + ads.length) % ads.length);
+    } else if (delta < -SWIPE_THRESHOLD_PX) {
+      setActiveIndex((i) => (i + 1) % ads.length);
+    }
   }
 
   return (
@@ -181,12 +153,12 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
 
       <div className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-dark-700 shadow-card">
         <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          onPointerDown={pauseAutoAdvance}
-          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          className="relative aspect-video touch-pan-y"
         >
           {ads.map((ad, i) => {
+            const isActive = i === activeIndex;
             const media = (
               <>
                 {ad.media_type === "video" ? (
@@ -210,12 +182,16 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
                 )}
               </>
             );
-            const className = "relative flex-shrink-0 w-full snap-center aspect-video block";
+            const className = [
+              "absolute inset-0 block transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none",
+              isActive ? "opacity-100 scale-100 z-10" : "opacity-0 scale-95 z-0 pointer-events-none",
+            ].join(" ");
             // Pas tous les annonceurs n'ont un lien — une pub sans link_url s'affiche mais ne
             // mène nulle part (pas de <a>, pas de tracking de clic qui n'aurait pas de sens).
             return ad.link_url ? (
               <a
                 key={ad.id}
+                ref={(el) => { slideRefs.current[i] = el; }}
                 href={ad.link_url}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
@@ -226,7 +202,7 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
                 {media}
               </a>
             ) : (
-              <div key={ad.id} title={ad.title} className={className}>
+              <div key={ad.id} ref={(el) => { slideRefs.current[i] = el; }} title={ad.title} className={className}>
                 {media}
               </div>
             );
@@ -234,7 +210,7 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
         </div>
 
         {ads.length > 1 && (
-          <div className="absolute top-2.5 right-2.5 flex gap-1.5">
+          <div className="absolute top-2.5 right-2.5 flex gap-1.5 z-20">
             {ads.map((ad, i) => (
               <button
                 key={ad.id}
