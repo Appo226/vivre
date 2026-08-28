@@ -145,6 +145,8 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
         "bounce-dot": "bounce-dot 1.2s ease-in-out infinite",
         /* Fondu enchaîné entre photos de couverture d'événements réels, en fond du hero */
         "photo-crossfade": "photo-crossfade linear infinite",
+        /* Respiration douce du mark sur l'écran de démarrage — signal "en cours", pas un spinner générique */
+        "splash-breathe": "splash-breathe 2.2s ease-in-out infinite",
       },
 
       keyframes: {
@@ -180,6 +182,10 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
           "25%": { opacity: "1" },
           "31%": { opacity: "0" },
           "100%": { opacity: "0" },
+        },
+        "splash-breathe": {
+          "0%, 100%": { transform: "scale(0.96)", opacity: "0.92" },
+          "50%": { transform: "scale(1)", opacity: "1" },
         },
       },
 

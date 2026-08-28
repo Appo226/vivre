@@ -21,6 +21,52 @@ import { useAuthStore } from "@/store/auth.store";
 
 const BASE_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1";
 
+/**
+ * Rafraîchit l'access token via le refresh token stocké (valide 30 jours). Partagé entre
+ * requêtes concurrentes qui expirent en même temps — sans ce cache, 5 requêtes en 401
+ * simultanées déclencheraient 5 appels /auth/refresh au lieu d'un seul.
+ *
+ * NOTE HISTORIQUE : le commentaire d'en-tête de ce fichier décrivait ce comportement comme
+ * déjà implémenté ("refresh automatique du token si 401") mais rien ne l'appelait jamais —
+ * le refresh_token était stocké puis jamais utilisé. Résultat concret : après expiration de
+ * l'access token (1h), chaque appel API échouait en 401 jusqu'à ce que l'utilisateur se
+ * reconnecte manuellement, alors qu'un refresh token valide 30 jours dormait dans le store.
+ */
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const { refreshToken, user } = useAuthStore.getState();
+    if (!refreshToken || !user) return null;
+
+    try {
+      const response = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+        cache: "no-store",
+      });
+      if (!response.ok) return null;
+
+      const data = (await response.json()) as { access_token: string; refresh_token: string };
+      useAuthStore.getState().setAuth({ accessToken: data.access_token, refreshToken: data.refresh_token, user });
+      /* Le middleware lit ce cookie séparément du store Zustand — voir auth/page.tsx */
+      document.cookie = `vivre_auth_token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  })();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
 /* ============================================================
  * TYPES D'ERREUR
  * ============================================================ */
@@ -52,7 +98,7 @@ async function request<T>(
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
   path: string,
   body?: unknown,
-  options?: { skipAuth?: boolean }
+  options?: { skipAuth?: boolean; isRetry?: boolean }
 ): Promise<T> {
   const { accessToken } = useAuthStore.getState();
 
@@ -91,6 +137,24 @@ async function request<T>(
 
   /* Gérer les erreurs HTTP */
   if (!response.ok) {
+    /*
+     * 401 sur une route authentifiée (jamais sur skipAuth : login/register renvoient
+     * volontairement 401 pour un mauvais mot de passe, ce n'est pas un token expiré) —
+     * tenter un refresh silencieux une seule fois avant d'abandonner. isRetry empêche une
+     * boucle si le refresh lui-même échoue à répétition.
+     */
+    if (response.status === 401 && accessToken && !options?.skipAuth && !options?.isRetry) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return request<T>(method, path, body, { ...options, isRetry: true });
+      }
+      /* Refresh token lui-même invalide/expiré — session vraiment terminée, pas la peine
+       * de laisser l'app dans un état à moitié connecté. La prochaine navigation protégée
+       * sera redirigée vers /auth par le middleware (plus de cookie vivre_auth_token). */
+      useAuthStore.getState().logout();
+      document.cookie = "vivre_auth_token=; path=/; max-age=0; SameSite=Lax";
+    }
+
     const errorData = data as {
       error?: string;
       code?: string;

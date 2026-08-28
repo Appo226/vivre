@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { VivreLogo } from "@/components/VivreLogo";
+import { SplashScreen } from "@/components/SplashScreen";
 
 type Mode = "login" | "signup";
 
@@ -122,6 +123,10 @@ function AuthForm(): React.ReactElement {
         { skipAuth: true }
       );
       afterAuthSuccess(res);
+      // Pas de reset d'isLoading ici — l'écran de démarrage reste affiché jusqu'à ce que
+      // la navigation vers la page suivante démonte ce composant. Le remettre à false
+      // ferait clignoter l'ancien écran pendant que la page de destination charge encore
+      // ses propres données.
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === "ACCOUNT_LOCKED") setError(err.message);
@@ -132,7 +137,6 @@ function AuthForm(): React.ReactElement {
       } else {
         setError("Une erreur est survenue. Vérifiez votre connexion internet.");
       }
-    } finally {
       setIsLoading(false);
     }
   }
@@ -163,6 +167,7 @@ function AuthForm(): React.ReactElement {
         { skipAuth: true }
       );
       afterSignupSuccess(res);
+      // Voir le commentaire équivalent dans handleLogin — pas de reset ici non plus.
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === "PHONE_TAKEN") setError(err.message);
@@ -173,7 +178,6 @@ function AuthForm(): React.ReactElement {
       } else {
         setError("Une erreur est survenue. Vérifiez votre connexion internet.");
       }
-    } finally {
       setIsLoading(false);
     }
   }
@@ -181,6 +185,10 @@ function AuthForm(): React.ReactElement {
   function switchMode(next: Mode): void {
     setMode(next);
     setError(null);
+  }
+
+  if (isLoading) {
+    return <SplashScreen message={mode === "login" ? "Connexion…" : "Création du compte…"} />;
   }
 
   return (
@@ -300,7 +308,7 @@ function AuthForm(): React.ReactElement {
                   type="tel"
                   inputMode="tel"
                   autoComplete="tel"
-                  placeholder="70000000 ou +15747100846"
+                  placeholder="70000000 ou +1 555 0100"
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value.replace(/[^\d\s\-+]/g, ""));

@@ -65,6 +65,25 @@
     background-color: rgba(26, 107, 58, 0.2);
     color: var(--color-green);
   }
+
+  /*
+   * Safari iOS zoome automatiquement toute la page au focus d'un champ dont le
+   * font-size calculé est < 16px — comportement du navigateur, pas un bug de mise en
+   * page, mais l'effet perçu est exactement "l'UI se déforme et des parties deviennent
+   * invisibles" dès qu'on touche un champ de saisie (barre de recherche, formulaires...).
+   * Plusieurs composants utilisaient text-sm (14px) sur leurs inputs. Plutôt que de
+   * traquer chaque occurrence, on force 16px sur tous les champs de saisie en dessous
+   * du breakpoint desktop (md) — le seuil qui déclenche le zoom n'existe que sur mobile,
+   * donc aucun changement visuel sur desktop où la classe Tailwind (text-sm, etc.)
+   * continue de s'appliquer normalement.
+   */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* ============================================================

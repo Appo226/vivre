@@ -66,7 +66,21 @@ function VerifyPhoneContent(): React.ReactElement {
   };
 
   const handleDigitChange = (index: number, value: string): void => {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const incoming = value.replace(/\D/g, "");
+    // L'auto-remplissage natif (iOS "code depuis SMS", certains claviers Android) dépose
+    // parfois le code entier dans la case actuellement focus — pas un chiffre à la fois comme
+    // une saisie manuelle. On détecte ce cas et on redistribue exactement comme un collage.
+    if (incoming.length > 1) {
+      const newDigits = [...digits];
+      for (let i = 0; i < incoming.length && index + i < 6; i++) {
+        newDigits[index + i] = incoming[i] ?? "";
+      }
+      setDigits(newDigits);
+      setError(null);
+      inputRefs.current[Math.min(index + incoming.length, 5)]?.focus();
+      return;
+    }
+    const digit = incoming.slice(-1);
     const newDigits = [...digits];
     newDigits[index] = digit;
     setDigits(newDigits);
@@ -127,6 +141,32 @@ function VerifyPhoneContent(): React.ReactElement {
       void handleVerify();
     }
   }, [digits, handleVerify, verified]);
+
+  // WebOTP API (Android Chrome) : lit automatiquement le SMS entrant sans que l'utilisateur
+  // l'ouvre, à condition que sa dernière ligne suive le format "@vivrebf.com #123456" (voir
+  // otp-channel.ts). Aucun effet sur les navigateurs qui ne supportent pas l'API — le champ
+  // reste utilisable normalement (saisie manuelle, ou suggestion native iOS via
+  // autoComplete="one-time-code" sur les inputs).
+  useEffect(() => {
+    if (verified || !("OTPCredential" in window)) return;
+    const controller = new AbortController();
+    // L'API WebOTP n'est pas encore dans les types TS DOM standard — cast local plutôt que
+    // d'élargir le typage global du navigateur pour une seule API expérimentale.
+    const getOtp = navigator.credentials.get as (
+      options: CredentialRequestOptions & { otp: { transport: string[] } }
+    ) => Promise<{ code?: string } | null>;
+    getOtp({ otp: { transport: ["sms"] }, signal: controller.signal })
+      .then((otp) => {
+        if (otp?.code) {
+          const clean = otp.code.replace(/\D/g, "").slice(0, 6);
+          if (clean.length === 6) setDigits(clean.split(""));
+        }
+      })
+      .catch(() => {
+        // Annulé (unmount) ou non supporté — pas d'action, la saisie manuelle reste dispo.
+      });
+    return () => controller.abort();
+  }, [verified]);
 
   const handleResend = async (): Promise<void> => {
     setIsResending(true);
@@ -205,7 +245,7 @@ function VerifyPhoneContent(): React.ReactElement {
                 ref={(el) => { inputRefs.current[index] = el; }}
                 type="text"
                 inputMode="numeric"
-                maxLength={1}
+                autoComplete="one-time-code"
                 value={digit}
                 onChange={(e) => handleDigitChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}

@@ -99,7 +99,14 @@ async function sendViaOrangeSms(phone: string, code: string): Promise<void> {
         outboundSMSMessageRequest: {
           address: `tel:+${recipient}`,
           senderAddress: `tel:+${sender}`,
-          outboundSMSTextMessage: { message: `Votre code VIVRE : ${code} (valable 10 minutes)` },
+          outboundSMSTextMessage: {
+            // La dernière ligne suit le format exigé par la WebOTP API (Android Chrome) pour
+            // l'auto-remplissage du code sans que l'utilisateur ouvre le SMS : domaine exact
+            // de l'origine (sans protocole), espace, puis "#" + code. Cassé (mauvais domaine,
+            // ligne pas en dernière position) = pas d'auto-remplissage, mais le SMS reste lisible
+            // normalement dans tous les cas — dégradation silencieuse, pas un risque.
+            message: `Votre code VIVRE : ${code} (valable 10 minutes)\n@vivrebf.com #${code}`,
+          },
         },
       }),
     }
