@@ -35,10 +35,13 @@ export default function OrganizerTermsPage(): React.ReactElement {
         </Section>
 
         <Section title="3. Frais de plateforme">
-          VIVRE prélève une commission sur chaque billet payant vendu, affichée au moment où
-          vous fixez le prix de vos billets. Les billets gratuits ne génèrent aucun frais. Le
-          taux en vigueur au moment de la création de votre événement reste fixe pour cet
-          événement, même si le taux général change ensuite.
+          Tout événement, gratuit ou payant, règle des frais de mise en ligne au moment de la
+          soumission — le montant en vigueur vous est indiqué avant paiement. Si vos billets
+          sont payants, VIVRE prélève en plus une commission sur chaque billet vendu, affichée
+          au moment où vous fixez le prix. Vous pouvez également ajouter une publicité (photo
+          ou vidéo) mise en avant sur l&apos;accueil, facturée par jour, réglée dans le même
+          paiement. Les montants en vigueur au moment de votre soumission restent fixes pour
+          cet événement, même si les tarifs généraux changent ensuite.
         </Section>
 
         <Section title="4. Versement des fonds">
