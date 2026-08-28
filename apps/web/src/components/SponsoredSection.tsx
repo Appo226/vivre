@@ -56,6 +56,18 @@ function trackClick(adId: string): void {
 export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): React.ReactElement | null {
   const scrollRef = useRef<HTMLDivElement>(null);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /*
+   * scrollIntoView({behavior:"smooth"}) fires many intermediate onScroll events while it
+   * animates — handleScroll (built to detect a real manual swipe) was recomputing
+   * activeIndex from the rounded in-flight scroll position on EVERY one of those events,
+   * which for most of the transit distance rounds back to the OLD index, silently
+   * overwriting the very index change that triggered the scroll. Since that old video had
+   * already ended, the restart-from-ended-video logic below then replayed it — looked
+   * exactly like "the same video loops instead of advancing." This flag makes handleScroll
+   * ignore scroll events we triggered ourselves; only a real user swipe should move the index.
+   */
+  const programmaticScrollRef = useRef(false);
+  const scrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -78,6 +90,11 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
     const el = scrollRef.current;
     const target = el?.children[index];
     if (target instanceof HTMLElement) {
+      programmaticScrollRef.current = true;
+      if (scrollSettleTimeoutRef.current) clearTimeout(scrollSettleTimeoutRef.current);
+      // Filet de sécurité si "scrollend" n'est pas déclenché/supporté — une transition smooth
+      // ne dépasse jamais ~500ms en pratique, largement de la marge.
+      scrollSettleTimeoutRef.current = setTimeout(() => { programmaticScrollRef.current = false; }, 600);
       target.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }
   }
@@ -127,7 +144,18 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
   useEffect(() => {
     return () => {
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+      if (scrollSettleTimeoutRef.current) clearTimeout(scrollSettleTimeoutRef.current);
     };
+  }, []);
+
+  /* Signal plus réactif que le filet de sécurité ci-dessus, quand le navigateur le supporte —
+   * lève le drapeau dès que le scroll animé s'arrête vraiment, pas après un délai fixe. */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScrollEnd = (): void => { programmaticScrollRef.current = false; };
+    el.addEventListener("scrollend", onScrollEnd);
+    return () => el.removeEventListener("scrollend", onScrollEnd);
   }, []);
 
   if (ads.length === 0) return null;
@@ -140,6 +168,7 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
   }
 
   function handleScroll(): void {
+    if (programmaticScrollRef.current) return; // scroll qu'on a nous-même déclenché — pas un swipe réel
     const el = scrollRef.current;
     if (!el) return;
     const index = Math.round(el.scrollLeft / el.clientWidth);
