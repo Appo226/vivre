@@ -23,7 +23,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
-import { generateEventQr, ACTIVE_BOOKING_STATUSES } from "@/lib/events";
+import { issueTicketsForBooking, ACTIVE_BOOKING_STATUSES } from "@/lib/events";
 import { CreateBookingSchema } from "@/lib/schemas/events";
 import { validatePromoCodeForUpdate } from "@/lib/promo-codes";
 import { getPlatformSettings, effectiveBuyerFee } from "@/lib/platform-settings";
@@ -245,10 +245,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return { ...created, merch_subtotal_fcfa: merchSubtotalFcfa };
     });
 
-    const qrCode = generateEventQr(booking.id, event_id, auth.sub, ticketType.name, quantity);
-    await prisma.eventBooking.update({ where: { id: booking.id }, data: { qr_code: qrCode } });
-
     const isFree = booking.total_amount === 0;
+    if (isFree) {
+      await issueTicketsForBooking(booking.id);
+    }
+
     return NextResponse.json(
       {
         booking_id: booking.id,

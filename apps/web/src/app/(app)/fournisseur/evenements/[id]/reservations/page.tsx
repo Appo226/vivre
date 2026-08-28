@@ -14,16 +14,22 @@ import { useParams, useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
+interface TicketRow {
+  id: string;
+  status: string; // "valid" | "checked_in" | "cancelled"
+  checked_in_at: string | null;
+}
+
 interface Booking {
   id: string;
   quantity: number;
   total_amount: number;
   status: string;
   created_at: string;
-  checked_in_at: string | null;
   ticket_type: { name: string };
   user: { first_name: string | null; last_name: string | null; phone: string };
   payment: { payment_method: string; provider_ref: string | null } | null;
+  tickets: TicketRow[];
 }
 
 interface StaffAccess {
@@ -327,11 +333,9 @@ export default function ReservationsPage(): React.ReactElement {
             chaque rechargement de cette page (pas juste le compteur de session du scanner,
             qui repart à zéro à chaque ouverture de la page scanner). */}
         {!loading && bookings.length > 0 && (() => {
-          const validBookings = bookings.filter((b) => b.status === "confirmed" || b.status === "checked_in");
-          const totalQty = validBookings.reduce((sum, b) => sum + b.quantity, 0);
-          const checkedInQty = validBookings
-            .filter((b) => b.status === "checked_in")
-            .reduce((sum, b) => sum + b.quantity, 0);
+          const allTickets = bookings.flatMap((b) => b.tickets);
+          const totalQty = allTickets.filter((t) => t.status !== "cancelled").length;
+          const checkedInQty = allTickets.filter((t) => t.status === "checked_in").length;
           if (totalQty === 0) return null;
           const pct = Math.round((checkedInQty / totalQty) * 100);
           return (
@@ -352,8 +356,20 @@ export default function ReservationsPage(): React.ReactElement {
         })()}
 
         {bookings.map((b) => {
-          const statusCfg = STATUS_LABELS[b.status] ?? { label: b.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
           const buyerName = [b.user.first_name, b.user.last_name].filter(Boolean).join(" ") || b.user.phone;
+          const validTickets = b.tickets.filter((t) => t.status !== "cancelled");
+          const checkedInTickets = validTickets.filter((t) => t.status === "checked_in");
+
+          let statusCfg = STATUS_LABELS[b.status] ?? { label: b.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
+          if (b.status === "confirmed" && validTickets.length > 0) {
+            if (checkedInTickets.length === 0) {
+              statusCfg = STATUS_LABELS["confirmed"]!;
+            } else if (checkedInTickets.length === validTickets.length) {
+              statusCfg = STATUS_LABELS["checked_in"]!;
+            } else {
+              statusCfg = { label: `${checkedInTickets.length}/${validTickets.length} entrés`, color: "text-gray-600 bg-gray-50 border-gray-200" };
+            }
+          }
 
           return (
             <div key={b.id} className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
@@ -369,8 +385,13 @@ export default function ReservationsPage(): React.ReactElement {
               <p className="text-xs text-gray-600 font-dm">
                 {b.quantity} × {b.ticket_type.name} — {b.total_amount.toLocaleString("fr-FR")} FCFA
               </p>
-              {b.status === "checked_in" && b.checked_in_at && (
-                <p className="text-xs text-gray-400 font-dm">Scanné à {formatCheckInTime(b.checked_in_at)}</p>
+              {checkedInTickets.length > 0 && (
+                <p className="text-xs text-gray-400 font-dm">
+                  Scanné à {checkedInTickets
+                    .map((t) => (t.checked_in_at ? formatCheckInTime(t.checked_in_at) : null))
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
               )}
               {b.payment?.payment_method === "manual_mobile_money" && b.payment.provider_ref && (
                 <p className="text-xs text-gray-400 font-dm">Réf. paiement : {b.payment.provider_ref}</p>

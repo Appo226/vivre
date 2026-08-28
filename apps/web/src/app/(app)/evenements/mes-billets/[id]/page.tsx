@@ -3,10 +3,15 @@
 export const dynamic = "force-dynamic";
 
 /**
- * evenements/mes-billets/[id]/page.tsx — EV_003 : Billet d'événement avec QR code
+ * evenements/mes-billets/[id]/page.tsx — Détail d'une commande + ses billets individuels.
  *
- * Billet numérique scannable à l'entrée de l'événement.
- * Même design "ticket" que les billets de transport pour cohérence.
+ * Une commande de N billets n'affiche plus un unique QR représentant toute la commande —
+ * chaque billet a son propre QR, sa propre carte artistique révélée au clic (pas affichée
+ * d'emblée en pleine page), et peut être transféré ou annulé indépendamment des autres.
+ * `booking.tickets` ne contient QUE les billets que l'appelant détient actuellement dans
+ * cette commande (voir GET /api/events/bookings/[id]) — un acheteur qui a cédé 1 de ses 4
+ * billets n'en voit plus que 3 ici ; le destinataire du transfert voit son billet en accédant
+ * à cette même URL.
  */
 
 import React, { useRef, useState } from "react";
@@ -20,6 +25,17 @@ import { VivreLogo } from "@/components/VivreLogo";
  * TYPES
  * ============================================================ */
 
+interface TicketRow {
+  id: string;
+  ticket_number: number;
+  status: string; // "valid" | "checked_in" | "cancelled"
+  qr_code: string;
+  checked_in_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  price_fcfa_at_purchase: number;
+}
+
 interface EventBookingDetail {
   id: string;
   user_id: string;
@@ -28,11 +44,9 @@ interface EventBookingDetail {
   total_amount: number;
   commission_fcfa: number;
   status: string;
-  qr_code: string;
-  checked_in_at?: string;
-  cancelled_at?: string;
-  cancellation_reason?: string;
   created_at: string;
+  is_original_buyer: boolean;
+  tickets: TicketRow[];
   ticket_type: { id: string; name: string; description?: string };
   manual_payment_instructions: { provider: string; phone: string; account_name: string } | null;
   user: { first_name: string | null; last_name: string | null; phone: string };
@@ -68,6 +82,20 @@ function formatTime(iso: string): string {
   });
 }
 
+// Doit rester égal à REFUND_WINDOW_MS dans apps/web/src/lib/events.ts (côté serveur, seul
+// juge qui compte) — utilisé ici uniquement pour afficher le compte à rebours à l'acheteur.
+const REFUND_WINDOW_MS = 60 * 60 * 1000;
+
+function refundStatus(ticketCreatedAt: string): { eligible: boolean; label: string } {
+  const deadline = new Date(ticketCreatedAt).getTime() + REFUND_WINDOW_MS;
+  const remainingMs = deadline - Date.now();
+  if (remainingMs <= 0) {
+    return { eligible: false, label: "Délai de remboursement dépassé (1h après l'achat)" };
+  }
+  const minutes = Math.ceil(remainingMs / 60000);
+  return { eligible: true, label: `Remboursement possible encore ${minutes} min` };
+}
+
 const PROVIDER_LABELS: Record<string, string> = {
   orange_money: "Orange Money",
   moov: "Moov Money",
@@ -75,11 +103,16 @@ const PROVIDER_LABELS: Record<string, string> = {
   wave: "Wave",
 };
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+const BOOKING_STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: "En attente de paiement", color: "text-amber-700 bg-amber-50 border-amber-200", icon: "⏳" },
   confirmed: { label: "Confirmé — Prêt à entrer", color: "text-green-700 bg-green-50 border-green-200", icon: "✅" },
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200", icon: "❌" },
-  checked_in: { label: "Utilisé — Entrée validée", color: "text-gray-600 bg-gray-50 border-gray-200", icon: "✓" },
+};
+
+const TICKET_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  valid: { label: "Prêt à entrer", color: "text-green-700 bg-green-50 border-green-200" },
+  checked_in: { label: "Utilisé", color: "text-gray-600 bg-gray-50 border-gray-200" },
+  cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
 /* ============================================================
@@ -91,62 +124,14 @@ export default function EventBilletPage(): React.ReactElement {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelError, setCancelError] = useState("");
-  const [showTransferForm, setShowTransferForm] = useState(false);
-  const [transferPhone, setTransferPhone] = useState("");
-  const [transferError, setTransferError] = useState("");
-  const [transferSent, setTransferSent] = useState(false);
+  const [openTicketId, setOpenTicketId] = useState<string | null>(null);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportError, setReportError] = useState("");
   const [reportSent, setReportSent] = useState(false);
-  const [payMethod,     setPayMethod]     = useState("orange_money");
-  const [isPaying,      setIsPaying]      = useState(false);
-  const [payError,      setPayError]      = useState("");
-  const ticketCardRef = useRef<HTMLDivElement>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
-
-  async function handleSaveTicket(): Promise<void> {
-    if (!ticketCardRef.current || !booking) return;
-    setIsSaving(true);
-    setSaveError("");
-    try {
-      const { default: html2canvas } = await import("html2canvas");
-      const canvas = await html2canvas(ticketCardRef.current, {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: "#ffffff",
-      });
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob) throw new Error("Échec de la génération de l'image");
-
-      const filename = `billet-vivre-${booking.event.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
-      const file = new File([blob], filename, { type: "image/png" });
-
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: booking.event.title });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        // Utilisateur a fermé la feuille de partage — pas une erreur.
-      } else {
-        setSaveError("Impossible d'enregistrer le billet. Réessayez.");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  }
+  const [payMethod, setPayMethod] = useState("orange_money");
+  const [isPaying, setIsPaying] = useState(false);
+  const [payError, setPayError] = useState("");
 
   async function handlePay(): Promise<void> {
     if (!booking) return;
@@ -167,33 +152,6 @@ export default function EventBilletPage(): React.ReactElement {
     staleTime: 5 * 60 * 1000,
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: () => apiClient.delete<{ message: string }>(`/events/bookings/${id}`),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["event-booking", id] });
-      void queryClient.invalidateQueries({ queryKey: ["event-bookings"] });
-      setShowCancelConfirm(false);
-    },
-    onError: (err) => {
-      setCancelError(err instanceof ApiError ? err.message : "Impossible d'annuler");
-    },
-  });
-
-  const transferMutation = useMutation({
-    mutationFn: () =>
-      apiClient.patch<{ message: string }>(`/events/bookings/${id}/transfer`, { recipient_phone: transferPhone.trim() }),
-    onSuccess: () => {
-      // Le billet ne nous appartient plus — inutile de revalider ce détail, on repart
-      // vers la liste (qui, elle, doit être rafraîchie pour ne plus l'afficher).
-      void queryClient.invalidateQueries({ queryKey: ["event-bookings"] });
-      setTransferSent(true);
-      setTimeout(() => router.push("/evenements/mes-billets"), 1800);
-    },
-    onError: (err) => {
-      setTransferError(err instanceof ApiError ? err.message : "Erreur réseau.");
-    },
-  });
-
   const reportMutation = useMutation({
     mutationFn: () =>
       apiClient.post<{ message: string }>(`/events/bookings/${id}/report-issue`, { reason: reportReason.trim() }),
@@ -205,6 +163,11 @@ export default function EventBilletPage(): React.ReactElement {
       setReportError(err instanceof ApiError ? err.message : "Échec de l'envoi du signalement");
     },
   });
+
+  function invalidateAfterTicketChange(): void {
+    void queryClient.invalidateQueries({ queryKey: ["event-booking", id] });
+    void queryClient.invalidateQueries({ queryKey: ["event-bookings"] });
+  }
 
   if (isLoading) {
     return (
@@ -225,21 +188,18 @@ export default function EventBilletPage(): React.ReactElement {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[booking.status] ?? {
+  const statusConfig = BOOKING_STATUS_CONFIG[booking.status] ?? {
     label: booking.status, color: "text-gray-600 bg-gray-50 border-gray-200", icon: "•",
   };
-
-  const canCancel =
-    (booking.status === "pending" || booking.status === "confirmed") &&
-    new Date(booking.event.starts_at) > new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  const canTransfer = booking.status === "confirmed" && new Date(booking.event.starts_at) > new Date();
 
   const eventEndedAt = new Date(booking.event.ends_at);
   const reportDeadline = new Date(eventEndedAt.getTime() + 24 * 60 * 60 * 1000); // T+1 — doit matcher REPORT_WINDOW_HOURS côté API
   const now = new Date();
   const canReportIssue =
-    booking.status === "confirmed" && booking.total_amount > 0 && now > eventEndedAt && now < reportDeadline;
+    booking.is_original_buyer && booking.status === "confirmed" && booking.total_amount > 0 &&
+    now > eventEndedAt && now < reportDeadline;
+
+  const openTicket = booking.tickets.find((t) => t.id === openTicketId) ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pb-8">
@@ -269,7 +229,7 @@ export default function EventBilletPage(): React.ReactElement {
         </div>
 
         {/* Paiement manuel — pendant la phase pilote, avant que CinetPay soit branché */}
-        {(booking.status === "pending" || booking.status === "pending_payment") && booking.manual_payment_instructions && (
+        {booking.is_original_buyer && booking.status === "pending" && booking.manual_payment_instructions && (
           <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
             <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Finaliser le paiement</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -282,14 +242,14 @@ export default function EventBilletPage(): React.ReactElement {
               <p className="text-xl font-bold text-gray-900 font-mono">{booking.manual_payment_instructions.phone}</p>
               <p className="text-xs text-amber-700">Titulaire : {booking.manual_payment_instructions.account_name}</p>
               <p className="text-xs text-amber-700 pt-1">
-                Votre billet sera confirmé et le QR code apparaîtra ici dès que l&apos;organisateur aura validé la réception du paiement.
+                Vos billets seront confirmés et apparaîtront ici dès que l&apos;organisateur aura validé la réception du paiement.
               </p>
             </div>
           </div>
         )}
 
         {/* Paiement automatique — une fois CinetPay branché */}
-        {(booking.status === "pending" || booking.status === "pending_payment") && !booking.manual_payment_instructions && (
+        {booking.is_original_buyer && booking.status === "pending" && !booking.manual_payment_instructions && (
           <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
             <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Finaliser le paiement</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -320,160 +280,84 @@ export default function EventBilletPage(): React.ReactElement {
           </div>
         )}
 
-        {/* Billet visuel — carte VIVRE : fond vert forêt (photo de l'événement en fond
-            discret si disponible), mark en ruban, bande de losanges tricolores en pied
-            de carte — signature de la charte graphique (voir logo & core documents/). */}
-        <div ref={ticketCardRef} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          {/* Header ticket */}
-          <div
-            className="relative px-5 pt-5 pb-4 bg-cover bg-center bg-dark"
-            style={booking.event.cover_url ? { backgroundImage: `url(${booking.event.cover_url})` } : undefined}
-          >
-            {booking.event.cover_url && (
-              <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(15,46,32,0.55), rgba(15,46,32,0.92))" }} />
-            )}
-            <div className="relative">
-              <VivreLogo size={18} variant="light" className="mb-3" />
-              <span className="inline-block bg-white/15 backdrop-blur-sm text-white text-[11px] font-jakarta font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-2">
-                🎟️ {booking.ticket_type.name}
-              </span>
-              <p className="text-white font-sora font-extrabold text-2xl leading-[1.1] text-balance">{booking.event.title}</p>
-              <p className="text-[#F5A623] text-[11px] mt-2.5 font-dm font-semibold uppercase tracking-wider">◆ Billet pour</p>
-              <p className="text-white font-jakarta font-bold text-base">
-                {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
+        {/* Infos événement + commande */}
+        <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center gap-3">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{formatFullDate(booking.event.starts_at)}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              {formatTime(booking.event.starts_at)} → {formatTime(booking.event.ends_at)}
+            </p>
+          </div>
+          <div className="flex items-start gap-3">
+            <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{booking.event.venue_name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{booking.event.city.name}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
+              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ {booking.is_original_buyer ? "Commande" : "Billets détenus"}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100 mt-0.5">{booking.tickets.length} billet{booking.tickets.length > 1 ? "s" : ""}</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
+              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ Montant</p>
+              <p className="font-bold text-[#1A6B3A] mt-0.5">
+                {booking.total_amount === 0 ? "Gratuit" : `${booking.total_amount.toLocaleString("fr-FR")} FCFA`}
               </p>
-              {booking.ticket_type.description && (
-                <p className="text-white/60 text-xs mt-1">{booking.ticket_type.description}</p>
-              )}
             </div>
           </div>
-
-          {/* Séparateur ticket style */}
-          <div className="flex items-center">
-            <div className="w-5 h-5 rounded-full bg-gray-50 -ml-2.5" />
-            <div className="flex-1 border-t-2 border-dashed border-gray-200 mx-1" />
-            <div className="w-5 h-5 rounded-full bg-gray-50 -mr-2.5" />
-          </div>
-
-          {/* Corps */}
-          <div className="px-5 py-4">
-            {/* Événement */}
-            <div className="space-y-2.5 mb-4">
-              <div className="flex items-center gap-3">
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-sm font-semibold text-gray-900 capitalize">{formatFullDate(booking.event.starts_at)}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-sm text-gray-700">
-                  {formatTime(booking.event.starts_at)} → {formatTime(booking.event.ends_at)}
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                </svg>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{booking.event.venue_name}</p>
-                  <p className="text-xs text-gray-500">{booking.event.city.name}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Infos billet */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ Quantité</p>
-                <p className="font-bold text-gray-900 mt-0.5">{booking.quantity} billet{booking.quantity > 1 ? "s" : ""}</p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ Montant</p>
-                <p className="font-bold text-[#1A6B3A] mt-0.5">
-                  {booking.total_amount === 0 ? "Gratuit" : `${booking.total_amount.toLocaleString("fr-FR")} FCFA`}
-                </p>
-              </div>
-              <div className="bg-gray-50 rounded-xl p-3 col-span-2">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ Référence</p>
-                <p className="font-mono text-xs text-gray-700 mt-0.5">{booking.id}</p>
-              </div>
-            </div>
-
-            {/* Séparateur */}
-            <div className="flex items-center mb-4">
-              <div className="w-5 h-5 rounded-full bg-gray-50 -ml-7" />
-              <div className="flex-1 border-t-2 border-dashed border-gray-200 mx-1" />
-              <div className="w-5 h-5 rounded-full bg-gray-50 -mr-7" />
-            </div>
-
-            {/* QR Code */}
-            <div className="flex flex-col items-center py-2">
-              <p className="text-xs text-gray-400 mb-3 text-center">
-                Présentez ce QR code à l'entrée de l'événement
-              </p>
-              {booking.status === "cancelled" ? (
-                <div className="relative p-4 bg-gray-100 rounded-2xl opacity-40">
-                  <QRCodeSVG value={booking.qr_code} size={180} level="M" fgColor="#0F2E20" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-red-500 text-white text-xs font-bold px-4 py-1 rounded rotate-[-15deg] shadow-lg">
-                      ANNULÉ
-                    </div>
-                  </div>
-                </div>
-              ) : booking.status === "checked_in" ? (
-                <div className="relative p-4 bg-green-50 rounded-2xl border-2 border-green-400">
-                  <QRCodeSVG value={booking.qr_code} size={180} level="M" fgColor="#0F2E20" bgColor="#F0FDF4" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-green-500 text-white text-xs font-bold px-4 py-1 rounded rotate-[-10deg] shadow-lg">
-                      ✓ UTILISÉ
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-inner">
-                  <QRCodeSVG
-                    value={booking.qr_code}
-                    size={200}
-                    level="M"
-                    fgColor="#0F2E20"
-                    bgColor="#FFFFFF"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bande de losanges tricolores — signature visuelle du billet VIVRE */}
-          <div className="brand-pattern h-3" />
         </div>
 
-        {/* Enregistrer le billet — image PNG du billet, utilisable hors-ligne à l'entrée */}
-        {booking.status !== "cancelled" && (
+        {/* Liste des billets que je détiens dans cette commande — repliés par défaut, on
+            révèle la carte artistique + le QR au clic (voir TicketRevealModal). */}
+        {booking.tickets.length > 0 && (
           <div>
-            <button
-              onClick={() => void handleSaveTicket()}
-              disabled={isSaving}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-[#1A6B3A] text-white font-semibold rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
-            >
-              {isSaving ? (
-                "Génération…"
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m-9 7h12a2 2 0 002-2V8a2 2 0 00-2-2h-3l-2-2H10L8 6H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  Enregistrer le billet
-                </>
-              )}
-            </button>
-            {saveError && <p className="text-xs text-red-600 mt-2 text-center">{saveError}</p>}
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+              {booking.tickets.length > 1 ? `Mes billets (${booking.tickets.length})` : "Mon billet"}
+            </p>
+            <div className="space-y-2">
+              {booking.tickets.map((t) => {
+                const tCfg = TICKET_STATUS_CONFIG[t.status] ?? { label: t.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setOpenTicketId(t.id)}
+                    className="w-full flex items-center justify-between bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 active:scale-[0.99] transition-transform text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#0F2E20] flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm">🎟️</span>
+                      </div>
+                      <div>
+                        <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">
+                          {booking.quantity > 1 ? `Billet ${t.ticket_number}` : booking.ticket_type.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {booking.quantity > 1 ? booking.ticket_type.name : "Toucher pour voir le QR"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-dm px-2 py-0.5 rounded-full border flex-shrink-0 ${tCfg.color}`}>
+                      {tCfg.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -494,70 +378,6 @@ export default function EventBilletPage(): React.ReactElement {
             </a>
           </div>
         </div>
-
-        {/* Transfert du billet */}
-        {canTransfer && !transferSent && !showTransferForm && (
-          <button
-            onClick={() => setShowTransferForm(true)}
-            className="w-full py-3 border-2 border-[#1A6B3A]/30 text-[#1A6B3A] font-semibold rounded-2xl"
-          >
-            Transférer ce billet
-          </button>
-        )}
-
-        {showTransferForm && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-[#1A6B3A]/20 space-y-3">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Transférer à qui ?</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Le billet passera immédiatement au numéro indiqué — vous n&apos;y aurez plus accès. La personne
-              le retrouvera dans « Mes billets » en se connectant avec ce numéro sur VIVRE.
-            </p>
-            <input
-              type="tel"
-              inputMode="tel"
-              value={transferPhone}
-              onChange={(e) => setTransferPhone(e.target.value)}
-              placeholder="Numéro du destinataire (ex: 70000000 ou +226...)"
-              className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm"
-            />
-            {transferError && <p className="text-xs text-red-600">{transferError}</p>}
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setShowTransferForm(false); setTransferError(""); setTransferPhone(""); }}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-dark-700 rounded-xl text-sm text-gray-600 dark:text-gray-300"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={() => {
-                  if (transferPhone.trim().length < 8) { setTransferError("Numéro de téléphone requis."); return; }
-                  setTransferError("");
-                  transferMutation.mutate();
-                }}
-                disabled={transferMutation.isPending}
-                className="flex-1 py-2.5 bg-[#1A6B3A] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
-              >
-                {transferMutation.isPending ? "Transfert…" : "Confirmer"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {transferSent && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-800">
-            Billet transféré. Redirection vers vos billets…
-          </div>
-        )}
-
-        {/* Bouton annulation */}
-        {canCancel && (
-          <button
-            onClick={() => setShowCancelConfirm(true)}
-            className="w-full py-3 border-2 border-red-200 text-red-600 font-semibold rounded-2xl"
-          >
-            Annuler ce billet
-          </button>
-        )}
 
         {/* Signaler un problème — événement terminé sans nouvelles officielles de VIVRE */}
         {canReportIssue && !reportSent && !showReportForm && (
@@ -611,13 +431,267 @@ export default function EventBilletPage(): React.ReactElement {
         )}
       </div>
 
+      {openTicket && (
+        <TicketRevealModal
+          ticket={openTicket}
+          booking={booking}
+          onClose={() => setOpenTicketId(null)}
+          onChanged={invalidateAfterTicketChange}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+ * MODALE DE RÉVÉLATION D'UN BILLET
+ * ============================================================ */
+
+function TicketRevealModal({
+  ticket, booking, onClose, onChanged,
+}: {
+  ticket: TicketRow;
+  booking: EventBookingDetail;
+  onClose: () => void;
+  onChanged: () => void;
+}): React.ReactElement {
+  const router = useRouter();
+  const ticketCardRef = useRef<HTMLDivElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [transferPhone, setTransferPhone] = useState("");
+  const [transferError, setTransferError] = useState("");
+  const [transferSent, setTransferSent] = useState(false);
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const [cancelResult, setCancelResult] = useState<string | null>(null);
+
+  const transferMutation = useMutation({
+    mutationFn: () =>
+      apiClient.patch<{ message: string }>(`/events/tickets/${ticket.id}/transfer`, { recipient_phone: transferPhone.trim() }),
+    onSuccess: () => {
+      onChanged();
+      setTransferSent(true);
+      setTimeout(() => router.push("/evenements/mes-billets"), 1800);
+    },
+    onError: (err) => {
+      setTransferError(err instanceof ApiError ? err.message : "Erreur réseau.");
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => apiClient.delete<{ message: string }>(`/events/tickets/${ticket.id}`),
+    onSuccess: (res) => {
+      onChanged();
+      setCancelResult(res.message);
+      setShowCancelConfirm(false);
+    },
+    onError: (err) => {
+      setCancelError(err instanceof ApiError ? err.message : "Impossible d'annuler");
+    },
+  });
+
+  async function handleSaveTicket(): Promise<void> {
+    if (!ticketCardRef.current) return;
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const canvas = await html2canvas(ticketCardRef.current, { useCORS: true, scale: 2, backgroundColor: "#0F2E20" });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Échec de la génération de l'image");
+
+      const filename = `billet-vivre-${booking.event.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${ticket.ticket_number}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: booking.event.title });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // Utilisateur a fermé la feuille de partage — pas une erreur.
+      } else {
+        setSaveError("Impossible d'enregistrer le billet. Réessayez.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const canTransfer = ticket.status === "valid" && new Date(booking.event.starts_at) > new Date();
+  const canCancel = ticket.status === "valid" && new Date(booking.event.starts_at) > new Date();
+  const refund = refundStatus(ticket.created_at);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 py-8 overflow-y-auto" onClick={onClose}>
+      <div className="w-full max-w-xs mx-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Bouton fermer */}
+        <div className="flex justify-end mb-2">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white">
+            ✕
+          </button>
+        </div>
+
+        {/* Billet artistique — vert VIVRE, seul le QR est en clair au centre. Volontairement
+            centré et compact (max-w-xs) plutôt que plein écran : c'est un objet qu'on montre
+            à quelqu'un, pas une page à faire défiler. */}
+        <div ref={ticketCardRef} className="relative bg-gradient-to-br from-[#0F2E20] via-[#164A30] to-[#1A6B3A] rounded-[28px] pt-7 pb-5 px-6 shadow-2xl overflow-hidden">
+          {/* Motif décoratif discret — même losange tricolore que la bande de pied de billet */}
+          <div className="absolute inset-0 opacity-[0.08] brand-pattern" aria-hidden="true" />
+
+          <div className="relative text-center mb-5">
+            <VivreLogo size={16} variant="light" className="mx-auto mb-3" />
+            <p className="text-white font-sora font-extrabold text-base leading-tight text-balance">
+              {booking.event.title}
+            </p>
+            <p className="text-[#F5A623] text-[11px] mt-1.5 font-dm font-semibold uppercase tracking-wider">
+              {booking.ticket_type.name}
+              {booking.quantity > 1 && ` · Billet ${ticket.ticket_number}/${booking.quantity}`}
+            </p>
+            <p className="text-white/70 text-xs mt-1">
+              {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
+            </p>
+          </div>
+
+          {/* Séparateur pointillé style ticket */}
+          <div className="relative flex items-center mb-5">
+            <div className="w-5 h-5 rounded-full bg-black/40 -ml-9" />
+            <div className="flex-1 border-t-2 border-dashed border-white/20 mx-1" />
+            <div className="w-5 h-5 rounded-full bg-black/40 -mr-9" />
+          </div>
+
+          {/* Panneau QR — seule zone claire du billet */}
+          <div className="relative flex justify-center">
+            <div className="relative bg-white rounded-2xl p-4 shadow-inner">
+              <div className="absolute top-1/2 -left-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
+              <div className="absolute top-1/2 -right-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
+              {ticket.status === "cancelled" ? (
+                <div className="relative opacity-30">
+                  <QRCodeSVG value={ticket.qr_code} size={168} level="M" fgColor="#0F2E20" />
+                </div>
+              ) : (
+                <QRCodeSVG value={ticket.qr_code} size={168} level="M" fgColor="#0F2E20" bgColor="#FFFFFF" />
+              )}
+            </div>
+          </div>
+
+          {ticket.status === "checked_in" && (
+            <p className="relative text-center text-[#F5A623] text-xs font-bold mt-4">✓ BILLET UTILISÉ</p>
+          )}
+          {ticket.status === "cancelled" && (
+            <p className="relative text-center text-red-300 text-xs font-bold mt-4">BILLET ANNULÉ</p>
+          )}
+          {ticket.status === "valid" && (
+            <p className="relative text-center text-white/40 text-[10px] mt-4">
+              Présentez ce QR code à l&apos;entrée
+            </p>
+          )}
+
+          <div className="brand-pattern h-2.5 -mx-6 mt-5 relative" />
+        </div>
+
+        {/* Actions */}
+        <div className="mt-4 space-y-2">
+          {ticket.status !== "cancelled" && (
+            <button
+              onClick={() => void handleSaveTicket()}
+              disabled={isSaving}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-semibold rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
+            >
+              {isSaving ? "Génération…" : "Enregistrer le billet"}
+            </button>
+          )}
+          {saveError && <p className="text-xs text-red-300 text-center">{saveError}</p>}
+
+          {canTransfer && !transferSent && !showTransferForm && (
+            <button
+              onClick={() => setShowTransferForm(true)}
+              className="w-full py-3 border-2 border-white/20 text-white font-semibold rounded-2xl"
+            >
+              Transférer ce billet
+            </button>
+          )}
+
+          {showTransferForm && (
+            <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm space-y-3">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Transférer à qui ?</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Ce billet précis passera immédiatement au numéro indiqué — vous n&apos;y aurez plus accès.
+                La personne le retrouvera dans « Mes billets » en se connectant avec ce numéro sur VIVRE.
+              </p>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={transferPhone}
+                onChange={(e) => setTransferPhone(e.target.value)}
+                placeholder="Numéro du destinataire (ex: 70000000 ou +226...)"
+                className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm"
+              />
+              {transferError && <p className="text-xs text-red-600">{transferError}</p>}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowTransferForm(false); setTransferError(""); setTransferPhone(""); }}
+                  className="flex-1 py-2.5 border border-gray-200 dark:border-dark-700 rounded-xl text-sm text-gray-600 dark:text-gray-300"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    if (transferPhone.trim().length < 8) { setTransferError("Numéro de téléphone requis."); return; }
+                    setTransferError("");
+                    transferMutation.mutate();
+                  }}
+                  disabled={transferMutation.isPending}
+                  className="flex-1 py-2.5 bg-[#1A6B3A] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+                >
+                  {transferMutation.isPending ? "Transfert…" : "Confirmer"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {transferSent && (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-800">
+              Billet transféré. Redirection vers vos billets…
+            </div>
+          )}
+
+          {canCancel && !cancelResult && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="w-full py-3 text-red-300 font-semibold text-sm"
+            >
+              Annuler ce billet
+            </button>
+          )}
+
+          {cancelResult && (
+            <div className="bg-white/10 rounded-2xl p-4 text-sm text-white text-center">{cancelResult}</div>
+          )}
+        </div>
+      </div>
+
       {/* Modal confirmation annulation */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-[60]">
-          <div className="w-full bg-white dark:bg-dark-800 rounded-t-3xl px-4 py-6 pb-[env(safe-area-inset-bottom)]">
-            <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Confirmer l'annulation</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Politique d'annulation : remboursement possible si annulé 24h avant l'événement.
+        <div className="fixed inset-0 bg-black/60 flex items-end z-[70]" onClick={() => setShowCancelConfirm(false)}>
+          <div className="w-full max-w-xs mx-auto bg-white dark:bg-dark-800 rounded-t-3xl px-4 py-6 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Annuler ce billet ?</h2>
+            <p className={`text-sm mb-4 ${refund.eligible ? "text-green-700" : "text-gray-500 dark:text-gray-400"}`}>
+              {refund.eligible
+                ? `${refund.label} — remboursement automatique de ${ticket.price_fcfa_at_purchase.toLocaleString("fr-FR")} FCFA.`
+                : refund.label}
             </p>
             {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}
             <div className="flex gap-3">

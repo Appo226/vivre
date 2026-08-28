@@ -94,6 +94,8 @@ model User {
   organized_events          Event[]           @relation("OrganizedEvents")
   event_bookings            EventBooking[]    @relation("EventBookingOwner")
   received_event_bookings   EventBooking[]    @relation("EventBookingTransfer")
+  event_tickets             EventTicket[]     @relation("EventTicketHolder")
+  received_event_tickets    EventTicket[]     @relation("EventTicketTransfer")
   // Portefeuille VIVRE (crédits remboursements)
   wallet                    VivreWallet?
   organizer_verification    OrganizerVerification?
@@ -1331,6 +1333,7 @@ model Event {
   category     EventCategory   @relation(fields: [category_id], references: [id])
   ticket_types EventTicketType[]
   bookings     EventBooking[]
+  tickets      EventTicket[]
   payout       EventPayout?
   promo_codes  PromoCode[]
   staff        EventStaff[]
@@ -1490,11 +1493,60 @@ model EventBooking {
   payment         Payment?        @relation(fields: [payment_id], references: [id])
   promo_code      PromoCode?      @relation(fields: [promo_code_id], references: [id])
   merch_items     EventBookingMerchItem[]
+  tickets         EventTicket[]
 
   @@index([event_id, status])
   @@index([promo_code_id])
   @@index([user_id, status])
   @@map("event_bookings")
+}
+
+// Billet individuel — un EventBooking de quantity N émet N EventTicket dès que le paiement
+// est confirmé (voir issueTicketsForBooking dans lib/events.ts). Avant cette table, un seul
+// qr_code sur EventBooking représentait toute la commande (quantity encodée en métadonnée) —
+// impossible pour un acheteur de céder un seul billet à un ami sans transférer toute la
+// commande, et un scan validait N personnes d'un coup. Chaque EventTicket a son propre QR,
+// son propre détenteur (user_id — change indépendamment de EventBooking.user_id, l'acheteur
+// d'origine, au fil des transferts), et son propre statut de scan/annulation.
+model EventTicket {
+  id         String @id @default(uuid())
+  booking_id String
+  event_id   String // Dénormalisé — évite un join booking→event sur le scan et les listes organisateur
+  user_id    String // Détenteur ACTUEL de ce billet précis
+
+  ticket_number Int // 1-based, position dans la commande — pour l'affichage ("Billet 2/4")
+
+  qr_code String @unique
+
+  status String @default("valid")
+  // "valid"      : prêt à être scanné ou transféré
+  // "checked_in" : scanné à l'entrée
+  // "cancelled"  : annulé par son détenteur (remboursement selon la fenêtre — voir le
+  //                 commentaire sur DELETE /api/events/tickets/[id])
+
+  // Part du total_amount de la commande attribuée à CE billet précis — base du remboursement
+  // partiel si ce billet (et pas toute la commande) est annulé. Répartie également entre les
+  // N billets d'une commande, arrondie au dernier billet pour que la somme retombe exactement
+  // sur total_amount.
+  price_fcfa_at_purchase Int
+
+  checked_in_at      DateTime?
+  cancelled_at        DateTime?
+  transferred_to_id   String?
+  transferred_at       DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  booking        EventBooking @relation(fields: [booking_id], references: [id])
+  event          Event        @relation(fields: [event_id], references: [id])
+  user           User         @relation("EventTicketHolder", fields: [user_id], references: [id])
+  transferred_to User?        @relation("EventTicketTransfer", fields: [transferred_to_id], references: [id])
+
+  @@index([booking_id])
+  @@index([event_id, status])
+  @@index([user_id, status])
+  @@map("event_tickets")
 }
 
 // =============================================================

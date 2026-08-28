@@ -1,6 +1,13 @@
 /**
- * GET    /api/events/bookings/[id] — Détail d'un billet avec QR code.
- * DELETE /api/events/bookings/[id] — Annuler un billet (>24h avant l'événement, non utilisé).
+ * GET /api/events/bookings/[id] — Détail d'une commande : infos événement/paiement + les
+ * billets individuels que L'APPELANT détient actuellement dans cette commande.
+ *
+ * Une commande peut avoir plusieurs détenteurs après transfert (voir
+ * /api/events/tickets/[id]/transfer, qui opère par billet) : l'acheteur d'origine qui a cédé
+ * 1 des 4 billets achetés ne détient plus que 3 billets de SA propre commande, tandis que le
+ * destinataire du transfert accède à cette même commande pour voir SON billet — chacun ne
+ * voit que ce qu'il détient réellement (`tickets` est filtré par détenteur, jamais la commande
+ * entière telle qu'achetée à l'origine).
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -26,13 +33,23 @@ export async function GET(
       total_amount: true,
       commission_fcfa: true,
       status: true,
-      qr_code: true,
-      checked_in_at: true,
-      cancelled_at: true,
-      cancellation_reason: true,
       created_at: true,
       user: { select: { first_name: true, last_name: true, phone: true } },
       ticket_type: { select: { id: true, name: true, description: true } },
+      tickets: {
+        where: { user_id: auth.sub },
+        orderBy: { ticket_number: "asc" },
+        select: {
+          id: true,
+          ticket_number: true,
+          status: true,
+          qr_code: true,
+          checked_in_at: true,
+          cancelled_at: true,
+          created_at: true,
+          price_fcfa_at_purchase: true,
+        },
+      },
       event: {
         select: {
           id: true,
@@ -52,16 +69,21 @@ export async function GET(
   });
 
   if (!booking) {
-    return apiError(404, "BOOKING_NOT_FOUND", "Billet introuvable");
+    return apiError(404, "BOOKING_NOT_FOUND", "Réservation introuvable");
   }
-  if (booking.user_id !== auth.sub && !auth.roles.includes("admin")) {
+
+  const isAdmin = auth.roles.includes("admin");
+  const isOriginalBuyer = booking.user_id === auth.sub;
+  const holdsAnyTicket = booking.tickets.length > 0;
+  if (!isAdmin && !isOriginalBuyer && !holdsAnyTicket) {
     return apiError(403, "AUTH_FORBIDDEN", "Accès refusé");
   }
 
   // Paiement mobile money automatique pas encore configuré : indiquer où envoyer l'argent
   // manuellement (compte de versement vérifié de l'organisateur) pour un billet en attente.
+  // N'a de sens que pour l'acheteur d'origine — un billet transféré est toujours déjà payé.
   let manualPaymentInstructions: { provider: string; phone: string; account_name: string } | null = null;
-  if (booking.status === "pending" && booking.total_amount > 0 && !cinetpayConfigured()) {
+  if (isOriginalBuyer && booking.status === "pending" && booking.total_amount > 0 && !cinetpayConfigured()) {
     const verification = await prisma.organizerVerification.findUnique({
       where: { user_id: booking.event.organizer.id },
       select: { payout_provider: true, payout_phone: true, payout_account_name: true },
@@ -77,9 +99,14 @@ export async function GET(
 
   return NextResponse.json({
     ...booking,
-    checked_in_at: booking.checked_in_at?.toISOString() ?? null,
-    cancelled_at: booking.cancelled_at?.toISOString() ?? null,
     created_at: booking.created_at.toISOString(),
+    is_original_buyer: isOriginalBuyer,
+    tickets: booking.tickets.map((t) => ({
+      ...t,
+      checked_in_at: t.checked_in_at?.toISOString() ?? null,
+      cancelled_at: t.cancelled_at?.toISOString() ?? null,
+      created_at: t.created_at.toISOString(),
+    })),
     manual_payment_instructions: manualPaymentInstructions,
     event: {
       ...booking.event,
@@ -87,52 +114,4 @@ export async function GET(
       ends_at: booking.event.ends_at.toISOString(),
     },
   });
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-): Promise<NextResponse> {
-  const auth = await requireAuth(request);
-  if (auth instanceof NextResponse) return auth;
-
-  const booking = await prisma.eventBooking.findUnique({
-    where: { id: params.id },
-    select: {
-      id: true, user_id: true, status: true, created_at: true,
-      event: { select: { starts_at: true, rescheduled_at: true } },
-    },
-  });
-  if (!booking) {
-    return apiError(404, "BOOKING_NOT_FOUND", "Billet introuvable");
-  }
-  if (booking.user_id !== auth.sub && !auth.roles.includes("admin")) {
-    return apiError(403, "AUTH_FORBIDDEN", "Accès refusé");
-  }
-  if (booking.status === "cancelled") {
-    return apiError(409, "ALREADY_CANCELLED", "Billet déjà annulé");
-  }
-  if (booking.status === "checked_in") {
-    return apiError(409, "ALREADY_CHECKED_IN", "Billet déjà utilisé — impossible d'annuler");
-  }
-
-  // L'événement a été reprogrammé APRÈS cette réservation : l'acheteur a acheté sous des
-  // conditions différentes, donc le délai habituel de 24h ne s'applique pas — annulation libre.
-  const rescheduledAfterBooking =
-    booking.event.rescheduled_at !== null && booking.event.rescheduled_at > booking.created_at;
-
-  if (!rescheduledAfterBooking) {
-    const deadline = new Date(booking.event.starts_at);
-    deadline.setHours(deadline.getHours() - 24);
-    if (new Date() > deadline) {
-      return apiError(409, "CANCELLATION_TOO_LATE", "Impossible d'annuler moins de 24h avant l'événement");
-    }
-  }
-
-  await prisma.eventBooking.update({
-    where: { id: params.id },
-    data: { status: "cancelled", cancelled_at: new Date() },
-  });
-
-  return NextResponse.json({ message: "Billet annulé avec succès", booking_id: params.id });
 }

@@ -15,7 +15,7 @@ import { z } from "zod";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
-import { generateEventQr } from "@/lib/events";
+import { issueTicketsForBooking } from "@/lib/events";
 
 const ConfirmPaymentSchema = z.object({ reference_note: z.string().min(3).max(300) });
 
@@ -36,9 +36,8 @@ export async function PATCH(
     where: { id: params.id },
     select: {
       id: true, status: true, total_amount: true, commission_fcfa: true, user_id: true,
-      event_id: true, ticket_type_id: true, quantity: true, payment_id: true,
+      payment_id: true,
       event: { select: { organizer_id: true } },
-      ticket_type: { select: { name: true } },
     },
   });
   if (!booking) {
@@ -77,12 +76,11 @@ export async function PATCH(
         },
       });
 
-  const qrCode = generateEventQr(booking.id, booking.event_id, booking.user_id, booking.ticket_type.name, booking.quantity);
-
   await prisma.eventBooking.update({
     where: { id: booking.id },
-    data: { status: "confirmed", qr_code: qrCode, ...(booking.payment_id ? {} : { payment_id: payment.id }) },
+    data: { status: "confirmed", ...(booking.payment_id ? {} : { payment_id: payment.id }) },
   });
+  await issueTicketsForBooking(booking.id);
 
   return NextResponse.json({ message: "Paiement confirmé manuellement. Billet émis.", booking_id: booking.id, status: "confirmed" });
 }

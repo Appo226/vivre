@@ -36,10 +36,11 @@ import { QrCameraScanner } from "@/components/QrCameraScanner";
 
 interface ScanResult {
   valid: boolean;
-  booking_id?: string;
+  ticket_id?: string;
   event_title?: string;
   ticket_type?: string;
-  quantity?: number;
+  ticket_number?: number;
+  ticket_count?: number;
   holder?: { name: string; phone: string };
   checked_in_at?: string;
   error?: string;
@@ -65,8 +66,11 @@ export default function ScannerPage(): React.ReactElement | null {
 
   /**
    * Décoder le contenu brut d'un QR code scanné par l'app native du téléphone.
-   * Le QR contient un JSON base64 encodé par l'API (format: { b: bookingId, ... }).
-   * Si le contenu est déjà un UUID, on l'utilise directement.
+   * Le QR contient un JSON base64 encodé par l'API — { tk: ticketId, ... } pour un billet
+   * individuel (format actuel), ou { b: bookingId, ... } pour un billet émis avant
+   * l'introduction des billets individuels (voir migration event_tickets) — le repli legacy
+   * de /events/tickets/[id]/scan sait résoudre ce second format. Si le contenu est déjà un
+   * UUID, on l'utilise directement (saisie manuelle par le staff).
    */
   function parseQrContent(raw: string): string {
     const trimmed = raw.trim();
@@ -76,7 +80,8 @@ export default function ScannerPage(): React.ReactElement | null {
     /* Contenu base64 encodé par l'API (format QR code VIVRE) */
     try {
       const decoded = atob(trimmed);
-      const data = JSON.parse(decoded) as { b?: string };
+      const data = JSON.parse(decoded) as { tk?: string; b?: string };
+      if (data.tk) return data.tk;
       if (data.b) return data.b;
     } catch {
       /* Pas du base64 valide — utiliser la valeur brute */
@@ -95,7 +100,7 @@ export default function ScannerPage(): React.ReactElement | null {
 
     try {
       const response = await apiClient.post<ScanResult>(
-        `/events/bookings/${parsed}/scan`,
+        `/events/tickets/${parsed}/scan`,
         {}
       );
       setResult(response);
@@ -220,7 +225,9 @@ export default function ScannerPage(): React.ReactElement | null {
               <div className="bg-white/20 rounded-xl p-4 mt-3 text-left space-y-2">
                 <DetailRow label="Événement" value={result.event_title ?? "—"} />
                 <DetailRow label="Type" value={result.ticket_type ?? "—"} />
-                <DetailRow label="Quantité" value={String(result.quantity ?? 1)} />
+                {result.ticket_count && result.ticket_count > 1 && (
+                  <DetailRow label="Billet" value={`${result.ticket_number} / ${result.ticket_count}`} />
+                )}
                 {result.holder && (
                   <>
                     <DetailRow label="Détenteur" value={result.holder.name} />

@@ -1,13 +1,12 @@
 /**
- * PATCH /api/events/bookings/[id]/transfer — Céder son billet à un autre utilisateur.
+ * PATCH /api/events/tickets/[id]/transfer — Céder UN billet précis à un autre utilisateur.
  *
- * `user_id` sur EventBooking fait autorité pour la propriété actuelle (voir GET/DELETE
- * de ce billet, /events/bookings/me, et le scan à l'entrée) — le réassigner suffit à
- * transférer intégralement le billet : il disparaît instantanément de la liste et de
- * l'accès de l'ancien propriétaire, apparaît chez le nouveau, et le QR (qui n'encode
- * l'ancien propriétaire que pour information — le scan valide par booking.id, pas par
- * l'utilisateur encodé) continue de fonctionner sans avoir besoin d'être régénéré.
- * `transferred_to_id`/`transferred_at` restent comme trace d'audit du transfert.
+ * Opère sur un seul EventTicket, pas sur toute la commande — un acheteur de 4 billets peut
+ * en céder un seul à un ami sans toucher aux 3 autres. `user_id` sur EventTicket fait
+ * autorité pour la propriété actuelle de CE billet ; le réassigner suffit à le transférer
+ * intégralement (il disparaît instantanément de la liste et de l'accès de l'ancien détenteur,
+ * apparaît chez le nouveau), le QR continue de fonctionner sans être régénéré.
+ * `transferred_to_id`/`transferred_at` restent comme trace d'audit du dernier transfert.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -36,31 +35,32 @@ export async function PATCH(
     return apiError(422, "SELF_TRANSFER", "Vous ne pouvez pas transférer un billet à vous-même");
   }
 
-  const booking = await prisma.eventBooking.findUnique({
+  const ticket = await prisma.eventTicket.findUnique({
     where: { id: params.id },
     select: {
       id: true,
+      booking_id: true,
       user_id: true,
       status: true,
       event: { select: { starts_at: true, title: true } },
     },
   });
-  if (!booking) {
-    return apiError(404, "BOOKING_NOT_FOUND", "Billet introuvable");
+  if (!ticket) {
+    return apiError(404, "TICKET_NOT_FOUND", "Billet introuvable");
   }
-  if (booking.user_id !== auth.sub) {
+  if (ticket.user_id !== auth.sub) {
     return apiError(403, "AUTH_FORBIDDEN", "Seul le détenteur actuel du billet peut le transférer");
   }
-  if (booking.status !== "confirmed") {
+  if (ticket.status !== "valid") {
     return apiError(
       409,
       "INVALID_STATUS",
-      booking.status === "checked_in"
+      ticket.status === "checked_in"
         ? "Ce billet a déjà été utilisé — impossible à transférer"
-        : "Seul un billet confirmé peut être transféré"
+        : "Seul un billet actif peut être transféré"
     );
   }
-  if (new Date(booking.event.starts_at) <= new Date()) {
+  if (new Date(ticket.event.starts_at) <= new Date()) {
     return apiError(409, "EVENT_STARTED", "L'événement a déjà commencé — transfert impossible");
   }
 
@@ -78,7 +78,7 @@ export async function PATCH(
     return apiError(403, "RECIPIENT_SUSPENDED", "Ce compte destinataire est désactivé");
   }
 
-  await prisma.eventBooking.update({
+  await prisma.eventTicket.update({
     where: { id: params.id },
     data: { user_id: recipient.id, transferred_to_id: recipient.id, transferred_at: new Date() },
   });
@@ -87,17 +87,17 @@ export async function PATCH(
     userId: recipient.id,
     type: "ticket_transferred",
     title: "Vous avez reçu un billet",
-    body: `Un billet pour ${booking.event.title} vous a été transféré.`,
-    data: { booking_id: params.id },
+    body: `Un billet pour ${ticket.event.title} vous a été transféré.`,
+    data: { ticket_id: params.id },
   });
 
   // Best-effort — le destinataire n'a souvent pas encore d'email (compte tout juste
   // créé par upsert ci-dessus) ; sendEmail() no-op silencieusement dans ce cas.
   void sendEmail({
     to: recipient.email,
-    subject: `Vous avez reçu un billet pour ${booking.event.title}`,
+    subject: `Vous avez reçu un billet pour ${ticket.event.title}`,
     html: ticketTransferredEmail({
-      eventTitle: booking.event.title,
+      eventTitle: ticket.event.title,
       ticketUrl: `${process.env["APP_URL"] ?? "https://vivrebf.com"}/evenements/mes-billets/${params.id}`,
     }),
   });

@@ -34,10 +34,13 @@ export async function GET(
       total_amount: true,
       status: true,
       created_at: true,
-      checked_in_at: true,
       ticket_type: { select: { name: true } },
       user: { select: { first_name: true, last_name: true, phone: true } },
       payment: { select: { payment_method: true, provider_ref: true } },
+      tickets: {
+        select: { id: true, status: true, checked_in_at: true },
+        orderBy: { ticket_number: "asc" },
+      },
     },
     orderBy: { created_at: "desc" },
   });
@@ -47,7 +50,7 @@ export async function GET(
     bookings: bookings.map((b: EventBookingRow) => ({
       ...b,
       created_at: b.created_at.toISOString(),
-      checked_in_at: b.checked_in_at?.toISOString() ?? null,
+      tickets: b.tickets.map((t) => ({ ...t, checked_in_at: t.checked_in_at?.toISOString() ?? null })),
     })),
   });
 }

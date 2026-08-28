@@ -54,15 +54,17 @@ export async function GET(
     where: { event_id: params.id, status: "cancelled" },
   });
 
+  const checkedInTicketsCount = await prisma.eventTicket.count({
+    where: { event_id: params.id, status: "checked_in" },
+  });
+
   type AnalyticsBooking = (typeof bookings)[number];
   type AnalyticsTicketType = (typeof event.ticket_types)[number];
 
   const grossRevenue = bookings.reduce((sum: number, b: AnalyticsBooking) => sum + (b.subtotal_fcfa - b.discount_fcfa), 0);
   const totalCommission = bookings.reduce((sum: number, b: AnalyticsBooking) => sum + b.commission_fcfa, 0);
   const ticketsSold = bookings.reduce((sum: number, b: AnalyticsBooking) => sum + b.quantity, 0);
-  const checkedIn = bookings
-    .filter((b: AnalyticsBooking) => b.status === "checked_in")
-    .reduce((sum: number, b: AnalyticsBooking) => sum + b.quantity, 0);
+  const checkedIn = checkedInTicketsCount;
 
   const salesByTicketType = event.ticket_types.map((tt: AnalyticsTicketType) => {
     const ttBookings = bookings.filter((b: AnalyticsBooking) => b.ticket_type_id === tt.id);

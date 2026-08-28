@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@vivre/database";
 import { verifyCinetPayPayment } from "@/lib/cinetpay";
-import { generateEventQr, notifyEventPendingApproval } from "@/lib/events";
+import { issueTicketsForBooking, notifyEventPendingApproval } from "@/lib/events";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // CinetPay envoie son IPN en x-www-form-urlencoded ; on accepte aussi du JSON par sécurité.
@@ -55,13 +55,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     if (payment.booking_type === "event") {
-      const booking = await prisma.eventBooking.update({
+      await prisma.eventBooking.update({
         where: { id: payment.booking_id },
         data: { status: "confirmed" },
-        select: { id: true, event_id: true, user_id: true, quantity: true, ticket_type: { select: { name: true } } },
       });
-      const qrCode = generateEventQr(booking.id, booking.event_id, booking.user_id, booking.ticket_type.name, booking.quantity);
-      await prisma.eventBooking.update({ where: { id: booking.id }, data: { qr_code: qrCode } });
+      await issueTicketsForBooking(payment.booking_id);
     } else if (payment.booking_type === "event_listing") {
       const event = await prisma.event.update({
         where: { id: payment.booking_id },
