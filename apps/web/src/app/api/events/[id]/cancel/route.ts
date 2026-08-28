@@ -86,6 +86,12 @@ export async function PATCH(
     }
 
     return { cancelledBookings: activeBookings.length, refundsCreated, affectedUserIds: activeBookings.map((b: (typeof activeBookings)[number]) => b.user_id) };
+  }, {
+    // Un événement populaire peut avoir des centaines de réservations actives — créer un
+    // Refund par réservation payante en série peut dépasser le timeout par défaut (5s) bien
+    // avant d'avoir traité tout le monde. Pas de contention ici (une seule requête, pas de
+    // verrou disputé), juste du volume — d'où timeout élargi sans besoin de toucher maxWait.
+    timeout: 30_000,
   });
 
   // Hors transaction — best-effort, ne doit jamais faire échouer l'annulation elle-même.

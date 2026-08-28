@@ -243,6 +243,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         await tx.promoCode.update({ where: { id: promoCodeId }, data: { uses_count: { increment: 1 } } });
       }
       return { ...created, merch_subtotal_fcfa: merchSubtotalFcfa };
+    }, {
+      // Défauts Prisma (maxWait 2s / timeout 5s) trop courts pour un type de billet populaire :
+      // le FOR UPDATE ci-dessus sérialise volontairement les réservations concurrentes contre
+      // la survente, donc une rafale sur UN SEUL type de billet fait légitimement la queue.
+      // Sans marge, ces réservations en attente échouent (P2028) avant même d'avoir pu attendre
+      // leur tour, alors qu'elles auraient abouti quelques secondes plus tard — mesuré en
+      // conditions réelles : 25 réservations concurrentes sur le même type de billet.
+      maxWait: 10_000,
+      timeout: 15_000,
     });
 
     const isFree = booking.total_amount === 0;

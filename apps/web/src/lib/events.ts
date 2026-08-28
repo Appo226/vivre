@@ -123,6 +123,11 @@ export async function issueTicketsForBooking(bookingId: string): Promise<void> {
         },
       });
     }
+  }, {
+    // Contention ici est étroite (un retry de webhook contre lui-même sur la même commande,
+    // pas une foule) mais coûte peu à couvrir largement.
+    maxWait: 10_000,
+    timeout: 15_000,
   });
 }
 
@@ -203,7 +208,7 @@ export async function cancelTickets(params: {
     if (remainingValid === 0) {
       await tx.eventBooking.update({ where: { id: bookingId }, data: { status: "cancelled", cancelled_at: now } });
     }
-  });
+  }, { maxWait: 10_000, timeout: 15_000 });
 
   return { refundedFcfa, refundCreated: refundedFcfa > 0, cancelledTicketIds };
 }
