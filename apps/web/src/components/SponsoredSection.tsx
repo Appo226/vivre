@@ -183,7 +183,7 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
               </>
             );
             const className = [
-              "absolute inset-0 block transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none",
+              "absolute inset-0 block transition-[opacity,transform] duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               isActive ? "opacity-100 scale-100 z-10" : "opacity-0 scale-95 z-0 pointer-events-none",
             ].join(" ");
             // Pas tous les annonceurs n'ont un lien — une pub sans link_url s'affiche mais ne

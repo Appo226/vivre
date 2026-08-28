@@ -108,7 +108,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         <div className="relative pt-4">
           <HeaderProfileAvatar />
 
-          <h1 className="animate-slide-up font-sora font-extrabold text-[28px] leading-[1.15] mb-1.5 text-balance pr-12">
+          <h1 className="animate-slide-up font-sora font-extrabold text-[28px] leading-[1.15] mb-1.5 text-balance">
             Vivez le Faso.
             <br />
             Un billet à la fois.
