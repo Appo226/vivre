@@ -126,7 +126,7 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
 
 export default function MyCampaignsPage(): React.ReactElement {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, hasHydrated } = useAuthStore();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -138,9 +138,10 @@ export default function MyCampaignsPage(): React.ReactElement {
   }, []);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!accessToken) { router.push("/auth"); return; }
     load();
-  }, [accessToken, router, load]);
+  }, [hasHydrated, accessToken, router, load]);
 
   return (
     <div className="mobile-container min-h-screen bg-gray-50 pb-8">

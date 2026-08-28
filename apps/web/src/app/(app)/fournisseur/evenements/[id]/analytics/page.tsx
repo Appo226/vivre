@@ -40,7 +40,7 @@ function StatTile({ label, value, accent }: { label: string; value: string; acce
 export default function AnalyticsPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, hasHydrated } = useAuthStore();
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,9 +53,10 @@ export default function AnalyticsPage(): React.ReactElement {
   }, [id]);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!accessToken) { router.push("/auth"); return; }
     load();
-  }, [accessToken, router, load]);
+  }, [hasHydrated, accessToken, router, load]);
 
   const fmt = (n: number) => n.toLocaleString("fr-FR");
 

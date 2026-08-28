@@ -35,19 +35,20 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 function FournisseurEvenementsContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accessToken } = useAuthStore();
+  const { accessToken, hasHydrated } = useAuthStore();
   const [events, setEvents] = useState<MyEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const submitted = searchParams.get("submitted") === "1";
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!accessToken) { router.push("/auth"); return; }
     apiClient
       .get<{ events: MyEvent[] }>("/events/mine")
       .then((r) => setEvents(r.events))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [accessToken, router]);
+  }, [hasHydrated, accessToken, router]);
 
   return (
     <div className="mobile-container min-h-screen bg-gray-50 pb-24">

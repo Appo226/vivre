@@ -45,6 +45,16 @@ interface AuthState {
   refreshToken: string | null;
   user: AuthUser | null;
 
+  /*
+   * true une fois que zustand/persist a fini de relire localStorage. La lecture est
+   * asynchrone (effectuée après le tout premier rendu) — un composant qui vérifie
+   * `!accessToken` dans un useEffect au montage voit `null` pendant cette fenêtre, MÊME
+   * pour un utilisateur déjà connecté, et redirige à tort vers /auth. Plusieurs pages
+   * avaient ce bug (course de vitesse avec l'hydratation, pas un vrai "non connecté") —
+   * toute page qui redirige sur `!accessToken` doit d'abord attendre `hasHydrated`.
+   */
+  hasHydrated: boolean;
+
   /* Actions */
   setAuth: (params: {
     accessToken: string;
@@ -53,6 +63,7 @@ interface AuthState {
   }) => void;
   setUser: (user: AuthUser) => void;
   logout: () => void;
+  setHasHydrated: (value: boolean) => void;
 
   /* Helpers dérivés */
   isAuthenticated: boolean;
@@ -71,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       isAuthenticated: false,
+      hasHydrated: false,
 
       /* --- Connexion réussie : stocker les tokens et le profil --- */
       setAuth: ({ accessToken, refreshToken, user }) => {
@@ -102,6 +114,10 @@ export const useAuthStore = create<AuthState>()(
         const { user } = get();
         return user?.roles?.includes(role) ?? false;
       },
+
+      setHasHydrated: (value: boolean) => {
+        set({ hasHydrated: value });
+      },
     }),
     {
       name: "vivre-auth",          /* Clé localStorage */
@@ -118,6 +134,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.accessToken !== null,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

@@ -154,7 +154,7 @@ const selectCls = inputCls + " appearance-none";
 
 export default function PublierEvenementPage(): React.ReactElement {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, hasHydrated } = useAuthStore();
 
   const [step,       setStep]       = useState(1);
   const [form,       setForm]       = useState<FormState>(INITIAL_FORM);
@@ -164,6 +164,7 @@ export default function PublierEvenementPage(): React.ReactElement {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!hasHydrated) return; // store encore en train de relire localStorage — pas encore fiable
     if (!accessToken) { router.push("/auth"); return; }
     void Promise.all([
       apiClient.get<{ cities: City[] }>("/cities"),
@@ -172,7 +173,7 @@ export default function PublierEvenementPage(): React.ReactElement {
       setCities(c.cities);
       setCategories(cat.categories);
     }).catch(() => {});
-  }, [accessToken, router]);
+  }, [hasHydrated, accessToken, router]);
 
   /* ---- helpers de mise à jour ---- */
 

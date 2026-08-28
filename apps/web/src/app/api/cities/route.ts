@@ -12,6 +12,10 @@ import { prisma } from "@vivre/database";
 import { requireAuth } from "@/lib/require-auth";
 import { apiError } from "@/lib/api-response";
 
+/* Voir le commentaire équivalent dans api/emergency-numbers/route.ts — sans ça, Next essaie
+ * de pré-rendre cette route au build, ce qui exige une connexion DB pendant le build. */
+export const dynamic = "force-dynamic";
+
 export async function GET(): Promise<NextResponse> {
   const cities = await prisma.city.findMany({
     where: { is_active: true },

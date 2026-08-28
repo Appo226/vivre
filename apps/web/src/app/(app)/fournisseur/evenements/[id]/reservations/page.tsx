@@ -42,7 +42,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 export default function ReservationsPage(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { accessToken } = useAuthStore();
+  const { accessToken, hasHydrated } = useAuthStore();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,10 +129,11 @@ export default function ReservationsPage(): React.ReactElement {
   }, [id]);
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!accessToken) { router.push("/auth"); return; }
     load();
     loadStaff();
-  }, [accessToken, router, load, loadStaff]);
+  }, [hasHydrated, accessToken, router, load, loadStaff]);
 
   async function confirmPayment(bookingId: string): Promise<void> {
     if (note.trim().length < 3) {

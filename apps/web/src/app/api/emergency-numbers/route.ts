@@ -10,6 +10,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@vivre/database";
 
+/* Sans param dynamique, Next tente de pré-rendre cette route au build — ce qui exige une
+ * connexion DB PENDANT le build lui-même, un environnement où elle n'est pas garantie
+ * joignable (a fait échouer un déploiement pour de vrai). force-dynamic la fait toujours
+ * calculer à la requête, jamais au build. */
+export const dynamic = "force-dynamic";
+
 export async function GET(): Promise<NextResponse> {
   const numbers = await prisma.emergencyNumber.findMany({
     where: { is_active: true },

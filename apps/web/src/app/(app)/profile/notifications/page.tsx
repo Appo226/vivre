@@ -60,8 +60,11 @@ function relativeTime(iso: string): string {
 
 export default function NotificationsPage(): React.ReactElement | null {
   const router = useRouter();
-  const { accessToken } = useAuthStore();
-  useEffect(() => { if (!accessToken) { router.push("/auth"); } }, [accessToken, router]);
+  const { accessToken, hasHydrated } = useAuthStore();
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!accessToken) { router.push("/auth"); }
+  }, [hasHydrated, accessToken, router]);
 
   const [notifs,     setNotifs]     = useState<NotifItem[]>([]);
   const [loading,    setLoading]    = useState(true);
