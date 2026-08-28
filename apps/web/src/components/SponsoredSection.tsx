@@ -26,6 +26,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api";
 
 interface SponsoredAd {
   id: string;
@@ -37,16 +39,40 @@ interface SponsoredAd {
 
 const AUTO_ADVANCE_MS = 5000; // Durée d'affichage d'une photo — les vidéos ignorent ce chiffre.
 const RESUME_AFTER_MS = 8000;
+/*
+ * Une pub démarre/s'arrête toute seule selon start_date/end_date (voir /api/ads/active) —
+ * mais la home est un Server Component rendu une fois par navigation ("force-dynamic",
+ * donc à jour à CHAQUE chargement de page). Sans re-fetch côté client, quelqu'un qui garde
+ * l'app ouverte plus longtemps que la fenêtre d'une pub continue de la voir tourner dans le
+ * carrousel après sa fin, et ne voit jamais une nouvelle pub démarrer — jusqu'au prochain
+ * rechargement complet. Ce polling comble cet écart sans dépendre d'une navigation.
+ */
+const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 
 function trackClick(adId: string): void {
   void fetch(`/api/ads/${adId}/click`, { method: "POST" }).catch(() => {});
 }
 
-export function SponsoredSection({ ads }: { ads: SponsoredAd[] }): React.ReactElement | null {
+export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): React.ReactElement | null {
   const scrollRef = useRef<HTMLDivElement>(null);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+
+  const { data } = useQuery({
+    queryKey: ["ads-active", "home_feed"],
+    queryFn: () => apiClient.get<{ campaigns: SponsoredAd[] }>("/ads/active?placement=home_feed"),
+    initialData: { campaigns: initialAds },
+    staleTime: 0,
+    refetchInterval: REFRESH_INTERVAL_MS,
+  });
+  const ads = data.campaigns;
+
+  /* La liste peut rétrécir (une pub expire) ou changer d'ordre entre deux refetch — sans ce
+   * clamp, activeIndex pourrait pointer au-delà de la nouvelle longueur et casser le rendu. */
+  useEffect(() => {
+    if (activeIndex >= ads.length && ads.length > 0) setActiveIndex(0);
+  }, [ads.length, activeIndex]);
 
   function scrollToIndex(index: number): void {
     const el = scrollRef.current;

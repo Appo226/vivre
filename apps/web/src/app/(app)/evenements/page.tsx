@@ -115,6 +115,10 @@ export default function EvenementsPage(): React.ReactElement {
     queryKey: ["ads-browse-tile"],
     queryFn: () => apiClient.get<{ campaigns: BrowseAd[] }>("/ads/active?placement=browse_tile"),
     staleTime: 5 * 60 * 1000, /* 5 min */
+    /* Une pub démarre/s'arrête toute seule selon start_date/end_date — sans refetch
+     * périodique, quelqu'un qui reste sur cette page ne voit jamais une pub expirer ni
+     * une nouvelle démarrer avant de recharger (voir le même correctif dans SponsoredSection). */
+    refetchInterval: 2 * 60 * 1000,
   });
   const browseAds = adsData?.campaigns ?? [];
 
