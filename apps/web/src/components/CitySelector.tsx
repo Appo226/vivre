@@ -75,11 +75,11 @@ export default function CitySelector(): React.ReactElement {
       {/* Bottom-sheet modal de sélection de ville */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 flex items-end"
+          className="fixed inset-0 bg-black/60 z-[60] flex items-end"
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white w-full rounded-t-3xl max-h-[70vh] flex flex-col"
+            className="bg-white w-full rounded-t-3xl max-h-[70vh] flex flex-col pb-[env(safe-area-inset-bottom)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* En-tête du sheet */}

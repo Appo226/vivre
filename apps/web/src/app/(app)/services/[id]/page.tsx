@@ -22,6 +22,7 @@ export const dynamic = "force-dynamic";
 import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { ServiceIcon } from "@/components/ServiceIcon";
 
 /* ============================================================
  * TYPES
@@ -67,7 +68,7 @@ interface CorrectionPayload {
  * FETCH
  * ============================================================ */
 
-const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1";
+const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "/api";
 
 async function fetchService(id: string): Promise<ServiceDetail> {
   const res = await fetch(`${API_URL}/public-services/${id}`);
@@ -127,7 +128,7 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-end"
+      className="fixed inset-0 z-[60] bg-black/50 flex items-end"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -135,16 +136,16 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
     >
       {/* Panel — bottom sheet */}
       <div
-        className="w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
+        className="w-full bg-white dark:bg-dark-800 rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+        <div className="w-10 h-1 bg-gray-200 dark:bg-dark-600 rounded-full mx-auto mb-4" />
 
-        <h2 id="correction-modal-title" className="text-lg font-bold text-gray-900 mb-1">
+        <h2 id="correction-modal-title" className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
           Signaler une erreur
         </h2>
-        <p className="text-sm text-gray-500 mb-5">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Votre signalement sera examiné par notre équipe. Merci de votre contribution !
         </p>
 
@@ -152,8 +153,8 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
           /* Confirmation */
           <div className="text-center py-6">
             <span className="text-5xl" aria-hidden="true">✅</span>
-            <p className="text-base font-semibold text-gray-900 mt-4">Signalement envoyé !</p>
-            <p className="text-sm text-gray-500 mt-1">Merci pour votre aide.</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100 mt-4">Signalement envoyé !</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Merci pour votre aide.</p>
             <button
               onClick={onClose}
               className="mt-5 w-full py-3 bg-[#1A6B3A] text-white rounded-2xl font-medium"
@@ -165,7 +166,7 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Type de correction */}
             <fieldset>
-              <legend className="text-sm font-medium text-gray-700 mb-2">Type de problème</legend>
+              <legend className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Type de problème</legend>
               <div className="space-y-2">
                 {CORRECTION_TYPES.map(({ value, label }) => (
                   <label key={value} className="flex items-center gap-3 cursor-pointer">
@@ -177,7 +178,7 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
                       onChange={() => setCorrectionType(value)}
                       className="accent-[#1A6B3A] w-4 h-4"
                     />
-                    <span className="text-sm text-gray-700">{label}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
                   </label>
                 ))}
               </div>
@@ -185,7 +186,7 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
 
             {/* Description */}
             <div>
-              <label htmlFor="correction-desc" className="text-sm font-medium text-gray-700 block mb-1">
+              <label htmlFor="correction-desc" className="text-sm font-medium text-gray-700 dark:text-gray-200 block mb-1">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -195,11 +196,11 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
                 placeholder="Décrivez le problème en détail (minimum 5 caractères)…"
                 rows={4}
                 maxLength={500}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B3A] focus:border-transparent"
+                className="w-full border border-gray-200 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1A6B3A] focus:border-transparent"
                 required
                 minLength={5}
               />
-              <p className="text-xs text-gray-400 text-right mt-1">{description.length}/500</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-right mt-1">{description.length}/500</p>
             </div>
 
             {/* Erreur */}
@@ -212,7 +213,7 @@ function CorrectionModal({ serviceId, onClose }: CorrectionModalProps): React.Re
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-2xl font-medium text-sm"
+                className="flex-1 py-3 bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-200 rounded-2xl font-medium text-sm"
               >
                 Annuler
               </button>
@@ -254,12 +255,12 @@ export default function ServiceDetailPage(): React.ReactElement {
   /* ===== CHARGEMENT ===== */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 animate-pulse">
-        <div className="h-56 bg-gray-200" />
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 animate-pulse">
+        <div className="h-56 bg-gray-200 dark:bg-dark-700" />
         <div className="px-4 py-5 space-y-4">
-          <div className="h-6 bg-gray-200 rounded w-2/3" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-12 bg-gray-200 rounded-2xl" />
+          <div className="h-6 bg-gray-200 dark:bg-dark-700 rounded w-2/3" />
+          <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded w-full" />
+          <div className="h-12 bg-gray-200 dark:bg-dark-700 rounded-2xl" />
         </div>
       </div>
     );
@@ -268,10 +269,10 @@ export default function ServiceDetailPage(): React.ReactElement {
   /* ===== ERREUR ===== */
   if (isError || !service) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex flex-col items-center justify-center px-4">
         <span className="text-5xl mb-4" aria-hidden="true">😕</span>
-        <p className="text-lg font-semibold text-gray-900">Service introuvable</p>
-        <p className="text-sm text-gray-500 mt-1 mb-6">
+        <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">Service introuvable</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6">
           {(error as Error)?.message === "SERVICE_NOT_FOUND"
             ? "Ce service n'existe pas ou a été supprimé."
             : "Impossible de charger ce service. Vérifiez votre connexion."}
@@ -292,7 +293,7 @@ export default function ServiceDetailPage(): React.ReactElement {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
         {/* ===== HEADER AVEC COULEUR DE CATÉGORIE ===== */}
         <header
           className="px-4 pt-12 pb-6 text-white relative"
@@ -311,7 +312,7 @@ export default function ServiceDetailPage(): React.ReactElement {
           </button>
 
           <div className="flex items-start gap-3">
-            <span className="text-3xl" aria-hidden="true">{service.category.icon}</span>
+            <ServiceIcon name={service.category.icon} className="w-8 h-8 flex-shrink-0" />
             <div>
               <p className="text-white/70 text-xs uppercase tracking-wide">{service.category.name_fr}</p>
               <h1 className="text-xl font-bold font-sora leading-snug">{service.name}</h1>
@@ -349,16 +350,16 @@ export default function ServiceDetailPage(): React.ReactElement {
         <div className="px-4 py-5 space-y-4 max-w-lg mx-auto">
 
           {/* ===== ADRESSE ===== */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Adresse</p>
-            <p className="text-gray-900 text-sm">{service.address}</p>
+          <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700">
+            <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Adresse</p>
+            <p className="text-gray-900 dark:text-gray-100 text-sm">{service.address}</p>
 
             <div className="flex gap-2 mt-3">
               <a
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.099 3.468-4.698 3.468-8.05a6.75 6.75 0 00-13.5 0c0 3.352 1.524 5.951 3.468 8.05a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
@@ -381,8 +382,8 @@ export default function ServiceDetailPage(): React.ReactElement {
 
           {/* ===== TÉLÉPHONES ===== */}
           {(service.phone_emergency || service.phone_primary) && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Contact</p>
+            <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Contact</p>
 
               {service.phone_emergency && (
                 <a
@@ -404,16 +405,16 @@ export default function ServiceDetailPage(): React.ReactElement {
               {service.phone_primary && (
                 <a
                   href={`tel:${service.phone_primary}`}
-                  className="flex items-center gap-3 py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl"
+                  className="flex items-center gap-3 py-2.5 px-3 bg-gray-50 dark:bg-dark-700 border border-gray-100 dark:border-dark-600 rounded-xl"
                 >
-                  <span className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-600">
+                  <span className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-dark-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-600 dark:text-gray-300">
                       <path fillRule="evenodd" d="M1.5 4.5a3 3 0 013-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 01-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 006.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 011.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 01-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5z" clipRule="evenodd"/>
                     </svg>
                   </span>
                   <div>
-                    <p className="text-xs text-gray-400 font-medium">Principal</p>
-                    <p className="text-base font-semibold text-gray-900">{service.phone_primary}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">Principal</p>
+                    <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{service.phone_primary}</p>
                   </div>
                 </a>
               )}
@@ -422,13 +423,13 @@ export default function ServiceDetailPage(): React.ReactElement {
 
           {/* ===== HORAIRES ===== */}
           {service.opening_hours && Object.keys(service.opening_hours).length > 0 && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Horaires</p>
+            <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700">
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Horaires</p>
               <div className="space-y-1.5">
                 {Object.entries(service.opening_hours).map(([day, hours]) => (
                   <div key={day} className="flex justify-between text-sm">
-                    <span className="text-gray-600 font-medium">{DAYS_FR[day] ?? day}</span>
-                    <span className="text-gray-900">{hours}</span>
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">{DAYS_FR[day] ?? day}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{hours}</span>
                   </div>
                 ))}
               </div>
@@ -438,7 +439,7 @@ export default function ServiceDetailPage(): React.ReactElement {
           {/* ===== SIGNALER UNE ERREUR ===== */}
           <button
             onClick={() => setShowCorrection(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-600 font-medium shadow-sm"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-2xl text-sm text-gray-600 dark:text-gray-300 font-medium shadow-sm"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-orange-400">
               <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd"/>

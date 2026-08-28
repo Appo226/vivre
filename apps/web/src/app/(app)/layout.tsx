@@ -13,7 +13,10 @@
  * Il hérite donc des polices, providers et métadonnées globales.
  */
 
+"use client";
+
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { PushProvider } from "@/components/PushProvider";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -24,6 +27,14 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps): React.ReactElement {
+  /*
+   * /admin/* a sa propre navigation (barre latérale desktop, flèche retour mobile) —
+   * la bottom nav n'y a aucun onglet pertinent et, pire, ses pages n'avaient pas assez
+   * de padding bas réservé pour elle : le contenu de fin de page était recouvert.
+   */
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin") ?? false;
+
   return (
     <div className="relative min-h-screen">
       {/* Indicateur réseau — bannière en haut quand hors ligne */}
@@ -33,12 +44,12 @@ export default function AppLayout({ children }: AppLayoutProps): React.ReactElem
       <PushProvider />
 
       {/* Contenu de la page — padding bas pour ne pas être caché par la nav */}
-      <main className="pb-20">
+      <main className={isAdmin ? undefined : "pb-20"}>
         {children}
       </main>
 
-      {/* Navigation inférieure sticky — présente sur toutes les pages authentifiées */}
-      <BottomNav />
+      {/* Navigation inférieure sticky — présente sur toutes les pages authentifiées sauf /admin */}
+      {!isAdmin && <BottomNav />}
 
       {/* Invite à installer la PWA — apparaît au premier chargement */}
       <InstallPrompt />

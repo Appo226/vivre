@@ -30,7 +30,6 @@ export default function OfflinePage(): React.ReactElement {
         <ul className="space-y-3">
           {[
             { href: "/urgences", icon: "🆘", label: "Numéros d'urgence", sub: "SAMU · Police · Pompiers" },
-            { href: "/transport",  icon: "🚌", label: "Lignes de bus SOTRACO", sub: "Arrêts et horaires" },
             { href: "/services",   icon: "🏛️", label: "Services publics", sub: "Mairies, hôpitaux, pharmacies" },
           ].map((item) => (
             <li key={item.href}>

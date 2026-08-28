@@ -66,22 +66,26 @@ export function usePushNotifications() {
     let unsubscribe: (() => void) | null = null;
 
     async function listenForeground() {
-      unsubscribe = await onForegroundMessage((payload) => {
-        const title = payload.notification?.title ?? "VIVRE";
-        const body  = payload.notification?.body  ?? "";
+      try {
+        unsubscribe = await onForegroundMessage((payload) => {
+          const title = payload.notification?.title ?? "VIVRE";
+          const body  = payload.notification?.body  ?? "";
 
-        /*
-         * Afficher via l'API Notification du navigateur.
-         * En production, on utilisera un toast UI (Sonner, react-hot-toast).
-         * Pour l'instant, la notification native suffit.
-         */
-        if (Notification.permission === "granted") {
-          new Notification(title, {
-            body,
-            icon: "/icons/icon-192x192.png",
-          });
-        }
-      });
+          /*
+           * Afficher via l'API Notification du navigateur.
+           * En production, on utilisera un toast UI (Sonner, react-hot-toast).
+           * Pour l'instant, la notification native suffit.
+           */
+          if (Notification.permission === "granted") {
+            new Notification(title, {
+              body,
+              icon: "/icons/icon-192x192.png",
+            });
+          }
+        });
+      } catch {
+        /* Silencieux — même motif que registerPush(), les push ne sont pas critiques */
+      }
     }
 
     void listenForeground();

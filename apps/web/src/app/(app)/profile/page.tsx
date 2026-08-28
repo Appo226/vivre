@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
+import { useThemeStore } from "@/store/theme.store";
 import { apiClient, ApiError } from "@/lib/api";
 import type { MeResponse } from "@/lib/api";
 
@@ -16,19 +17,19 @@ import type { MeResponse } from "@/lib/api";
 const T = {
   fr: {
     my_profile: "Mon profil", edit: "Modifier", verified: "Vérifié",
-    my_activity: "MON ACTIVITÉ", settings: "PARAMÈTRES", finances: "FINANCES", account: "COMPTE",
-    bookings: "Toutes mes réservations", orders: "Mes commandes", rides: "Mes courses",
-    reservations: "Mes réservations", tickets: "Mes billets", events: "Mes événements",
-    language: "Langue", notifications: "Notifications", wallet: "Portefeuille VIVRE",
-    become_driver: "Devenir livreur", help: "Aide & support", logout: "Se déconnecter",
+    my_activity: "MON ACTIVITÉ", settings: "PARAMÈTRES", account: "COMPTE",
+    events: "Mes événements",
+    language: "Langue", notifications: "Notifications",
+    help: "Aide & support", logout: "Se déconnecter",
+    theme: "Thème", theme_light: "Clair", theme_dark: "Sombre",
   },
   en: {
     my_profile: "My profile", edit: "Edit", verified: "Verified",
-    my_activity: "MY ACTIVITY", settings: "SETTINGS", finances: "FINANCES", account: "ACCOUNT",
-    bookings: "All my bookings", orders: "My orders", rides: "My rides",
-    reservations: "My reservations", tickets: "My tickets", events: "My events",
-    language: "Language", notifications: "Notifications", wallet: "VIVRE Wallet",
-    become_driver: "Become a driver", help: "Help & support", logout: "Sign out",
+    my_activity: "MY ACTIVITY", settings: "SETTINGS", account: "ACCOUNT",
+    events: "My events",
+    language: "Language", notifications: "Notifications",
+    help: "Help & support", logout: "Sign out",
+    theme: "Theme", theme_light: "Light", theme_dark: "Dark",
   },
 } as const;
 
@@ -53,11 +54,19 @@ function vivreId(uuid: string): string {
   return `VIV-${uuid.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 }
 
+/* Bonjour/Good morning avant 18h, Bonsoir/Good evening après — heure locale de l'appareil. */
+function timeGreeting(lang: Lang): string {
+  const evening = new Date().getHours() >= 18;
+  if (lang === "en") return evening ? "Good evening" : "Good morning";
+  return evening ? "Bonsoir" : "Bonjour";
+}
+
 /* ============================================================
  * TYPES
  * ============================================================ */
 
 interface EditForm {
+  username:   string;
   first_name: string;
   last_name:  string;
   email:      string;
@@ -72,12 +81,14 @@ export default function ProfilePage(): React.ReactElement {
   const { user, setUser, logout } = useAuthStore();
   const [profile,     setProfile]     = useState<MeResponse | null>(null);
   const [editing,     setEditing]     = useState(false);
-  const [form,        setForm]        = useState<EditForm>({ first_name: "", last_name: "", email: "" });
+  const [form,        setForm]        = useState<EditForm>({ username: "", first_name: "", last_name: "", email: "" });
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
+  const [greeting, setGreeting] = useState<{ message: string; enabled: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { theme, setTheme } = useThemeStore();
 
   /* Lire la langue depuis localStorage au montage */
   useEffect(() => {
@@ -85,17 +96,26 @@ export default function ProfilePage(): React.ReactElement {
     if (stored === "en" || stored === "fr") setLang(stored);
   }, []);
 
+  /* Message d'accueil éditable par un admin — silencieux si indisponible, jamais bloquant */
+  useEffect(() => {
+    void apiClient
+      .get<{ message: string; enabled: boolean }>("/settings/greeting")
+      .then(setGreeting)
+      .catch(() => { /* pas de message affiché, tant pis */ });
+  }, []);
+
   /* Charger le profil frais depuis l'API */
   useEffect(() => {
     void (async () => {
       try {
-        const me = await apiClient.get<MeResponse>("/users/me");
+        const me = await apiClient.get<MeResponse>("/auth/me");
         setProfile(me);
       } catch {
         /* Fallback sur le store Zustand si l'API est indisponible */
         if (user) {
           setProfile({
             id: user.id, phone: user.phone,
+            username: user.username,
             first_name: user.first_name, last_name: user.last_name,
             email: user.email, avatar_url: user.avatar_url,
             preferred_language: user.preferred_language,
@@ -110,6 +130,7 @@ export default function ProfilePage(): React.ReactElement {
 
   function startEditing() {
     setForm({
+      username:   profile?.username   ?? "",
       first_name: profile?.first_name ?? "",
       last_name:  profile?.last_name  ?? "",
       email:      profile?.email      ?? "",
@@ -123,16 +144,17 @@ export default function ProfilePage(): React.ReactElement {
     setError(null);
     try {
       const body: Record<string, string | null> = {};
+      if (form.username   !== (profile?.username   ?? "")) body["username"]   = form.username   || null;
       if (form.first_name !== (profile?.first_name ?? "")) body["first_name"] = form.first_name || null;
       if (form.last_name  !== (profile?.last_name  ?? "")) body["last_name"]  = form.last_name  || null;
       if (form.email      !== (profile?.email      ?? "")) body["email"]       = form.email      || null;
 
       if (Object.keys(body).length === 0) { setEditing(false); return; }
 
-      const res = await apiClient.put<{ user: typeof user }>("/users/me", body);
+      const res = await apiClient.patch<{ user: typeof user }>("/auth/me", body);
       if (res.user) {
         setUser(res.user);
-        setProfile((p) => p ? { ...p, ...body, first_name: body["first_name"] ?? p.first_name, last_name: body["last_name"] ?? p.last_name, email: body["email"] ?? p.email } : p);
+        setProfile((p) => p ? { ...p, ...body, username: body["username"] ?? p.username, first_name: body["first_name"] ?? p.first_name, last_name: body["last_name"] ?? p.last_name, email: body["email"] ?? p.email } : p);
       }
       setEditing(false);
     } catch (err) {
@@ -149,15 +171,14 @@ export default function ProfilePage(): React.ReactElement {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("folder", "avatars");
-      const res = await fetch(`${process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1"}/uploads/file`, {
+      const res = await fetch(`${process.env["NEXT_PUBLIC_API_URL"] ?? "/api"}/uploads/avatar`, {
         method: "POST",
         headers: { Authorization: `Bearer ${useAuthStore.getState().accessToken ?? ""}` },
         body: fd,
       });
       const data = await res.json() as { url?: string };
       if (data.url) {
-        await apiClient.put("/users/me", { avatar_url: data.url });
+        await apiClient.patch("/auth/me", { avatar_url: data.url });
         setProfile((p) => p ? { ...p, avatar_url: data.url ?? null } : p);
         if (user) setUser({ ...user, avatar_url: data.url ?? null });
       }
@@ -174,7 +195,7 @@ export default function ProfilePage(): React.ReactElement {
       const token = localStorage.getItem("vivre_fcm_token");
       if (token) {
         /* Use fetch directly — apiClient.delete doesn't accept a body */
-        void fetch(`${process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1"}/notifications/device-token`, {
+        void fetch(`${process.env["NEXT_PUBLIC_API_URL"] ?? "/api"}/notifications/device-token`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -195,7 +216,7 @@ export default function ProfilePage(): React.ReactElement {
     if (!profile) return;
     const next: Lang = (profile.preferred_language === "fr" ? "en" : "fr") as Lang;
     try {
-      await apiClient.put("/users/me", { preferred_language: next });
+      await apiClient.patch("/auth/me", { preferred_language: next });
       setProfile((p) => p ? { ...p, preferred_language: next } : p);
       if (user) setUser({ ...user, preferred_language: next });
       localStorage.setItem("vivre_lang", next);
@@ -205,24 +226,37 @@ export default function ProfilePage(): React.ReactElement {
 
   const t = T[lang];
 
-  const displayName = profile
+  const realName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.phone
-    : "…";
+    : null;
+
+  /* Le nom d'utilisateur, quand renseigné, est l'identité que la personne a choisi
+     d'afficher — il prend la place du nom réel en tête du profil. */
+  const displayName = profile?.username ? `@${profile.username}` : realName ?? "…";
 
   const avatarInitials = profile
     ? initials(profile.first_name, profile.last_name, profile.phone)
     : "…";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pb-24">
       {/* ===== HEADER VERT ===== */}
       <div className="bg-[#1A6B3A] text-white px-4 pt-safe-top pb-20">
-        <div className="flex items-center justify-between pt-4 mb-1">
-          <h1 className="text-xl font-bold">{t.my_profile}</h1>
+        <div className="flex items-start justify-between gap-3 pt-4 mb-1">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold truncate">
+              {profile?.first_name ? `${timeGreeting(lang)}, ${profile.first_name} 👋` : t.my_profile}
+            </h1>
+            {/* Message admin — actuellement rédigé en français uniquement, donc affiché
+                seulement en langue FR pour éviter un mélange FR/EN dans le header */}
+            {profile?.first_name && lang === "fr" && greeting?.enabled && greeting.message && (
+              <p className="text-white font-semibold text-base mt-0.5">{greeting.message}</p>
+            )}
+          </div>
           {!editing && (
             <button
               onClick={startEditing}
-              className="text-sm text-green-200 hover:text-white font-medium"
+              className="text-sm text-green-200 hover:text-white font-medium flex-shrink-0 pt-1.5"
             >
               {t.edit}
             </button>
@@ -232,7 +266,7 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* ===== CARTE PROFIL (chevauchement sur le header) ===== */}
       <div className="px-4 -mt-14">
-        <div className="bg-white rounded-2xl shadow-md p-5">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-md p-5">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <button
@@ -271,8 +305,11 @@ export default function ProfilePage(): React.ReactElement {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 text-base truncate">{displayName}</p>
-              <p className="text-sm text-gray-500">{profile?.phone ?? "…"}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100 text-base truncate">{displayName}</p>
+              {profile?.username && realName && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{realName}</p>
+              )}
+              <p className="text-sm text-gray-500 dark:text-gray-400">{profile?.phone ?? "…"}</p>
               {profile?.created_at && (
                 <p className="text-xs text-gray-400 mt-0.5">Membre depuis {memberSince(profile.created_at)}</p>
               )}
@@ -294,10 +331,20 @@ export default function ProfilePage(): React.ReactElement {
 
           {/* ===== FORMULAIRE D'ÉDITION ===== */}
           {editing && (
-            <div className="mt-5 pt-5 border-t border-gray-100 space-y-4">
+            <div className="mt-5 pt-5 border-t border-gray-100 dark:border-dark-700 space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{error}</div>
               )}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Nom d&apos;utilisateur</label>
+                <input
+                  type="text"
+                  value={form.username}
+                  onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                  placeholder="awa_bf"
+                  className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Prénom</label>
@@ -306,7 +353,7 @@ export default function ProfilePage(): React.ReactElement {
                     value={form.first_name}
                     onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
                     placeholder="Jean"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                    className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                   />
                 </div>
                 <div>
@@ -316,7 +363,7 @@ export default function ProfilePage(): React.ReactElement {
                     value={form.last_name}
                     onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
                     placeholder="Dupont"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                    className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                   />
                 </div>
               </div>
@@ -327,13 +374,13 @@ export default function ProfilePage(): React.ReactElement {
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="jean@exemple.com"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                  className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                 />
               </div>
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setEditing(false)}
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-xl hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
                 >
                   Annuler
                 </button>
@@ -352,26 +399,21 @@ export default function ProfilePage(): React.ReactElement {
 
       <div className="px-4 mt-5 space-y-4">
         {/* ===== MON ACTIVITÉ ===== */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
             {t.my_activity}
           </p>
           {[
-            { href: "/mes-reservations",             icon: "📋", label: t.bookings,      sub: "Vue unifiée" },
-            { href: "/food/mes-commandes",          icon: "📦", label: t.orders,         sub: "Repas livrés" },
-            { href: "/course",                      icon: "🛵", label: t.rides,          sub: "Taxi & zémidjan" },
-            { href: "/hebergement/mes-reservations", icon: "🏨", label: t.reservations,  sub: "Hôtels & maisons" },
-            { href: "/transport/mes-billets",       icon: "🎫", label: t.tickets,        sub: "Bus & voyages" },
             { href: "/evenements/mes-billets",      icon: "🎟️", label: t.events,         sub: "FESPACO, SIAO…" },
           ].map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
             >
               <span className="text-xl w-8 text-center">{item.icon}</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{item.label}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
                 <p className="text-xs text-gray-400">{item.sub}</p>
               </div>
               <span className="text-gray-300 text-sm">›</span>
@@ -380,23 +422,23 @@ export default function ProfilePage(): React.ReactElement {
         </div>
 
         {/* ===== PARAMÈTRES ===== */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
             {t.settings}
           </p>
 
           {/* Langue */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50">
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
             <div className="flex items-center gap-4">
               <span className="text-xl w-8 text-center">🌐</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900">{t.language}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.language}</p>
                 <p className="text-xs text-gray-400">Interface de l&apos;application</p>
               </div>
             </div>
             <button
               onClick={() => void toggleLanguage()}
-              className="flex items-center gap-1 bg-gray-100 rounded-xl p-1"
+              className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1"
             >
               {(["fr", "en"] as const).map((lang) => (
                 <span
@@ -404,7 +446,7 @@ export default function ProfilePage(): React.ReactElement {
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     (profile?.preferred_language ?? "fr") === lang
                       ? "bg-[#1A6B3A] text-white"
-                      : "text-gray-500"
+                      : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -413,33 +455,41 @@ export default function ProfilePage(): React.ReactElement {
             </button>
           </div>
 
+          {/* Thème */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
+            <div className="flex items-center gap-4">
+              <span className="text-xl w-8 text-center">🌓</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.theme}</p>
+                <p className="text-xs text-gray-400">Apparence de l&apos;application</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1">
+              {(["light", "dark"] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setTheme(option)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                    theme === option
+                      ? "bg-[#1A6B3A] text-white"
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {t[`theme_${option}`]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Notifications */}
           <Link
             href="/profile/notifications"
-            className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
           >
             <span className="text-xl w-8 text-center">🔔</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{t.notifications}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.notifications}</p>
               <p className="text-xs text-gray-400">Gérer les alertes</p>
-            </div>
-            <span className="text-gray-300 text-sm">›</span>
-          </Link>
-        </div>
-
-        {/* ===== PORTEFEUILLE ===== */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-            {t.finances}
-          </p>
-          <Link
-            href="/portefeuille"
-            className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-          >
-            <span className="text-xl w-8 text-center">💰</span>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{t.wallet}</p>
-              <p className="text-xs text-gray-400">Solde, recharge & historique</p>
             </div>
             <span className="text-gray-300 text-sm">›</span>
           </Link>
@@ -447,23 +497,21 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* ===== ESPACE FOURNISSEUR ===== */}
         {profile?.roles.includes("supplier") && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
             <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
               Mon espace fournisseur
             </p>
             {[
-              { href: "/fournisseur/restaurant", icon: "🍽️", label: "Mes restaurants",   sub: "Commandes & menu" },
-              { href: "/fournisseur/hebergement", icon: "🏨", label: "Mes hébergements", sub: "Réservations & disponibilités" },
               { href: "/fournisseur/evenements",  icon: "🎟️", label: "Mes événements",   sub: "Ventes de billets" },
             ].map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
               >
                 <span className="text-xl w-8 text-center">{item.icon}</span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">{item.label}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
                   <p className="text-xs text-gray-400">{item.sub}</p>
                 </div>
                 <span className="text-gray-300 text-sm">›</span>
@@ -474,18 +522,18 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* ===== ADMINISTRATION ===== */}
         {profile?.roles.includes("admin") && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
             <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
               Administration
             </p>
             <Link
               href="/admin"
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
             >
               <span className="text-xl w-8 text-center">⚙️</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Dashboard administrateur</p>
-                <p className="text-xs text-gray-400">Approbations, stats & remboursements</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dashboard administrateur</p>
+                <p className="text-xs text-gray-400">Approbations, vérifications, remboursements, versements</p>
               </div>
               <span className="text-gray-300 text-sm">›</span>
             </Link>
@@ -493,48 +541,16 @@ export default function ProfilePage(): React.ReactElement {
         )}
 
         {/* ===== COMPTE ===== */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
             {t.account}
           </p>
 
-          {/* Devenir livreur — seulement si pas encore driver */}
-          {!profile?.roles.includes("driver") && (
-            <Link
-              href="/devenir-livreur"
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-            >
-              <span className="text-xl w-8 text-center">🛵</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{t.become_driver}</p>
-                <p className="text-xs text-gray-400">Gagnez de l&apos;argent en livrant</p>
-              </div>
-              <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">
-                Nouveau
-              </span>
-            </Link>
-          )}
-
-          {/* Tableau de bord livreur — si driver */}
-          {profile?.roles.includes("driver") && (
-            <Link
-              href="/livreur"
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-            >
-              <span className="text-xl w-8 text-center">🛵</span>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">Tableau de bord livreur</p>
-                <p className="text-xs text-gray-400">Courses, gains, versements</p>
-              </div>
-              <span className="text-gray-300 text-sm">›</span>
-            </Link>
-          )}
-
           {/* Aide */}
-          <div className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50">
+          <div className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
             <span className="text-xl w-8 text-center">❓</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900">{t.help}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.help}</p>
               <p className="text-xs text-gray-400">Contacter l&apos;équipe VIVRE</p>
             </div>
             <span className="text-gray-300 text-sm">›</span>
@@ -543,7 +559,7 @@ export default function ProfilePage(): React.ReactElement {
           {/* Déconnexion */}
           <button
             onClick={() => void handleLogout()}
-            className="w-full flex items-center gap-4 px-5 py-4 border-t border-gray-50 hover:bg-red-50 active:bg-red-100 transition-colors text-left"
+            className="w-full flex items-center gap-4 px-5 py-4 border-t border-gray-50 dark:border-dark-700 hover:bg-red-50 active:bg-red-100 transition-colors text-left"
           >
             <span className="text-xl w-8 text-center">🚪</span>
             <p className="text-sm font-semibold text-red-600">{t.logout}</p>

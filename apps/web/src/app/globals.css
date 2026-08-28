@@ -28,7 +28,7 @@
   --color-green: #1A6B3A;
   --color-red: #EF2B2D;
   --color-gold: #F5A623;
-  --color-dark: #1A1A2E;
+  --color-dark: #0F2E20;
 
   /* Hauteur de la bottom navigation mobile */
   --bottom-nav-height: 72px;
@@ -72,8 +72,13 @@
  * ============================================================ */
 @layer components {
   /* Container mobile — largeur max et centrage */
+  /*
+   * Grandit sur tablette/desktop au lieu de rester figé à 448px au milieu d'un écran
+   * vide — l'app reste mobile-first (pensée pour 375-428px) mais ne doit plus avoir
+   * l'air cassée sur un ordinateur, où admins et organisateurs travaillent réellement.
+   */
   .mobile-container {
-    @apply max-w-md mx-auto px-4;
+    @apply max-w-md md:max-w-2xl lg:max-w-3xl mx-auto px-4 md:px-6;
   }
 
   /* Section de page avec padding bottom pour la bottom nav */
@@ -101,6 +106,76 @@
   .status-badge {
     @apply inline-flex items-center gap-1 rounded-badge px-2 py-0.5
            text-xs font-semibold font-jakarta;
+  }
+
+  /*
+   * Bande drapeau — deux bandes horizontales vert/rouge avec l'étoile or au centre,
+   * directement inspirée du drapeau du Burkina Faso. Utilisée comme séparateur de
+   * section identitaire plutôt qu'un simple filet gris — c'est la signature visuelle
+   * de VIVRE, pas un détail décoratif interchangeable.
+   */
+  .flag-band {
+    @apply relative h-[6px] w-full overflow-visible;
+    background: linear-gradient(to bottom, var(--color-green) 50%, var(--color-red) 50%);
+  }
+  .flag-band::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    background-color: var(--color-gold);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+
+  /* Motif discret de losanges — évoque le bogolan sans surcharger l'écran */
+  .kente-texture {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(245, 166, 35, 0.06) 0px,
+      rgba(245, 166, 35, 0.06) 2px,
+      transparent 2px,
+      transparent 14px
+    );
+  }
+
+  /*
+   * Bande de losanges tricolores — signature de la charte graphique officielle
+   * (billet, manche du t-shirt, livrée du bus). Remplace .flag-band comme séparateur
+   * identitaire principal : plus proche des supports imprimés réels que deux bandes
+   * pleines. Fond vert forêt + losanges vert/rouge/or en trait fin, répétés à l'infini.
+   */
+  .brand-pattern {
+    background-color: var(--color-dark);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24' viewBox='0 0 48 24'%3E%3Cg fill='none' stroke-width='1.5'%3E%3Cpath stroke='%23F5A623' d='M6 4 L10 12 L6 20 L2 12 Z'/%3E%3Cpath stroke='%23EF2B2D' d='M23 2 L28 12 L23 22 L18 12 Z'/%3E%3Cpath stroke='%231A6B3A' d='M40 5 L44 12 L40 19 L36 12 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /*
+   * Texture du hero d'accueil — même motif losange que .brand-pattern mais plus
+   * grand et très discret (fond radial, pas répétition dense) : donne de la
+   * profondeur au bloc sombre du header sans le charger visuellement.
+   */
+  .hero-texture {
+    background-color: var(--color-dark);
+    background-image:
+      radial-gradient(circle at 12% -10%, rgba(245, 166, 35, 0.20), transparent 40%),
+      radial-gradient(circle at 105% 30%, rgba(26, 107, 58, 0.45), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Cg fill='none' stroke-width='1.5' opacity='0.14'%3E%3Cpath stroke='%23F5A623' d='M40 20 L60 70 L40 120 L20 70 Z'/%3E%3Cpath stroke='%23EF2B2D' d='M340 160 L364 220 L340 280 L316 220 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-position: left top, right top, right bottom;
+    background-size: auto, auto, 260px 200px;
+  }
+}
+
+/* Respecte la préférence système "réduire les animations" — les entrées
+   slide-up/fade-in n'animent plus. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up,
+  .animate-fade-in {
+    animation: none !important;
   }
 }
 

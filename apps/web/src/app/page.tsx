@@ -1,186 +1,204 @@
 /**
- * apps/web/src/app/page.tsx — Page d'accueil de VIVRE (H-001 Hub)
+ * apps/web/src/app/page.tsx — Accueil VIVRE (billetterie d'événements)
  *
- * Écran H-001 du ScreenMap VIVRE :
- * - Barre de recherche universelle
- * - Ville détectée (ou sélectionnée) via CitySelector
- * - Grille des modules (Transport, Food, Hôtels, Guides, Attractions, Urgences)
- * - Bannières marketing dynamiques via MarketingBanners
- * - Section Urgences + Rejoindre VIVRE
- * - Bottom navigation à 5 onglets
- * - Bouton flottant AI (assistant IA)
+ * VIVRE est désormais un produit de billetterie d'événements (à la Posh),
+ * pas un super-app multi-modules. Cette page met en avant :
+ * - Les événements à venir (gratuits en tête, aucune friction pour les découvrir)
+ * - Les catégories
+ * - L'appel à l'action organisateur ("Créer un événement")
+ * - Les numéros d'urgence — seul module hors-billetterie jugé essentiel
  *
- * Server Component — les composants clients sont importés directement,
- * Next.js gère la frontière RSC automatiquement.
+ * Server Component : les événements sont lus directement via Prisma (même
+ * processus Next.js, pas d'aller-retour HTTP interne).
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import AiChat from "@/components/AiChat";
-import SearchBar from "@/components/SearchBar";
+import { prisma } from "@vivre/database";
 import { BottomNav } from "@/components/BottomNav";
-import CitySelector from "@/components/CitySelector";
-import MarketingBanners from "@/components/MarketingBanners";
+import { PatriotStar } from "@/components/PatriotStar";
+import { HeaderProfileAvatar } from "@/components/HeaderProfileAvatar";
+import { HeroBanner } from "@/components/HeroBanner";
+import { SponsoredSection } from "@/components/SponsoredSection";
+import { HomeEventsList } from "@/components/HomeEventsList";
+import { getPlatformSettings } from "@/lib/platform-settings";
 
-/* Métadonnées spécifiques à la page d'accueil */
 export const metadata: Metadata = {
-  title: "VIVRE — Voyager. Manger. Découvrir. au Burkina Faso",
+  title: "VIVRE — La billetterie des événements du Burkina Faso",
 };
 
-/**
- * Page d'accueil — Hub principal de l'application VIVRE.
- * Point d'entrée vers tous les modules : transport, food, hôtels, guides, urgences, AI.
- */
-export default function HomePage(): React.ReactElement {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage(): Promise<React.ReactElement> {
+  const upcomingWhere = { status: "approved" as const, deleted_at: null, starts_at: { gte: new Date() } };
+
+  const now = new Date();
+  const [events, homeAds, platformSettings] = await Promise.all([
+    prisma.event.findMany({
+      where: upcomingWhere,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        cover_url: true,
+        starts_at: true,
+        venue_name: true,
+        is_featured: true,
+        city: { select: { name: true } },
+        category: { select: { name: true, icon: true } },
+        ticket_types: {
+          where: { is_active: true },
+          select: { price_fcfa: true },
+          orderBy: { price_fcfa: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: [{ is_featured: "desc" }, { starts_at: "asc" }],
+      take: 8,
+    }),
+    // Même logique de fenêtre que /api/ads/active — pas de statut "active" stocké, une
+    // pub payée démarre/s'arrête toute seule selon start_date/end_date.
+    prisma.adCampaign.findMany({
+      where: { placement: "home_feed", status: "paid", start_date: { lte: now }, end_date: { gte: now } },
+      select: { id: true, title: true, image_url: true, media_type: true, link_url: true },
+      orderBy: { created_at: "asc" },
+    }),
+    getPlatformSettings(),
+  ]);
+  type HomeEvent = (typeof events)[number];
+
+  if (homeAds.length > 0) {
+    void prisma.adCampaign
+      .updateMany({ where: { id: { in: homeAds.map((a: { id: string }) => a.id) } }, data: { impressions_count: { increment: 1 } } })
+      .catch(() => {});
+  }
+
+  // Photos de couverture réelles pour le fond du hero — pas de stock/vidéo générique,
+  // ce sont les vraies affiches des événements en ce moment sur la plateforme.
+  const backdropPhotos = events
+    .map((e: HomeEvent) => e.cover_url)
+    .filter((url: string | null): url is string => Boolean(url))
+    .slice(0, 4);
+  const slideSeconds = 6;
+
   return (
-    <main className="mobile-container min-h-screen">
+    <main className="mobile-container min-h-screen pb-safe-bottom">
       {/* === HEADER === */}
-      <header className="gradient-green text-white pt-safe-top px-4 pb-6">
-        {/* Logo + salutation */}
-        <div className="flex items-center justify-between mb-4 pt-4">
-          <div>
-            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="32" viewBox="0 0 280 72">
-              <rect x="10" y="10" width="52" height="52" rx="13" fill="rgba(255,255,255,0.25)"/>
-              <path d="M21 22 L36 52 L51 22" stroke="#FFFFFF" strokeWidth="5.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="36" cy="52" r="4.5" fill="#F5A623"/>
-              <text x="74" y="44" fontFamily="'Sora',sans-serif" fontWeight="800" fontSize="34" fill="#FFFFFF" letterSpacing="-1">VIVRE</text>
-            </svg>
+      <header className="hero-texture text-white pt-safe-top pb-5 overflow-hidden relative -mx-4 md:-mx-6 px-4 md:px-6">
+        {/* Diaporama de vraies affiches d'événements — l'énergie "ça bouge, ça vit"
+            vient du catalogue réel, pas d'une vidéo de stock générique. */}
+        {backdropPhotos.length > 0 && (
+          <div className="absolute inset-0" aria-hidden="true">
+            {backdropPhotos.map((url: string, i: number) => (
+              <div
+                key={url}
+                className="absolute inset-0 bg-cover bg-center animate-photo-crossfade"
+                style={{
+                  backgroundImage: `url(${url})`,
+                  animationDuration: `${backdropPhotos.length * slideSeconds}s`,
+                  animationDelay: `${i * slideSeconds}s`,
+                }}
+              />
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0F2E20]/80 via-[#0F2E20]/88 to-[#0F2E20]" />
           </div>
-          {/* Avatar utilisateur ou bouton connexion */}
-          <Link href="/profile">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="text-white text-sm font-jakarta">👤</span>
-            </div>
+        )}
+
+        {/* Contenu — position:relative pour peindre au-dessus du diaporama photo absolu */}
+        <div className="relative pt-4">
+          <HeaderProfileAvatar />
+
+          <h1 className="animate-slide-up font-sora font-extrabold text-[28px] leading-[1.15] mb-1.5 text-balance pr-12">
+            Vivez le Faso.
+            <br />
+            Un billet à la fois.
+          </h1>
+          <p className="animate-slide-up font-dm text-white/70 text-sm mb-5" style={{ animationDelay: "60ms" }}>
+            {platformSettings.home_subtitle}
+          </p>
+
+          <Link
+            href="/evenements"
+            className="flex items-center gap-2 bg-white rounded-full px-4 py-3 text-gray-500 font-dm text-sm shadow-modal hover:bg-white/95 transition-colors"
+          >
+            <span aria-hidden="true" className="text-[#F5A623]">🔍</span>
+            Rechercher un événement, un lieu…
           </Link>
+
+          <HeroBanner
+            enabled={platformSettings.hero_banner_enabled}
+            imageUrl={platformSettings.hero_banner_image_url}
+            mediaType={platformSettings.hero_banner_media_type}
+            linkUrl={platformSettings.hero_banner_link_url}
+          />
         </div>
-
-        {/* Ville actuelle — sélecteur interactif */}
-        <CitySelector />
-
-        {/* Barre de recherche universelle */}
-        <SearchBar />
       </header>
 
-      {/* === BANNIÈRES MARKETING (statiques + dynamiques) === */}
-      <MarketingBanners />
+      {/* Bande de losanges tricolores — signature visuelle VIVRE, pas un simple filet */}
+      <div className="brand-pattern h-3.5 -mx-4 md:-mx-6" />
 
-      {/* === GRILLE DES MODULES === */}
-      <section className="px-4 py-6">
-        <h2 className="text-lg font-sora font-bold text-gray-900 mb-4">
-          Que cherchez-vous ?
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          {MODULE_CARDS.map((module) => (
-            <a
-              key={module.id}
-              href={module.href}
-              className={[
-                "flex flex-col items-center gap-2 p-3",
-                "rounded-card border border-gray-100 shadow-card",
-                "hover:border-green-200 hover:shadow-modal",
-                "transition-all duration-200 active:scale-95",
-              ].join(" ")}
-            >
-              <span className="text-2xl" role="img" aria-label={module.label}>
-                {module.icon}
-              </span>
-              <span className="text-xs font-jakarta font-medium text-gray-700 text-center">
-                {module.label}
-              </span>
-            </a>
-          ))}
+      {/* === SECTION SPONSORISÉE — tiers annonceurs, hors identité VIVRE (voir HeroBanner) === */}
+      <div className="pt-5">
+        <SponsoredSection ads={homeAds} />
+      </div>
+
+      {/* === ÉVÉNEMENTS À VENIR === */}
+      <section className="pb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <PatriotStar className="w-4 h-4" />
+          <h2 className="font-sora font-bold text-gray-900 dark:text-gray-100">À l&apos;affiche</h2>
         </div>
+
+        <HomeEventsList events={events} />
       </section>
 
-      {/* === SECTION URGENCES (toujours visible) === */}
-      <section className="px-4 mb-6">
-        <a
+      {/* === ORGANISER UN ÉVÉNEMENT === */}
+      <section className="mb-6">
+        <Link
+          href="/evenements/publier"
+          className="flex items-center gap-3 p-4 rounded-card bg-dark text-white hover:bg-dark-700 transition-colors"
+        >
+          <span className="text-2xl">🎟️</span>
+          <div>
+            <p className="font-jakarta font-bold text-sm">Organisez votre événement</p>
+            <p className="text-white/60 text-xs font-dm">Gratuit pour les billets gratuits — publié en quelques minutes</p>
+          </div>
+          <span className="ml-auto text-white/60">›</span>
+        </Link>
+      </section>
+
+      {/* === PUBLICITÉ — n'importe quel compte connecté peut soumettre une campagne === */}
+      <section className="mb-6">
+        <Link
+          href="/publicite/creer"
+          className="flex items-center gap-3 p-4 rounded-card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+        >
+          <span className="text-2xl">📣</span>
+          <div>
+            <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">Annoncez sur VIVRE</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs font-dm">Touchez les fans d&apos;événements du Burkina — soumettez votre pub</p>
+          </div>
+          <span className="ml-auto text-gray-400">›</span>
+        </Link>
+      </section>
+
+      {/* === URGENCES (toujours visible — utilité publique, hors billetterie) === */}
+      <section className="mb-6">
+        <Link
           href="/urgences"
-          className={[
-            "flex items-center gap-3 p-4",
-            "bg-red-50 border border-red-200 rounded-card",
-            "hover:bg-red-100 transition-colors",
-          ].join(" ")}
+          className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-card hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
         >
           <span className="text-2xl">🆘</span>
           <div>
-            <p className="font-jakarta font-bold text-red-700 text-sm">
-              Numéros d{"'"}urgence
-            </p>
-            <p className="text-red-500 text-xs font-dm">
-              SAMU 15 · Police 17 · Pompiers 18
-            </p>
+            <p className="font-jakarta font-bold text-red-700 dark:text-red-300 text-sm">Numéros d&apos;urgence</p>
+            <p className="text-red-500 dark:text-red-400 text-xs font-dm">SAMU 15 · Police 17 · Pompiers 18</p>
           </div>
           <span className="ml-auto text-red-400">›</span>
-        </a>
+        </Link>
       </section>
 
-      {/* === REJOIGNEZ VIVRE === */}
-      <section className="px-4 mb-6">
-        <h2 className="text-lg font-sora font-bold text-gray-900 mb-3">
-          Rejoignez VIVRE
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href="/devenir-livreur"
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#1A6B3A]/10 border border-[#1A6B3A]/20 hover:bg-[#1A6B3A]/15 active:scale-95 transition-all text-center"
-          >
-            <span className="text-3xl">🛵</span>
-            <p className="font-jakarta font-bold text-sm text-[#1A6B3A] leading-tight">Devenir livreur</p>
-            <p className="text-xs text-gray-500 font-dm">Gagnez à votre rythme</p>
-          </a>
-          <a
-            href="/fournisseur/restaurant"
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#F5A623]/10 border border-[#F5A623]/30 hover:bg-[#F5A623]/15 active:scale-95 transition-all text-center"
-          >
-            <span className="text-3xl">🏪</span>
-            <p className="font-jakarta font-bold text-sm text-[#b87415] leading-tight">Publier votre établissement</p>
-            <p className="text-xs text-gray-500 font-dm">Restaurants & hôtels</p>
-          </a>
-          <a
-            href="/devenir-livreur"
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#1A6B3A]/10 border border-[#1A6B3A]/20 hover:bg-[#1A6B3A]/15 active:scale-95 transition-all text-center"
-          >
-            <span className="text-3xl">🚕</span>
-            <p className="font-jakarta font-bold text-sm text-[#1A6B3A] leading-tight">Devenir chauffeur</p>
-            <p className="text-xs text-gray-500 font-dm">Taxi · Zémidjan · Transport</p>
-          </a>
-          <a
-            href="/evenements/publier"
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#6B21A8]/10 border border-[#6B21A8]/20 hover:bg-[#6B21A8]/15 active:scale-95 transition-all text-center"
-          >
-            <span className="text-3xl">🎟️</span>
-            <p className="font-jakarta font-bold text-sm text-[#6B21A8] leading-tight">Organiser un événement</p>
-            <p className="text-xs text-gray-500 font-dm">FESPACO · SIAO · concerts</p>
-          </a>
-        </div>
-      </section>
-
-      {/* === ESPACE POUR LA BOTTOM NAVIGATION === */}
       <div className="h-bottom-nav" aria-hidden="true" />
-
-      {/* === BOTTOM NAVIGATION === */}
       <BottomNav />
-
-      {/* === ASSISTANT IA === */}
-      <AiChat />
     </main>
   );
 }
-
-/* ============================================================
- * DONNÉES DES MODULES
- * ============================================================ */
-
-/** Modules de la grille H-001 */
-const MODULE_CARDS = [
-  { id: "course",      href: "/course",    icon: "🛵", label: "Course" },
-  { id: "food",        href: "/food",      icon: "🍽️", label: "Repas" },
-  { id: "hotels",      href: "/hebergement", icon: "🏨", label: "Hôtels" },
-  { id: "transport",   href: "/transport", icon: "🚌", label: "Voyage" },
-  { id: "evenements",  href: "/evenements",icon: "🎟️", label: "Événements" },
-  { id: "guides",      href: "/guides",    icon: "🗺️", label: "Guides" },
-  { id: "urgences",    href: "/urgences",  icon: "🏥", label: "Urgences" },
-] as const;
-
-

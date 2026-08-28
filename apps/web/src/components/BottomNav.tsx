@@ -44,15 +44,15 @@ const ShieldIcon = (): React.ReactElement => (
   </svg>
 );
 
-const BusIcon = (): React.ReactElement => (
+const TicketIcon = (): React.ReactElement => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-    <path fillRule="evenodd" d="M3 6a3 3 0 013-3h12a3 3 0 013 3v11.25a3 3 0 01-1.608 2.649l.12.6A.75.75 0 0119.5 21h-.75a.75.75 0 01-.75-.75v-.75H6v.75a.75.75 0 01-.75.75H4.5a.75.75 0 01-.012-1.5l.12-.6A3 3 0 013 17.25V6zm3-1.5a1.5 1.5 0 00-1.5 1.5V9h15V6A1.5 1.5 0 0018 4.5H6zM4.5 10.5v6.75a1.5 1.5 0 001.5 1.5h12a1.5 1.5 0 001.5-1.5V10.5h-15zM8.25 12a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75H6.75a.75.75 0 01-.75-.75v-1.5a.75.75 0 01.75-.75h1.5zm5.25.75a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0v-1.5zm2.25-.75a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5a.75.75 0 01.75-.75h1.5z" clipRule="evenodd"/>
+    <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
   </svg>
 );
 
-const FoodIcon = (): React.ReactElement => (
+const PlusCircleIcon = (): React.ReactElement => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-    <path fillRule="evenodd" d="M15 3.75A5.25 5.25 0 009.75 9v10.19l1.72-1.72a.75.75 0 111.06 1.06l-3 3a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06l1.72 1.72V9a6.75 6.75 0 0113.5 0v3a.75.75 0 01-1.5 0V9c0-2.9-2.35-5.25-5.25-5.25z" clipRule="evenodd"/>
+    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v2.25H15a.75.75 0 010 1.5h-2.25V15a.75.75 0 01-1.5 0v-2.25H9a.75.75 0 010-1.5h2.25V9a.75.75 0 01.75-.75z" clipRule="evenodd"/>
   </svg>
 );
 
@@ -70,22 +70,22 @@ const NAV_ITEMS: NavItem[] = [
     activePattern: /^\/$/,
   },
   {
+    href: "/evenements/mes-billets",
+    label: "Mes billets",
+    icon: <TicketIcon />,
+    activePattern: /^\/evenements\/mes-billets/,
+  },
+  {
+    href: "/evenements/publier",
+    label: "Organiser",
+    icon: <PlusCircleIcon />,
+    activePattern: /^\/evenements\/publier/,
+  },
+  {
     href: "/urgences",
     label: "Urgences",
     icon: <ShieldIcon />,
     activePattern: /^\/(urgences|services)/,
-  },
-  {
-    href: "/transport",
-    label: "Transport",
-    icon: <BusIcon />,
-    activePattern: /^\/transport/,
-  },
-  {
-    href: "/food",
-    label: "Food",
-    icon: <FoodIcon />,
-    activePattern: /^\/food/,
   },
   {
     href: "/profile",
@@ -108,15 +108,20 @@ export function BottomNav(): React.ReactElement {
       className={[
         /* Fixé en bas, pleine largeur */
         "fixed bottom-0 left-0 right-0 z-50",
-        /* Fond blanc avec bordure supérieure subtile */
-        "bg-white border-t border-gray-100",
-        /* Safe area iOS — évite que les onglets soient sous la barre de geste */
-        "pb-safe",
+        /* Fond vert forêt — cohérent avec la charte graphique (mark, ticket, merch) */
+        "bg-dark border-t border-white/10",
+        /*
+         * Safe area iOS — évite que les onglets soient sous la barre de geste.
+         * "pb-safe" n'est pas une classe Tailwind réelle ici (seul "safe-bottom",
+         * 72px + l'inset, est défini dans @vivre/config/tailwind — bien trop grand
+         * pour un padding interne à la nav elle-même) ; valeur arbitraire directe.
+         */
+        "pb-[env(safe-area-inset-bottom)]",
         /* Ombre légère vers le haut */
-        "shadow-[0_-2px_10px_rgba(0,0,0,0.06)]",
+        "shadow-[0_-2px_10px_rgba(0,0,0,0.25)]",
       ].join(" ")}
     >
-      <ul className="flex items-center justify-around px-2 py-2">
+      <ul className="flex items-center justify-around px-2 py-2 md:max-w-2xl lg:max-w-3xl md:mx-auto">
         {NAV_ITEMS.map((item) => {
           const isActive = item.activePattern.test(pathname);
 
@@ -128,17 +133,17 @@ export function BottomNav(): React.ReactElement {
                 className={[
                   "flex flex-col items-center gap-0.5 py-1 px-2",
                   "rounded-xl transition-all duration-150 active:scale-95",
-                  /* Couleur active vs inactive */
+                  /* Couleur active vs inactive — texte clair sur fond vert forêt */
                   isActive
-                    ? "text-[#1A6B3A]"   /* Vert VIVRE */
-                    : "text-gray-400 hover:text-gray-600",
+                    ? "text-[#77C28F]"   /* Vert clair VIVRE, lisible sur fond sombre */
+                    : "text-white/40 hover:text-white/70",
                 ].join(" ")}
               >
                 {/* Fond vert pâle derrière l'icône active */}
                 <span
                   className={[
                     "flex items-center justify-center w-10 h-6 rounded-full transition-colors duration-150",
-                    isActive ? "bg-green-50" : "",
+                    isActive ? "bg-white/10" : "",
                   ].join(" ")}
                 >
                   {item.icon}

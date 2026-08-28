@@ -409,6 +409,37 @@ async function main(): Promise<void> {
   console.log(`  ✓ Admin créé : ${adminUser.email} (ID: ${adminUser.id})`);
 
   /* ============================================================
+   * CATÉGORIES D'ÉVÉNEMENTS
+   * ============================================================ */
+  console.log("\n🎟️ Seed des catégories d'événements...");
+
+  const EVENT_CATEGORIES_DATA = [
+    { name: "Concert",     name_en: "Concert",     icon: "🎵", color_hex: "#1A6B3A" },
+    { name: "Festival",    name_en: "Festival",    icon: "🎪", color_hex: "#F5A623" },
+    { name: "Sport",       name_en: "Sport",       icon: "⚽", color_hex: "#EF2B2D" },
+    { name: "Conférence",  name_en: "Conference",  icon: "🎤", color_hex: "#1A1A2E" },
+    { name: "Culturel",    name_en: "Cultural",    icon: "🎭", color_hex: "#1A6B3A" },
+    { name: "Religieux",   name_en: "Religious",   icon: "🙏", color_hex: "#F5A623" },
+    { name: "Nightlife",   name_en: "Nightlife",   icon: "🌃", color_hex: "#1A1A2E" },
+    { name: "Networking",  name_en: "Networking",  icon: "🤝", color_hex: "#1A6B3A" },
+    { name: "Général",     name_en: "General",     icon: "📌", color_hex: "#6B7280" },
+    { name: "Soirée",      name_en: "Party",       icon: "🎉", color_hex: "#F5A623" },
+    { name: "Mariage",     name_en: "Wedding",     icon: "💍", color_hex: "#EF2B2D" },
+    { name: "Humour",      name_en: "Comedy",      icon: "😂", color_hex: "#1A1A2E" },
+    { name: "Formation",   name_en: "Workshop",    icon: "🛠️", color_hex: "#1A6B3A" },
+    { name: "Art & Expo",  name_en: "Art & Expo",  icon: "🎨", color_hex: "#F5A623" },
+  ];
+
+  for (const category of EVENT_CATEGORIES_DATA) {
+    await prisma.eventCategory.upsert({
+      where: { name: category.name },
+      update: { name_en: category.name_en, icon: category.icon, color_hex: category.color_hex },
+      create: { ...category, is_active: true },
+    });
+    console.log(`  ✓ ${category.name} (${category.icon})`);
+  }
+
+  /* ============================================================
    * ATTRACTIONS TOURISTIQUES
    * ============================================================ */
   console.log("\n🗺️ Création des attractions touristiques...");
@@ -645,6 +676,7 @@ async function main(): Promise<void> {
   console.log(`  - ${EMERGENCY_NUMBERS_DATA.length} numéros d'urgence créés`);
   console.log(`  - ${SERVICE_CATEGORIES_DATA.length} catégories de services créées`);
   console.log(`  - 1 compte administrateur créé`);
+  console.log(`  - ${EVENT_CATEGORIES_DATA.length} catégories d'événements créées`);
   console.log(`  - 7 attractions touristiques créées`);
   console.log(`  - 3 lignes SOTRACO créées`);
   console.log("\n🔑 Compte admin :");

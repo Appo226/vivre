@@ -25,6 +25,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { ServiceIcon } from "@/components/ServiceIcon";
 
 /* ============================================================
  * TYPES
@@ -71,7 +72,7 @@ interface GeoPosition {
  * FETCH FUNCTIONS (cachées par TanStack Query)
  * ============================================================ */
 
-const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1";
+const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "/api";
 
 async function fetchEmergencyNumbers(): Promise<EmergencyNumber[]> {
   const res = await fetch(`${API_URL}/emergency-numbers`, {
@@ -117,23 +118,23 @@ function EmergencyCard({ item }: { item: EmergencyNumber }): React.ReactElement 
       aria-label={`Appeler ${item.service_name} au ${item.number}`}
       className={[
         "flex items-center gap-3 p-4 rounded-2xl",
-        "bg-white border-2 active:scale-95 transition-transform duration-100",
+        "bg-white dark:bg-dark-800 border-2 active:scale-95 transition-transform duration-100",
         "shadow-sm",
       ].join(" ")}
       style={{ borderColor: item.color_hex }}
     >
       {/* Icône dans un cercle coloré */}
       <span
-        className="flex items-center justify-center w-12 h-12 rounded-full text-2xl flex-shrink-0"
+        className="flex items-center justify-center w-12 h-12 rounded-full flex-shrink-0"
         style={{ backgroundColor: `${item.color_hex}18` }} /* 10% opacity */
         aria-hidden="true"
       >
-        {item.icon}
+        <ServiceIcon name={item.icon} className="w-6 h-6" style={{ color: item.color_hex }} />
       </span>
 
       {/* Infos */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 text-sm truncate">{item.service_name}</p>
+        <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{item.service_name}</p>
         <p className="text-2xl font-bold" style={{ color: item.color_hex }}>
           {item.number}
         </p>
@@ -163,14 +164,14 @@ function PharmacyCard({ pharmacy }: { pharmacy: PharmacyOnDuty }): React.ReactEl
   const phone = pharmacy.phone_emergency ?? pharmacy.phone_primary;
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm leading-snug">{pharmacy.name}</p>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{pharmacy.address}</p>
+          <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug">{pharmacy.name}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{pharmacy.address}</p>
         </div>
         {distanceText && (
-          <span className="flex-shrink-0 text-xs font-medium text-[#1A6B3A] bg-green-50 px-2 py-1 rounded-full">
+          <span className="flex-shrink-0 text-xs font-medium text-[#1A6B3A] dark:text-[#4ADE80] bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">
             {distanceText}
           </span>
         )}
@@ -199,16 +200,16 @@ function CategoryCard({ category }: { category: ServiceCategory }): React.ReactE
   return (
     <Link
       href={`/services?category=${category.slug}`}
-      className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white border border-gray-100 shadow-sm active:scale-95 transition-transform duration-100"
+      className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-dark-800 border border-gray-100 dark:border-dark-700 shadow-sm active:scale-95 transition-transform duration-100"
     >
       <span
-        className="flex items-center justify-center w-12 h-12 rounded-xl text-2xl"
+        className="flex items-center justify-center w-12 h-12 rounded-xl"
         style={{ backgroundColor: `${category.color_hex}15` }}
         aria-hidden="true"
       >
-        {category.icon}
+        <ServiceIcon name={category.icon} className="w-6 h-6" style={{ color: category.color_hex }} />
       </span>
-      <span className="text-xs font-medium text-gray-700 text-center leading-tight">
+      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 text-center leading-tight">
         {category.name_fr}
       </span>
     </Link>
@@ -221,12 +222,12 @@ function CategoryCard({ category }: { category: ServiceCategory }): React.ReactE
 
 function SkeletonCard(): React.ReactElement {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse">
+    <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 animate-pulse">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full bg-gray-200 flex-shrink-0" />
+        <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-dark-700 flex-shrink-0" />
         <div className="flex-1">
-          <div className="h-3 bg-gray-200 rounded w-3/4 mb-2" />
-          <div className="h-6 bg-gray-200 rounded w-1/2" />
+          <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-3/4 mb-2" />
+          <div className="h-6 bg-gray-200 dark:bg-dark-700 rounded w-1/2" />
         </div>
       </div>
     </div>
@@ -290,7 +291,7 @@ export default function UrgencesPage(): React.ReactElement {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
       {/* ===== HEADER ===== */}
       <header className="bg-[#EF2B2D] text-white px-4 pt-12 pb-6">
         <div className="flex items-center gap-3">
@@ -306,7 +307,7 @@ export default function UrgencesPage(): React.ReactElement {
 
         {/* ===== SECTION : NUMÉROS D'URGENCE ===== */}
         <section aria-labelledby="emergency-numbers-heading">
-          <h2 id="emergency-numbers-heading" className="text-base font-bold text-gray-900 mb-3">
+          <h2 id="emergency-numbers-heading" className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">
             Numéros d'urgence
           </h2>
 
@@ -332,7 +333,7 @@ export default function UrgencesPage(): React.ReactElement {
         {/* ===== SECTION : PHARMACIES DE GARDE ===== */}
         <section aria-labelledby="pharmacies-heading">
           <div className="flex items-center justify-between mb-3">
-            <h2 id="pharmacies-heading" className="text-base font-bold text-gray-900">
+            <h2 id="pharmacies-heading" className="text-base font-bold text-gray-900 dark:text-gray-100">
               Pharmacies de garde
             </h2>
             <Link
@@ -345,7 +346,7 @@ export default function UrgencesPage(): React.ReactElement {
 
           {/* Indication GPS */}
           {!geoPosition && !geoError && (
-            <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
+            <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 animate-pulse text-[#1A6B3A]" fill="currentColor" viewBox="0 0 24 24">
                 <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.099 3.468-4.698 3.468-8.05a6.75 6.75 0 00-13.5 0c0 3.352 1.524 5.951 3.468 8.05a19.58 19.58 0 002.683 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
               </svg>
@@ -353,7 +354,7 @@ export default function UrgencesPage(): React.ReactElement {
             </div>
           )}
           {geoError && (
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
               GPS non disponible — affichage sans tri par distance
             </p>
           )}
@@ -369,24 +370,24 @@ export default function UrgencesPage(): React.ReactElement {
               ))}
             </div>
           ) : (
-            <div className="bg-gray-100 rounded-2xl p-4 text-center">
-              <p className="text-sm text-gray-500">Aucune pharmacie de garde actuellement</p>
+            <div className="bg-gray-100 dark:bg-dark-800 rounded-2xl p-4 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Aucune pharmacie de garde actuellement</p>
             </div>
           )}
         </section>
 
         {/* ===== SECTION : CATÉGORIES DE SERVICES ===== */}
         <section aria-labelledby="categories-heading">
-          <h2 id="categories-heading" className="text-base font-bold text-gray-900 mb-3">
+          <h2 id="categories-heading" className="text-base font-bold text-gray-900 dark:text-gray-100 mb-3">
             Services publics
           </h2>
 
           {loadingCategories ? (
             <div className="grid grid-cols-3 gap-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-3 border border-gray-100 animate-pulse">
-                  <div className="w-12 h-12 rounded-xl bg-gray-200 mx-auto mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto" />
+                <div key={i} className="bg-white dark:bg-dark-800 rounded-2xl p-3 border border-gray-100 dark:border-dark-700 animate-pulse">
+                  <div className="w-12 h-12 rounded-xl bg-gray-200 dark:bg-dark-700 mx-auto mb-2" />
+                  <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-3/4 mx-auto" />
                 </div>
               ))}
             </div>

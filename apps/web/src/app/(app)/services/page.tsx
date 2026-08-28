@@ -22,6 +22,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { ServiceIcon } from "@/components/ServiceIcon";
 
 /* ============================================================
  * TYPES
@@ -65,7 +66,7 @@ interface GeoPosition {
  * FETCH
  * ============================================================ */
 
-const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "http://localhost:3001/v1";
+const API_URL = process.env["NEXT_PUBLIC_API_URL"] ?? "/api";
 
 async function fetchServices(params: {
   categorySlug?: string;
@@ -104,7 +105,7 @@ function DistanceBadge({ distanceM }: { distanceM: number | null }): React.React
     : `${(distanceM / 1000).toFixed(1)} km`;
 
   return (
-    <span className="text-xs font-medium text-[#1A6B3A] bg-green-50 px-2 py-0.5 rounded-full flex-shrink-0">
+    <span className="text-xs font-medium text-[#1A6B3A] dark:text-[#4ADE80] bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full flex-shrink-0">
       {text}
     </span>
   );
@@ -113,17 +114,17 @@ function DistanceBadge({ distanceM }: { distanceM: number | null }): React.React
 function StatusBadge({ isOpen, is24h }: { isOpen: boolean; is24h: boolean }): React.ReactElement {
   if (is24h) {
     return (
-      <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+      <span className="text-xs font-medium text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
         24h/24
       </span>
     );
   }
   return isOpen ? (
-    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+    <span className="text-xs font-medium text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-950/40 px-2 py-0.5 rounded-full">
       Ouvert
     </span>
   ) : (
-    <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+    <span className="text-xs font-medium text-gray-400 bg-gray-100 dark:bg-dark-700 px-2 py-0.5 rounded-full">
       Fermé
     </span>
   );
@@ -135,25 +136,25 @@ function ServiceCard({ service }: { service: ServiceItem }): React.ReactElement 
   return (
     <Link
       href={`/services/${service.id}`}
-      className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.98] transition-transform duration-100"
+      className="block bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 active:scale-[0.98] transition-transform duration-100"
     >
       <div className="flex items-start gap-3">
         {/* Icône catégorie */}
         <span
-          className="flex items-center justify-center w-11 h-11 rounded-xl text-xl flex-shrink-0"
+          className="flex items-center justify-center w-11 h-11 rounded-xl flex-shrink-0"
           style={{ backgroundColor: `${service.category_color_hex}15` }}
           aria-hidden="true"
         >
-          {service.category_icon}
+          <ServiceIcon name={service.category_icon} className="w-5 h-5" style={{ color: service.category_color_hex }} />
         </span>
 
         {/* Infos principales */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-gray-900 text-sm leading-snug">{service.name}</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-snug">{service.name}</p>
             <DistanceBadge distanceM={service.distance_m} />
           </div>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">{service.address}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{service.address}</p>
 
           {/* Statut et contact */}
           <div className="flex items-center gap-2 mt-2">
@@ -258,27 +259,26 @@ function ServicesContent(): React.ReactElement {
   }, [fetchNextPage]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
       {/* ===== HEADER ===== */}
-      <header className="bg-white border-b border-gray-100 px-4 pt-12 pb-3 sticky top-0 z-10">
+      <header className="bg-white dark:bg-dark-800 border-b border-gray-100 dark:border-dark-700 px-4 pt-12 pb-3 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           {/* Bouton retour */}
-          <Link href="/urgences" aria-label="Retour aux urgences" className="text-gray-600 p-1">
+          <Link href="/urgences" aria-label="Retour aux urgences" className="text-gray-600 dark:text-gray-300 p-1">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
               <path fillRule="evenodd" d="M7.72 12.53a.75.75 0 010-1.06l7.5-7.5a.75.75 0 111.06 1.06L9.31 12l6.97 6.97a.75.75 0 11-1.06 1.06l-7.5-7.5z" clipRule="evenodd"/>
             </svg>
           </Link>
 
           <div>
-            <h1 className="text-lg font-bold text-gray-900 font-sora">
-              {currentCategory
-                ? `${currentCategory.icon} ${currentCategory.name_fr}`
-                : "Services publics"}
+            <h1 className="flex items-center gap-1.5 text-lg font-bold text-gray-900 dark:text-gray-100 font-sora">
+              {currentCategory && <ServiceIcon name={currentCategory.icon} className="w-4 h-4" style={{ color: currentCategory.color_hex }} />}
+              {currentCategory ? currentCategory.name_fr : "Services publics"}
             </h1>
             {geoPosition ? (
-              <p className="text-xs text-[#1A6B3A]">Triés par distance</p>
+              <p className="text-xs text-[#1A6B3A] dark:text-[#4ADE80]">Triés par distance</p>
             ) : (
-              <p className="text-xs text-gray-400">Activez le GPS pour le tri par proximité</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Activez le GPS pour le tri par proximité</p>
             )}
           </div>
         </div>
@@ -293,7 +293,7 @@ function ServicesContent(): React.ReactElement {
                 "flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                 !categorySlug
                   ? "bg-[#1A6B3A] text-white"
-                  : "bg-gray-100 text-gray-600",
+                  : "bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300",
               ].join(" ")}
             >
               Tous
@@ -311,7 +311,7 @@ function ServicesContent(): React.ReactElement {
                 ].join(" ")}
                 style={categorySlug === cat.slug ? { backgroundColor: cat.color_hex } : {}}
               >
-                <span aria-hidden="true">{cat.icon}</span>
+                <ServiceIcon name={cat.icon} className="w-3.5 h-3.5" />
                 {cat.name_fr}
               </Link>
             ))}
@@ -324,36 +324,38 @@ function ServicesContent(): React.ReactElement {
         {isLoading ? (
           /* Skeletons de chargement */
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse">
+            <div key={i} className="bg-white dark:bg-dark-800 rounded-2xl p-4 border border-gray-100 dark:border-dark-700 animate-pulse">
               <div className="flex gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gray-200 flex-shrink-0" />
+                <div className="w-11 h-11 rounded-xl bg-gray-200 dark:bg-dark-700 flex-shrink-0" />
                 <div className="flex-1">
-                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-3" />
-                  <div className="h-5 bg-gray-200 rounded w-16" />
+                  <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-1/2 mb-3" />
+                  <div className="h-5 bg-gray-200 dark:bg-dark-700 rounded w-16" />
                 </div>
               </div>
             </div>
           ))
         ) : isError ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-sm">Impossible de charger les services</p>
-            <p className="text-gray-400 text-xs mt-1">Vérifiez votre connexion</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Impossible de charger les services</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Vérifiez votre connexion</p>
           </div>
         ) : services.length === 0 ? (
           <div className="text-center py-12">
-            <span className="text-4xl" aria-hidden="true">
-              {currentCategory?.icon ?? "🏛️"}
-            </span>
-            <p className="text-gray-500 text-sm mt-3">Aucun service trouvé</p>
-            <p className="text-gray-400 text-xs mt-1">
+            {currentCategory ? (
+              <ServiceIcon name={currentCategory.icon} className="w-10 h-10 mx-auto" style={{ color: currentCategory.color_hex }} />
+            ) : (
+              <span className="text-4xl" aria-hidden="true">🏛️</span>
+            )}
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-3">Aucun service trouvé</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
               {categorySlug ? "Essayez une autre catégorie" : "Vérifiez votre connexion"}
             </p>
           </div>
         ) : (
           <>
             {/* Compteur */}
-            <p className="text-xs text-gray-400 mb-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
               {services.length} service{services.length > 1 ? "s" : ""} trouvé{services.length > 1 ? "s" : ""}
             </p>
 
@@ -366,7 +368,7 @@ function ServicesContent(): React.ReactElement {
               <button
                 onClick={handleLoadMore}
                 disabled={isFetchingNextPage}
-                className="w-full py-3 text-sm font-medium text-[#1A6B3A] bg-white border border-[#1A6B3A] rounded-2xl disabled:opacity-50 transition-opacity"
+                className="w-full py-3 text-sm font-medium text-[#1A6B3A] dark:text-[#4ADE80] bg-white dark:bg-dark-800 border border-[#1A6B3A] dark:border-[#4ADE80]/40 rounded-2xl disabled:opacity-50 transition-opacity"
               >
                 {isFetchingNextPage ? "Chargement…" : "Voir plus de services"}
               </button>
@@ -388,10 +390,10 @@ export default function ServicesPage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-[#1A6B3A] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm text-gray-400 mt-3">Chargement des services…</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-3">Chargement des services…</p>
           </div>
         </div>
       }

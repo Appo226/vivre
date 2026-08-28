@@ -96,7 +96,7 @@ function RetourContent() {
     if (!paymentId || !accessToken) return;
 
     try {
-      const data = await apiClient.get<PaymentStatus>(`/payments/${paymentId}/status`);
+      const data = await apiClient.get<PaymentStatus>(`/payments/${paymentId}`);
       setPayment(data);
 
       /* Statut terminal → arrêter le polling */

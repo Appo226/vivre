@@ -58,6 +58,17 @@ export const firebaseApp = getFirebaseApp();
 /* Firebase Storage — pour les uploads directs (gros fichiers) */
 export const firebaseStorage = getStorage(firebaseApp);
 
+/*
+ * FCM (Cloud Messaging) refuse de s'initialiser sans un projectId réel et lève
+ * une FirebaseError non catchée par le SDK lui-même. En dev local (et sur tout
+ * environnement sans les clés NEXT_PUBLIC_FIREBASE_*), on veut échouer
+ * silencieusement — les push ne sont pas critiques — plutôt que de laisser
+ * chaque appelant re-découvrir l'erreur à chaque montage de page.
+ */
+function isFirebaseMessagingConfigured(): boolean {
+  return Boolean(firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.appId);
+}
+
 /* ============================================================
  * FIREBASE CLOUD MESSAGING — TOKEN FCM
  * Chargé dynamiquement pour éviter les erreurs côté serveur (SSR).
@@ -78,6 +89,9 @@ export const firebaseStorage = getStorage(firebaseApp);
 export async function getFcmToken(): Promise<string | null> {
   /* Guard : FCM n'est disponible que côté client */
   if (typeof window === "undefined") return null;
+
+  /* Pas de clés Firebase configurées (dev local, preview sans env FCM, etc.) */
+  if (!isFirebaseMessagingConfigured()) return null;
 
   /* Vérifier la permission de notifications */
   const permission = await Notification.requestPermission();
@@ -128,10 +142,17 @@ export async function onForegroundMessage(
   onMessage: (payload: { notification?: { title?: string; body?: string }; data?: Record<string, string> }) => void
 ): Promise<() => void> {
   if (typeof window === "undefined") return () => { /* noop SSR */ };
+  if (!isFirebaseMessagingConfigured()) return () => { /* noop — FCM non configuré */ };
 
-  const { getMessaging, onMessage: fcmOnMessage } = await import("firebase/messaging");
-  const messaging = getMessaging(firebaseApp);
+  try {
+    const { getMessaging, onMessage: fcmOnMessage } = await import("firebase/messaging");
+    const messaging = getMessaging(firebaseApp);
 
-  /* onMessage retourne une fonction "unsubscribe" */
-  return fcmOnMessage(messaging, onMessage);
+    /* onMessage retourne une fonction "unsubscribe" */
+    return fcmOnMessage(messaging, onMessage);
+  } catch (err) {
+    /* Même motif que getFcmToken() — les push ne sont pas critiques */
+    console.error("[FCM] Erreur écoute foreground :", err);
+    return () => { /* noop */ };
+  }
 }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vivre-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@vivre/web", "dev"],
+      "port": 3000
+    }
+  ]
+}

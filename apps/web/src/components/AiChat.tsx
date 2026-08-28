@@ -123,7 +123,7 @@ export default function AiChat(): React.ReactElement {
       {/* === BACKDROP === */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
@@ -132,7 +132,7 @@ export default function AiChat(): React.ReactElement {
       {/* === PANNEAU DE CHAT === */}
       <div
         className={[
-          "fixed left-0 right-0 bottom-0 z-50",
+          "fixed left-0 right-0 bottom-0 z-[61]",
           "max-w-md mx-auto",
           "bg-white rounded-t-2xl shadow-2xl",
           "flex flex-col",

@@ -60,11 +60,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   /* Titre de base — chaque page peut le surcharger */
   title: {
-    default: "VIVRE — Voyager. Manger. Découvrir. au Burkina Faso",
-    template: "%s | VIVRE Burkina",
+    default: "VIVRE — La billetterie des événements du Burkina Faso",
+    template: "%s | VIVRE",
   },
   description:
-    "La première super-application du Burkina Faso. Transport interurbain, livraison de repas, hôtels, guides touristiques et services d'urgence. Téléchargez VIVRE dès maintenant.",
+    "Achetez vos billets d'événements au Burkina Faso — concerts, festivals, conférences. Billet numérique avec QR code, scannable à l'entrée.",
 
   /* Manifest PWA */
   manifest: "/manifest.json",
@@ -81,16 +81,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "fr_BF",
-    url: "https://vivre.bf",
+    url: "https://vivrebf.com",
     siteName: "VIVRE",
-    title: "VIVRE — Voyager. Manger. Découvrir.",
-    description: "La première super-application du Burkina Faso",
+    title: "VIVRE — La billetterie des événements du Burkina Faso",
+    description: "Concerts, festivals, conférences — trouvez votre prochain événement et recevez votre billet numérique.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "VIVRE — Super-application Burkina Faso",
+        alt: "VIVRE — Billetterie Burkina Faso",
       },
     ],
   },
@@ -98,8 +98,8 @@ export const metadata: Metadata = {
   /* Twitter Card — pour le partage sur X/Twitter */
   twitter: {
     card: "summary_large_image",
-    title: "VIVRE — Voyager. Manger. Découvrir.",
-    description: "La première super-application du Burkina Faso",
+    title: "VIVRE — La billetterie des événements du Burkina Faso",
+    description: "Concerts, festivals, conférences — trouvez votre prochain événement et recevez votre billet numérique.",
     images: ["/og-image.png"],
   },
 
@@ -112,8 +112,8 @@ export const metadata: Metadata = {
 
 /* Viewport et PWA (séparé de metadata depuis Next.js 14.1) */
 export const viewport: Viewport = {
-  /* Couleur de la barre de statut mobile — vert VIVRE */
-  themeColor: "#1A6B3A",
+  /* Couleur de la barre de statut mobile — vert forêt VIVRE (header + bottom nav) */
+  themeColor: "#0F2E20",
   /* Fit pour mobiles — évite le zoom non désiré sur les inputs */
   width: "device-width",
   initialScale: 1,
@@ -121,6 +121,14 @@ export const viewport: Viewport = {
   userScalable: true,
   /* Couleur du fond pendant le chargement (avant que CSS s'applique) */
   colorScheme: "light",
+  /*
+   * Sans ça, le clavier virtuel mobile ne redimensionne que le "visual viewport" — la
+   * BottomNav (position:fixed) reste ancrée au layout viewport d'origine et se retrouve
+   * à flotter au milieu de l'écran visible, par-dessus le contenu, tant que le clavier est
+   * ouvert (ex: en tapant dans la barre de recherche de /evenements). "resizes-content"
+   * force le layout viewport lui-même à rétrécir avec le clavier, comme une vraie app native.
+   */
+  interactiveWidget: "resizes-content",
 };
 
 /* ============================================================
@@ -141,16 +149,34 @@ export default function RootLayout({ children }: RootLayoutProps): React.ReactEl
       lang="fr"
       /* Variables CSS des polices injectées sur <html> */
       className={`${sora.variable} ${jakartaSans.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      /*
+       * Le script anti-flash ci-dessous ajoute la classe "dark" avant l'hydratation React —
+       * le rendu serveur ne connaît jamais la préférence de thème du client, donc ce
+       * mismatch est attendu à chaque chargement pour un utilisateur en mode sombre.
+       * Sans ceci, React logue un avertissement d'hydratation à chaque visite.
+       */
+      suppressHydrationWarning
     >
       <head>
+        {/*
+         * Anti-flash thème — doit s'exécuter avant le premier paint, donc en tout premier
+         * dans <head>, pas via next/script (qui attend l'hydratation). Lit la même clé
+         * localStorage que useThemeStore (voir store/theme.store.ts) sans dépendre de
+         * Zustand : ce script tourne avant que le moindre JS de l'app ne soit chargé.
+         */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var r=localStorage.getItem('vivre-theme');var t='light';if(r){var p=JSON.parse(r);if(p&&p.state&&p.state.theme)t=p.state.theme;}if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`,
+          }}
+        />
         {/* Icône Apple Touch (PWA iOS) */}
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body
         className={[
-          "min-h-screen bg-gray-50",
+          "min-h-screen bg-gray-50 dark:bg-dark-900",
           "font-dm antialiased",             /* DM Sans par défaut, antialiasing CSS */
-          "text-gray-900",
+          "text-gray-900 dark:text-gray-100",
           /* Padding bas = hauteur de la bottom navigation pour éviter que le contenu
              soit caché derrière la nav (seulement sur mobile) */
           "pb-safe-bottom",

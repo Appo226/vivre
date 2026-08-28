@@ -143,16 +143,28 @@ function FournisseurEvenementsContent(): React.ReactElement {
               </div>
 
               {event.status === "approved" && (
-                <div className="px-4 pb-3 flex gap-2">
+                <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+                  <Link
+                    href={`/fournisseur/evenements/${event.id}/analytics`}
+                    className="text-center border border-gray-200 text-gray-700 text-xs font-jakarta font-semibold py-2.5 rounded-xl"
+                  >
+                    📊 Analytics
+                  </Link>
+                  <Link
+                    href={`/fournisseur/evenements/${event.id}/reservations`}
+                    className="text-center border border-gray-200 text-gray-700 text-xs font-jakarta font-semibold py-2.5 rounded-xl"
+                  >
+                    Réservations
+                  </Link>
                   <Link
                     href={`/evenements/scanner`}
-                    className="flex-1 text-center border border-green-200 text-green-700 text-sm font-jakarta font-semibold py-2.5 rounded-xl"
+                    className="text-center border border-green-200 text-green-700 text-xs font-jakarta font-semibold py-2.5 rounded-xl"
                   >
-                    Scanner billets
+                    Scanner
                   </Link>
                   <Link
                     href={`/evenements/${event.id}`}
-                    className="flex-1 text-center bg-green-700 text-white text-sm font-jakarta font-semibold py-2.5 rounded-xl"
+                    className="text-center bg-green-700 text-white text-xs font-jakarta font-semibold py-2.5 rounded-xl"
                   >
                     Voir la page
                   </Link>

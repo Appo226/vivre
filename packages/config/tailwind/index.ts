@@ -68,19 +68,24 @@ export const vivreColors = {
     900: "#312107",
   },
 
-  /* Sombre VIVRE — fond principal de l'interface (mode clair : blanc ; mode sombre : dark) */
+  /*
+   * Sombre VIVRE — fond principal de l'interface (headers, bottom nav, cards billet).
+   * Ex-navy (#1A1A2E) remplacé par un vert forêt quasi-noir, aligné sur la charte
+   * graphique officielle (mark ruban + ticket + merch) : l'app doit se reconnaître
+   * à sa surface sombre teintée de vert, pas à un noir neutre.
+   */
   dark: {
-    DEFAULT: "#1A1A2E",
-    50: "#E8E8EF",
-    100: "#C5C5D7",
-    200: "#9E9EBC",
-    300: "#7777A0",
-    400: "#505085",
-    500: "#1A1A2E", /* Principal */
-    600: "#151525",
-    700: "#10101C",
-    800: "#0B0B13",
-    900: "#05050A",
+    DEFAULT: "#0F2E20",
+    50: "#E6EDE9",
+    100: "#C0D2C8",
+    200: "#96B5A3",
+    300: "#6B987D",
+    400: "#3D7A57",
+    500: "#0F2E20", /* Principal */
+    600: "#0C2519",
+    700: "#091C13",
+    800: "#06130D",
+    900: "#030A07",
   },
 } as const;
 
@@ -138,6 +143,8 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
         "fade-in": "fade-in 0.2s ease-out",
         /* Animation de l'indicateur de livraison en cours */
         "bounce-dot": "bounce-dot 1.2s ease-in-out infinite",
+        /* Fondu enchaîné entre photos de couverture d'événements réels, en fond du hero */
+        "photo-crossfade": "photo-crossfade linear infinite",
       },
 
       keyframes: {
@@ -160,6 +167,19 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
         "bounce-dot": {
           "0%, 80%, 100%": { transform: "scale(0)" },
           "40%": { transform: "scale(1)" },
+        },
+        /*
+         * Un slide "on" pendant le premier quart de son propre cycle, puis invisible
+         * jusqu'à la fin — combiné à un animation-delay décalé par photo (index * durée
+         * d'un slide), ça donne un diaporama en fondu enchaîné séquentiel classique,
+         * quel que soit le nombre de photos.
+         */
+        "photo-crossfade": {
+          "0%": { opacity: "0" },
+          "6%": { opacity: "1" },
+          "25%": { opacity: "1" },
+          "31%": { opacity: "0" },
+          "100%": { opacity: "0" },
         },
       },
 

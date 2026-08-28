@@ -79,12 +79,12 @@ export default function MesBilletsPage(): React.ReactElement {
   const bookings = data?.bookings ?? [];
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 pb-24">
+    <div className="mobile-container min-h-screen bg-gray-50 dark:bg-dark-900 pb-24">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-3 sticky top-0 z-10">
+      <header className="bg-white dark:bg-dark-800 border-b border-gray-100 dark:border-dark-700 px-4 pt-safe-top pb-3 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4 mb-3">
-          <button onClick={() => router.back()} className="text-gray-500">‹</button>
-          <h1 className="text-lg font-sora font-bold text-gray-900">Mes billets</h1>
+          <button onClick={() => router.back()} className="text-gray-500 dark:text-gray-400">‹</button>
+          <h1 className="text-lg font-sora font-bold text-gray-900 dark:text-gray-100">Mes billets</h1>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {FILTERS.map((f) => (
@@ -95,7 +95,7 @@ export default function MesBilletsPage(): React.ReactElement {
                 "shrink-0 px-3 py-1.5 rounded-full text-sm font-dm transition-colors",
                 filter === f.key
                   ? "bg-green-700 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                  : "bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600",
               ].join(" ")}
             >
               {f.label}
@@ -108,11 +108,11 @@ export default function MesBilletsPage(): React.ReactElement {
         {isLoading && (
           <>
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden animate-pulse">
-                <div className="h-28 bg-gray-200" />
+              <div key={i} className="bg-white dark:bg-dark-800 rounded-xl overflow-hidden animate-pulse">
+                <div className="h-28 bg-gray-200 dark:bg-dark-700" />
                 <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 dark:bg-dark-700 rounded w-1/2" />
                 </div>
               </div>
             ))}
@@ -131,7 +131,7 @@ export default function MesBilletsPage(): React.ReactElement {
         {!isLoading && !isError && bookings.length === 0 && (
           <div className="text-center py-16">
             <span className="text-5xl">🎟️</span>
-            <p className="mt-4 text-gray-500 font-dm text-sm">Aucun billet {filter !== "all" ? "dans cette catégorie" : "pour le moment"}.</p>
+            <p className="mt-4 text-gray-500 dark:text-gray-400 font-dm text-sm">Aucun billet {filter !== "all" ? "dans cette catégorie" : "pour le moment"}.</p>
             <Link
               href="/evenements"
               className="mt-4 inline-block bg-green-700 text-white px-6 py-2.5 rounded-full text-sm font-jakarta font-medium"
@@ -161,8 +161,8 @@ function TicketCard({ booking }: { booking: EventBookingSummary }): React.ReactE
   return (
     <Link href={`/evenements/mes-billets/${booking.id}`} className="block">
       <div className={[
-        "bg-white rounded-xl overflow-hidden border transition-all hover:shadow-md active:scale-[0.99]",
-        isUpcoming ? "border-pink-200" : "border-gray-100",
+        "bg-white dark:bg-dark-800 rounded-xl overflow-hidden border transition-all hover:shadow-md active:scale-[0.99]",
+        isUpcoming ? "border-pink-200 dark:border-pink-900" : "border-gray-100 dark:border-dark-700",
       ].join(" ")}>
         {/* Cover image or placeholder */}
         <div className="relative h-24 bg-gradient-to-r from-pink-500 to-purple-600 flex items-end">
@@ -191,19 +191,19 @@ function TicketCard({ booking }: { booking: EventBookingSummary }): React.ReactE
         {/* Details */}
         <div className="px-3 py-2.5 flex items-center justify-between">
           <div>
-            <p className="text-xs font-dm text-gray-500">
+            <p className="text-xs font-dm text-gray-500 dark:text-gray-400">
               {eventDate.toLocaleDateString("fr-BF", { weekday: "short", day: "numeric", month: "short" })}
               {" · "}
               {booking.ticket_type.name}
               {booking.quantity > 1 && ` × ${booking.quantity}`}
             </p>
-            <p className="text-xs text-gray-400 font-dm">{booking.event.city.name}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 font-dm">{booking.event.city.name}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-jakarta font-bold text-gray-900">
+            <p className="text-sm font-jakarta font-bold text-gray-900 dark:text-gray-100">
               {booking.total_amount.toLocaleString()}
             </p>
-            <p className="text-xs text-gray-400 font-dm">FCFA</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 font-dm">FCFA</p>
           </div>
         </div>
 

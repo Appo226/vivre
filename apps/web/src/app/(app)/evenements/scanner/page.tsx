@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
  *
  * Flux de scan :
  *   1. Le staff ouvre cette page sur son téléphone (authentifié)
- *   2. Il saisit manuellement l'ID de booking (ou saisit le contenu décodé du QR)
- *      Note : la lecture de QR via caméra nécessite @zxing/browser (optionnel MVP)
- *      Pour le MVP on utilise un input texte — suffisant en pratique car
- *      le personnel peut copier-coller depuis l'app de scan natif du téléphone.
+ *   2. La caméra arrière s'active automatiquement et décode le QR en direct
+ *      (jsQR — décodage pur JS, gratuit, fonctionne y compris sur Safari/iOS,
+ *      contrairement à l'API native BarcodeDetector limitée à Chrome/Android).
+ *      Repli manuel (coller le contenu ou l'ID) si la caméra est indisponible.
  *   3. L'API vérifie le billet → retourne valid: true/false avec détails
  *   4. Affichage clair ✅ VALIDE ou ❌ REFUSÉ avec info du détenteur
  *
@@ -28,6 +28,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { apiClient, ApiError } from "@/lib/api";
+import { QrCameraScanner } from "@/components/QrCameraScanner";
 
 /* ============================================================
  * TYPES
@@ -54,14 +55,13 @@ export default function ScannerPage(): React.ReactElement | null {
   const { accessToken } = useAuthStore();
   useEffect(() => { if (!accessToken) { router.push("/auth?redirect=/evenements/scanner"); } }, [accessToken, router]);
 
-  /* Rediriger si non authentifié */
-  if (!accessToken) return null;
-
   const [bookingId, setBookingId] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanCount, setScanCount] = useState(0); /* Compteur de scans de la session */
+  const [manualMode, setManualMode] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const scanningRef = useRef(false); /* Verrou anti-double-déclenchement pendant la boucle caméra */
 
   /**
    * Décoder le contenu brut d'un QR code scanné par l'app native du téléphone.
@@ -85,9 +85,10 @@ export default function ScannerPage(): React.ReactElement | null {
     return trimmed;
   }
 
-  async function handleScan(): Promise<void> {
-    const parsed = parseQrContent(bookingId);
-    if (!parsed) return;
+  async function handleScan(raw: string): Promise<void> {
+    const parsed = parseQrContent(raw);
+    if (!parsed || scanningRef.current) return;
+    scanningRef.current = true;
 
     setIsScanning(true);
     setResult(null);
@@ -118,9 +119,13 @@ export default function ScannerPage(): React.ReactElement | null {
   function handleReset(): void {
     setResult(null);
     setBookingId("");
-    /* Remettre le focus sur la textarea pour le prochain scan */
+    scanningRef.current = false;
+    /* Remettre le focus sur la textarea pour le prochain scan manuel */
     setTimeout(() => inputRef.current?.focus(), 100);
   }
+
+  /* Rediriger si non authentifié — après tous les hooks, jamais avant (Rules of Hooks) */
+  if (!accessToken) return null;
 
   return (
     <div className="min-h-screen bg-[#1A1A2E] flex flex-col">
@@ -137,7 +142,7 @@ export default function ScannerPage(): React.ReactElement | null {
         <div>
           <h1 className="text-white font-bold text-lg">Scanner de billets</h1>
           <p className="text-white/60 text-xs">
-            {scanCount > 0 ? `${scanCount} billet${scanCount > 1 ? "s" : ""} scanné${scanCount > 1 ? "s" : ""}` : "Collez ou saisissez l'ID du billet"}
+            {scanCount > 0 ? `${scanCount} billet${scanCount > 1 ? "s" : ""} scanné${scanCount > 1 ? "s" : ""}` : "Pointez la caméra vers le QR code du billet"}
           </p>
         </div>
       </div>
@@ -145,12 +150,25 @@ export default function ScannerPage(): React.ReactElement | null {
       {/* Zone principale */}
       <div className="flex-1 px-4 py-4 space-y-4">
 
-        {/* Zone de saisie du QR */}
-        {!result && (
+        {/* Scan par caméra — mode principal */}
+        {!result && !manualMode && (
+          <div className="space-y-3">
+            <QrCameraScanner paused={isScanning} onDetect={(raw) => void handleScan(raw)} />
+            <p className="text-white/50 text-xs text-center">Placez le QR code du billet dans le cadre</p>
+            <button
+              onClick={() => setManualMode(true)}
+              className="w-full text-white/60 text-sm py-2 underline"
+            >
+              Saisie manuelle à la place
+            </button>
+          </div>
+        )}
+
+        {/* Saisie manuelle — repli si la caméra est indisponible ou refusée */}
+        {!result && manualMode && (
           <div className="bg-white/10 rounded-2xl p-5">
             <p className="text-white/80 text-sm mb-3">
-              Scannez le QR code avec l'app de votre téléphone, puis collez le contenu ici.
-              Ou saisissez directement l'ID de réservation.
+              Collez le contenu décodé du QR, ou saisissez directement l&apos;ID de réservation.
             </p>
             <textarea
               ref={inputRef}
@@ -163,16 +181,22 @@ export default function ScannerPage(): React.ReactElement | null {
                 /* Valider avec Entrée (sans Shift) */
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  void handleScan();
+                  void handleScan(bookingId);
                 }
               }}
             />
             <button
-              onClick={() => void handleScan()}
+              onClick={() => void handleScan(bookingId)}
               disabled={!bookingId.trim() || isScanning}
               className="w-full mt-3 bg-[#1A6B3A] text-white font-bold py-4 rounded-xl text-lg disabled:opacity-40 transition-all active:scale-95"
             >
               {isScanning ? "Vérification..." : "Valider le billet"}
+            </button>
+            <button
+              onClick={() => setManualMode(false)}
+              className="w-full text-white/60 text-sm py-2 mt-1 underline"
+            >
+              Revenir au scan caméra
             </button>
           </div>
         )}
@@ -222,15 +246,14 @@ export default function ScannerPage(): React.ReactElement | null {
         )}
 
         {/* Instructions rapides */}
-        {!result && (
+        {!result && !manualMode && (
           <div className="bg-white/5 rounded-xl p-4 space-y-2">
             <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">
               Instructions
             </p>
-            <Step n="1" text="Ouvrez l'app caméra ou QR de votre téléphone" />
-            <Step n="2" text="Scannez le QR sur l'écran du client" />
-            <Step n="3" text="Copiez le texte affiché et collez-le ci-dessus" />
-            <Step n="4" text="Appuyez sur Valider — résultat immédiat" />
+            <Step n="1" text="Autorisez l'accès à la caméra si demandé" />
+            <Step n="2" text="Cadrez le QR code affiché sur le téléphone du client" />
+            <Step n="3" text="Résultat automatique dès la détection — pas de bouton à presser" />
           </div>
         )}
       </div>
