@@ -78,10 +78,18 @@ export async function PATCH(
     return apiError(403, "RECIPIENT_SUSPENDED", "Ce compte destinataire est désactivé");
   }
 
-  await prisma.eventTicket.update({
-    where: { id: params.id },
+  // Deux transferts concurrents du MÊME billet (double-tap, deux onglets) passeraient tous
+  // deux le contrôle de statut ci-dessus avant que l'un ou l'autre n'ait écrit — sans la
+  // condition ci-dessous, les deux répondraient "transféré avec succès" alors qu'un seul
+  // destinataire final aurait réellement le billet. La condition dans le WHERE (toujours
+  // détenu par l'appelant, toujours valide) rend l'écriture elle-même la source de vérité.
+  const { count } = await prisma.eventTicket.updateMany({
+    where: { id: params.id, user_id: auth.sub, status: "valid" },
     data: { user_id: recipient.id, transferred_to_id: recipient.id, transferred_at: new Date() },
   });
+  if (count === 0) {
+    return apiError(409, "TRANSFER_RACE_LOST", "Ce billet vient d'être modifié (scanné ou transféré) — réessayez");
+  }
 
   void notify({
     userId: recipient.id,

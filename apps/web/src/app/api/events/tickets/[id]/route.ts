@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
-import { cancelTickets, isWithinRefundWindow } from "@/lib/events";
+import { cancelTickets } from "@/lib/events";
 
 export async function DELETE(
   request: NextRequest,
@@ -52,16 +52,24 @@ export async function DELETE(
     return apiError(409, "EVENT_STARTED", "L'événement a déjà commencé — impossible d'annuler");
   }
 
-  const refundEligible = ticket.price_fcfa_at_purchase > 0 && isWithinRefundWindow(ticket.created_at);
-
-  const { refundedFcfa } = await cancelTickets({
+  const { refundedFcfa, cancelledTicketIds } = await cancelTickets({
     bookingId: ticket.booking_id,
     ticketIds: [ticket.id],
     paymentId: ticket.booking.payment_id,
   });
 
+  // Le contrôle de statut ci-dessus a pu lire un état déjà périmé (une requête concurrente —
+  // double-clic, deux onglets — a pu annuler ce billet entre cette lecture et l'écriture
+  // atomique dans cancelTickets). cancelledTicketIds est la SEULE source de vérité sur ce que
+  // CETTE requête a réellement obtenu : sans ce contrôle, une requête qui a perdu la course
+  // recevrait quand même un message "Billet annulé" — trompeur, même si aucun remboursement
+  // en double n'a jamais été créé (cancelTickets s'en charge déjà côté écriture).
+  if (!cancelledTicketIds.includes(ticket.id)) {
+    return apiError(409, "ALREADY_CANCELLED", "Billet déjà annulé");
+  }
+
   return NextResponse.json({
-    message: refundEligible
+    message: refundedFcfa > 0
       ? `Billet annulé. Remboursement de ${refundedFcfa.toLocaleString("fr-FR")} FCFA mis en file de traitement.`
       : "Billet annulé. Passé le délai d'une heure après l'achat, aucun remboursement n'est applicable.",
     ticket_id: params.id,

@@ -78,42 +78,52 @@ export function generateTicketQr(
  * (base du remboursement partiel si un seul billet est annulé plus tard).
  *
  * Idempotent : si des billets existent déjà pour cette commande (retry webhook), ne fait rien.
+ * Ce retry n'est pas hypothétique — CinetPay peut renvoyer le même IPN deux fois, et deux
+ * appels concurrents passeraient tous les deux le contrôle "déjà traité" du webhook avant que
+ * l'un ou l'autre n'ait eu le temps d'écrire. Un simple `count() puis create()` serait alors
+ * une vraie fenêtre de course (double émission de billets). Le verrou posé sur la ligne de la
+ * commande AVANT de relire le compte de billets force les appels concurrents à s'exécuter l'un
+ * après l'autre : le second voit alors le compte à jour et ressort sans rien faire.
  */
 export async function issueTicketsForBooking(bookingId: string): Promise<void> {
-  const booking = await prisma.eventBooking.findUnique({
-    where: { id: bookingId },
-    select: {
-      id: true,
-      event_id: true,
-      user_id: true,
-      quantity: true,
-      total_amount: true,
-      ticket_type: { select: { name: true } },
-    },
-  });
-  if (!booking) return;
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT id FROM event_bookings WHERE id = ${bookingId} FOR UPDATE`;
 
-  const existing = await prisma.eventTicket.count({ where: { booking_id: bookingId } });
-  if (existing > 0) return;
-
-  const base = Math.floor(booking.total_amount / booking.quantity);
-  const remainder = booking.total_amount - base * booking.quantity;
-
-  for (let i = 0; i < booking.quantity; i++) {
-    const id = randomUUID();
-    const qrCode = generateTicketQr(id, booking.event_id, booking.user_id, booking.ticket_type.name);
-    await prisma.eventTicket.create({
-      data: {
-        id,
-        booking_id: booking.id,
-        event_id: booking.event_id,
-        user_id: booking.user_id,
-        ticket_number: i + 1,
-        qr_code: qrCode,
-        price_fcfa_at_purchase: base + (i === booking.quantity - 1 ? remainder : 0),
+    const booking = await tx.eventBooking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        event_id: true,
+        user_id: true,
+        quantity: true,
+        total_amount: true,
+        ticket_type: { select: { name: true } },
       },
     });
-  }
+    if (!booking) return;
+
+    const existing = await tx.eventTicket.count({ where: { booking_id: bookingId } });
+    if (existing > 0) return;
+
+    const base = Math.floor(booking.total_amount / booking.quantity);
+    const remainder = booking.total_amount - base * booking.quantity;
+
+    for (let i = 0; i < booking.quantity; i++) {
+      const id = randomUUID();
+      const qrCode = generateTicketQr(id, booking.event_id, booking.user_id, booking.ticket_type.name);
+      await tx.eventTicket.create({
+        data: {
+          id,
+          booking_id: booking.id,
+          event_id: booking.event_id,
+          user_id: booking.user_id,
+          ticket_number: i + 1,
+          qr_code: qrCode,
+          price_fcfa_at_purchase: base + (i === booking.quantity - 1 ? remainder : 0),
+        },
+      });
+    }
+  });
 }
 
 /** true si l'id ressemble à un UUID (sinon on le traite comme un slug). */
@@ -145,7 +155,7 @@ export async function cancelTickets(params: {
   bookingId: string;
   ticketIds: string[];
   paymentId: string | null;
-}): Promise<{ refundedFcfa: number; refundCreated: boolean }> {
+}): Promise<{ refundedFcfa: number; refundCreated: boolean; cancelledTicketIds: string[] }> {
   const { bookingId, ticketIds, paymentId } = params;
   const now = new Date();
 
@@ -155,12 +165,22 @@ export async function cancelTickets(params: {
   });
 
   let refundedFcfa = 0;
+  const cancelledTicketIds: string[] = [];
   await prisma.$transaction(async (tx) => {
     for (const ticket of tickets) {
-      await tx.eventTicket.update({
-        where: { id: ticket.id },
+      // Deux requêtes d'annulation concurrentes pour LE MÊME billet (double-clic, deux onglets,
+      // retry réseau) passeraient toutes deux le contrôle de statut fait par l'appelant AVANT
+      // cette fonction — sans la condition status ci-dessous, chacune créerait son propre
+      // remboursement : un vrai double remboursement, de l'argent réel envoyé deux fois. La
+      // condition dans le WHERE rend l'écriture elle-même la source de vérité ; seule la
+      // requête qui gagne la course voit count===1 et déclenche un remboursement.
+      const { count } = await tx.eventTicket.updateMany({
+        where: { id: ticket.id, status: { notIn: ["cancelled", "checked_in"] } },
         data: { status: "cancelled", cancelled_at: now },
       });
+      if (count === 0) continue; // déjà annulé/utilisé par une requête concurrente — rien à faire de plus
+      cancelledTicketIds.push(ticket.id);
+
       if (paymentId && ticket.price_fcfa_at_purchase > 0 && isWithinRefundWindow(ticket.created_at)) {
         await tx.refund.create({
           data: {
@@ -185,5 +205,5 @@ export async function cancelTickets(params: {
     }
   });
 
-  return { refundedFcfa, refundCreated: refundedFcfa > 0 };
+  return { refundedFcfa, refundCreated: refundedFcfa > 0, cancelledTicketIds };
 }

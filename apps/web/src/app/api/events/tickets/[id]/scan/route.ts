@@ -82,10 +82,23 @@ export async function POST(
     });
   }
 
-  await prisma.eventTicket.update({
-    where: { id: ticket.id },
+  // Deux membres du staff peuvent scanner le même billet dans la même seconde (portes
+  // multiples, plusieurs téléphones) — le check ci-dessus lit un état qui peut déjà être
+  // périmé au moment d'écrire. La condition status: "valid" DANS le WHERE rend l'écriture
+  // elle-même la source de vérité : Postgres ne laisse qu'une seule des requêtes concurrentes
+  // matcher la ligne (verrou implicite de l'UPDATE), l'autre affecte 0 ligne et sait qu'elle
+  // a perdu la course sans avoir jamais pu marquer le billet "checked_in" deux fois.
+  const result = await prisma.eventTicket.updateMany({
+    where: { id: ticket.id, status: "valid" },
     data: { status: "checked_in", checked_in_at: now },
   });
+
+  if (result.count === 0) {
+    const fresh = await prisma.eventTicket.findUnique({ where: { id: ticket.id }, select: { checked_in_at: true } });
+    return invalid(409, "Billet déjà scanné", "ALREADY_CHECKED_IN", {
+      checked_in_at: fresh?.checked_in_at?.toISOString(),
+    });
+  }
 
   return NextResponse.json({
     valid: true,

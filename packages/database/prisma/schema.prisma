@@ -1543,6 +1543,10 @@ model EventTicket {
   user           User         @relation("EventTicketHolder", fields: [user_id], references: [id])
   transferred_to User?        @relation("EventTicketTransfer", fields: [transferred_to_id], references: [id])
 
+  // Filet de sécurité niveau base : même si un bug futur contournait le verrou posé dans
+  // issueTicketsForBooking, deux billets #1 pour la même commande resteraient impossibles —
+  // la seconde tentative échoue au lieu de doubler silencieusement les billets émis.
+  @@unique([booking_id, ticket_number])
   @@index([booking_id])
   @@index([event_id, status])
   @@index([user_id, status])
