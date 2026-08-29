@@ -18,7 +18,7 @@ const T = {
   fr: {
     my_profile: "Mon profil", edit: "Modifier", verified: "Vérifié",
     my_activity: "MON ACTIVITÉ", settings: "PARAMÈTRES", account: "COMPTE",
-    events: "Mes événements",
+    events: "Mes billets",
     language: "Langue", notifications: "Notifications",
     help: "Aide & support", logout: "Se déconnecter",
     theme: "Thème", theme_light: "Clair", theme_dark: "Sombre",
@@ -26,7 +26,7 @@ const T = {
   en: {
     my_profile: "My profile", edit: "Edit", verified: "Verified",
     my_activity: "MY ACTIVITY", settings: "SETTINGS", account: "ACCOUNT",
-    events: "My events",
+    events: "My tickets",
     language: "Language", notifications: "Notifications",
     help: "Help & support", logout: "Sign out",
     theme: "Theme", theme_light: "Light", theme_dark: "Dark",
@@ -398,13 +398,43 @@ export default function ProfilePage(): React.ReactElement {
       </div>
 
       <div className="px-4 mt-5 space-y-4">
+        {/* ===== ESPACE FOURNISSEUR ===== */}
+        {/* En haut, avant "Mon activité" — c'est là que vit le scanner, la seule vraie chose
+            qu'un organisateur va chercher activement à un point donné (le jour de l'événement,
+            probablement pressé) ; "Mes billets"/"Mes événements" juste en dessous se ressemblaient
+            trop (même icône, mots quasi identiques) et menaient les organisateurs au mauvais
+            endroit — voir le commentaire sur `t.events` plus bas. */}
+        {profile?.roles.includes("supplier") && (
+          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden border-2 border-green-100 dark:border-green-900">
+            <p className="px-5 pt-4 pb-2 text-xs font-bold text-green-700 dark:text-green-500 uppercase tracking-widest">
+              Mon espace fournisseur
+            </p>
+            {[
+              { href: "/fournisseur/evenements",  icon: "🎪", label: "Mes événements organisés",   sub: "Ventes, réservations, scanner à l'entrée" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
+              >
+                <span className="text-xl w-8 text-center">{item.icon}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
+                  <p className="text-xs text-gray-400">{item.sub}</p>
+                </div>
+                <span className="text-gray-300 text-sm">›</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* ===== MON ACTIVITÉ ===== */}
         <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
             {t.my_activity}
           </p>
           {[
-            { href: "/evenements/mes-billets",      icon: "🎟️", label: t.events,         sub: "FESPACO, SIAO…" },
+            { href: "/evenements/mes-billets",      icon: "🎟️", label: t.events,         sub: "Billets que vous avez achetés" },
           ].map((item) => (
             <Link
               key={item.href}
@@ -494,31 +524,6 @@ export default function ProfilePage(): React.ReactElement {
             <span className="text-gray-300 text-sm">›</span>
           </Link>
         </div>
-
-        {/* ===== ESPACE FOURNISSEUR ===== */}
-        {profile?.roles.includes("supplier") && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
-            <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Mon espace fournisseur
-            </p>
-            {[
-              { href: "/fournisseur/evenements",  icon: "🎟️", label: "Mes événements",   sub: "Ventes de billets" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
-              >
-                <span className="text-xl w-8 text-center">{item.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
-                  <p className="text-xs text-gray-400">{item.sub}</p>
-                </div>
-                <span className="text-gray-300 text-sm">›</span>
-              </Link>
-            ))}
-          </div>
-        )}
 
         {/* ===== ADMINISTRATION ===== */}
         {profile?.roles.includes("admin") && (
