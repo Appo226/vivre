@@ -184,6 +184,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     select: { id: true, title: true, slug: true, status: true },
   });
 
+  // Créer un événement ne demandait jusqu'ici aucun rôle préalable (n'importe quel compte
+  // connecté peut organiser) — mais sans ce rôle "supplier", la section "Mon espace
+  // fournisseur" du profil (où vit "Mes événements", seul chemin vers le scanner) reste
+  // invisible : l'organisateur ne peut jamais retrouver ses propres outils après coup. Upsert
+  // pour ne jamais dupliquer si le rôle existe déjà (@@unique([user_id, role])).
+  await prisma.userRole.upsert({
+    where: { user_id_role: { user_id: auth.sub, role: "supplier" } },
+    update: {},
+    create: { user_id: auth.sub, role: "supplier", is_approved: true, approved_at: new Date() },
+  });
+
   return NextResponse.json(
     {
       ...event,
