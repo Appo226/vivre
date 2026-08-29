@@ -811,20 +811,40 @@ export default function PublierEvenementPage(): React.ReactElement {
                   />
                 </Field>
 
-                <label className="flex items-start gap-2.5 bg-gray-50 dark:bg-dark-700 rounded-xl p-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={ticket.is_seated}
-                    onChange={(e) => setTicket(idx, "is_seated", e.target.checked)}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">Places numérotées</span>
-                    <span className="block text-xs text-gray-500 dark:text-gray-400">
-                      Chaque billet reçoit automatiquement un numéro de place (ex : « {ticket.name || "Rangée VIP"} · Place 1 », puis 2, 3…). Utile pour des chaises ou tables assignées. Le nom ci-dessus fait déjà office de section ou de rangée.
-                    </span>
-                  </span>
-                </label>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Type de placement</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Un même événement peut mélanger les deux : par exemple une tribune en admission générale et une rangée VIP à places numérotées, chacune comme son propre type de billet.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTicket(idx, "is_seated", false)}
+                      className={[
+                        "text-left p-3 rounded-xl border-2 transition-colors",
+                        !ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-gray-200 dark:border-dark-700",
+                      ].join(" ")}
+                    >
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Admission générale</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Aucune place assignée — chacun s&apos;installe où il veut parmi les places libres.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTicket(idx, "is_seated", true)}
+                      className={[
+                        "text-left p-3 rounded-xl border-2 transition-colors",
+                        ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-gray-200 dark:border-dark-700",
+                      ].join(" ")}
+                    >
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Places numérotées</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Chaque billet reçoit un numéro de place automatique (ex : « {ticket.name || "Rangée VIP"} · Place 1 », puis 2, 3…). Le nom ci-dessus fait déjà office de section ou de rangée.
+                      </p>
+                    </button>
+                  </div>
+                </div>
 
                 <Field label="Description du billet">
                   <input

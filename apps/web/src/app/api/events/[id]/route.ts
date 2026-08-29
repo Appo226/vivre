@@ -51,6 +51,7 @@ export async function GET(
           price_fcfa: true,
           quantity: true,
           max_per_order: true,
+          is_seated: true,
           included_items: true,
           variant_options: true,
           sale_starts_at: true,

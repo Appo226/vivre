@@ -33,6 +33,7 @@ interface TicketType {
   quantity: number;
   available: number;
   max_per_order: number;
+  is_seated: boolean;
   included_items: string[];
   variant_options: string[];
   sale_starts_at?: string;
@@ -591,7 +592,14 @@ function TicketTypeCard({
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <p className="font-semibold text-gray-900">{ticket.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-gray-900">{ticket.name}</p>
+            {ticket.is_seated && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A6B3A] bg-green-50 border border-green-200 rounded-full px-1.5 py-0.5">
+                Place numérotée
+              </span>
+            )}
+          </div>
           {ticket.description && (
             <p className="text-xs text-gray-500 mt-0.5">{ticket.description}</p>
           )}
