@@ -37,6 +37,7 @@ export async function GET(
       status: true,
       is_featured: true,
       safety_description: true,
+      rejection_reason: true,
       city: { select: { id: true, name: true } },
       category: { select: { id: true, name: true, icon: true, color_hex: true } },
       category_tags: { select: { category: { select: { id: true, name: true, icon: true } } } },
@@ -170,7 +171,7 @@ export async function PATCH(
   if (event.organizer_id !== auth.sub && !auth.roles.includes("admin")) {
     return apiError(403, "AUTH_FORBIDDEN", "Accès refusé");
   }
-  if (event.status !== "approved") {
+  if (!["approved", "rejected"].includes(event.status)) {
     return apiError(409, "INVALID_STATUS", `Un événement en statut "${event.status}" ne peut pas être modifié ici`);
   }
 

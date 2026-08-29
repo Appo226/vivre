@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiClient } from "@/lib/api";
+import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
 interface MyEvent {
@@ -21,6 +21,9 @@ interface MyEvent {
   city: { name: string };
   ticket_types: { name: string; price_fcfa: number; quantity: number }[];
   _count: { bookings: number };
+  rejection_reason: string | null;
+  publishing_fee_fcfa: number;
+  has_paid_publishing: boolean;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -177,10 +180,70 @@ function FournisseurEvenementsContent(): React.ReactElement {
                   </Link>
                 </div>
               )}
+
+              {event.status === "rejected" && <RejectedEventPanel event={event} />}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * ÉVÉNEMENT REJETÉ — raison + choix : corriger et resoumettre, ou demander un remboursement
+ * ============================================================ */
+
+function RejectedEventPanel({ event }: { event: MyEvent }): React.ReactElement {
+  const [requesting, setRequesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  const hasPaid = event.has_paid_publishing && event.publishing_fee_fcfa > 0;
+
+  async function requestRefund(): Promise<void> {
+    setRequesting(true);
+    setError(null);
+    try {
+      const res = await apiClient.post<{ message: string }>(`/events/${event.id}/request-refund`, {});
+      setResult(res.message);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Erreur réseau.");
+    } finally {
+      setRequesting(false);
+    }
+  }
+
+  return (
+    <div className="px-4 pb-3">
+      {event.rejection_reason && (
+        <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg p-2.5 mb-2 whitespace-pre-wrap">
+          {event.rejection_reason}
+        </p>
+      )}
+
+      {result ? (
+        <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg p-2.5">{result}</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href={`/fournisseur/evenements/${event.id}/modifier`}
+            className="text-center bg-green-700 text-white text-xs font-jakarta font-semibold py-2.5 rounded-xl"
+          >
+            ✏️ Corriger et resoumettre
+          </Link>
+          {hasPaid && (
+            <button
+              onClick={() => void requestRefund()}
+              disabled={requesting}
+              className="text-center border border-red-200 text-red-600 text-xs font-jakarta font-semibold py-2.5 rounded-xl disabled:opacity-50"
+            >
+              {requesting ? "…" : "Demander un remboursement"}
+            </button>
+          )}
+        </div>
+      )}
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
     </div>
   );
 }

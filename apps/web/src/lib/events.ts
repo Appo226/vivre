@@ -40,6 +40,48 @@ export async function notifyEventPendingApproval(event: {
   }
 }
 
+export type RefundEventListingResult =
+  | { outcome: "created"; amountFcfa: number }
+  | { outcome: "no_payment" }
+  | { outcome: "already_refunded" };
+
+/**
+ * Rembourse les frais de mise en ligne (+ pub éventuelle, réglées dans le même paiement — voir
+ * events/[id]/submit) d'un événement rejeté. Appelée depuis deux endroits : l'admin qui coche
+ * "rembourser immédiatement" au moment du rejet, et l'organisateur qui demande lui-même un
+ * remboursement depuis son événement rejeté plutôt que de le corriger et le resoumettre.
+ * Idempotent — un second appel sur le même événement ne crée pas de doublon.
+ */
+export async function refundEventListingPayment(eventId: string): Promise<RefundEventListingResult> {
+  const [payment, event] = await Promise.all([
+    prisma.payment.findFirst({
+      where: { booking_type: "event_listing", booking_id: eventId, status: "completed", amount: { gt: 0 } },
+      select: { id: true, amount: true },
+    }),
+    prisma.event.findUnique({ where: { id: eventId }, select: { title: true } }),
+  ]);
+  if (!payment) return { outcome: "no_payment" };
+
+  const existingRefund = await prisma.refund.findFirst({
+    where: { booking_type: "event_listing", booking_id: eventId, status: { not: "rejected" } },
+  });
+  if (existingRefund) return { outcome: "already_refunded" };
+
+  await prisma.refund.create({
+    data: {
+      payment_id: payment.id,
+      amount: payment.amount,
+      reason: `Événement rejeté — remboursement des frais de mise en ligne pour "${event?.title ?? eventId}"`,
+      status: "pending",
+      refund_method: "mobile_money",
+      booking_type: "event_listing",
+      booking_id: eventId,
+    },
+  });
+
+  return { outcome: "created", amountFcfa: payment.amount };
+}
+
 /** Génère le slug URL d'un événement à partir de son titre et de sa date de début. */
 export function generateEventSlug(title: string, startsAtIso: string): string {
   const base = title

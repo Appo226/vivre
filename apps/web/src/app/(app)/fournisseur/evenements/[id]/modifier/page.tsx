@@ -3,12 +3,18 @@
 export const dynamic = "force-dynamic";
 
 /**
- * /fournisseur/evenements/[id]/modifier — Modifier un événement déjà approuvé.
+ * /fournisseur/evenements/[id]/modifier — Modifier un événement approuvé, OU corriger et
+ * resoumettre un événement rejeté.
  *
  * Volontairement limité aux champs informationnels (lieu, description, visuels) — pas les
  * dates (voir le flux de reprogrammation séparé) ni les billets/prix. Chaque acheteur ayant
  * une réservation active est notifié automatiquement (in-app + SMS) par l'API — rien à faire
  * ici de plus que d'appeler PATCH /api/events/:id.
+ *
+ * Pour un événement REJETÉ : "Enregistrer" enchaîne PATCH /events/:id puis PATCH
+ * /events/:id/submit — resoumission en un clic. Le paiement de mise en ligne déjà réglé est
+ * réutilisé automatiquement s'il n'a pas été remboursé (voir events/[id]/submit) : pas de
+ * seconde facture pour corriger et resoumettre.
  */
 
 import { useEffect, useState, useCallback } from "react";
@@ -29,6 +35,8 @@ interface EventDetail {
   cover_url: string | null;
   gallery_urls: string[];
   safety_description: string | null;
+  status: string;
+  rejection_reason: string | null;
 }
 
 const inputCls = "w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900";
@@ -49,6 +57,8 @@ export default function ModifierEvenementPage(): React.ReactElement {
   const [venueAddress, setVenueAddress] = useState("");
   const [position, setPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [status, setStatus] = useState("approved");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   const load = useCallback(() => {
     apiClient.get<EventDetail>(`/events/${id}`)
@@ -59,6 +69,8 @@ export default function ModifierEvenementPage(): React.ReactElement {
         setVenueAddress(e.venue_address);
         setPosition({ latitude: e.latitude, longitude: e.longitude });
         setMediaUrls([e.cover_url, ...e.gallery_urls].filter((u): u is string => Boolean(u)));
+        setStatus(e.status);
+        setRejectionReason(e.rejection_reason);
       })
       .catch(() => setError("Impossible de charger l'événement."))
       .finally(() => setLoading(false));
@@ -81,7 +93,7 @@ export default function ModifierEvenementPage(): React.ReactElement {
 
     setSaving(true);
     try {
-      const res = await apiClient.patch<{ message: string }>(`/events/${id}`, {
+      await apiClient.patch<{ message: string }>(`/events/${id}`, {
         title: title.trim(),
         description: description.trim(),
         venue_name: venueName.trim(),
@@ -91,7 +103,22 @@ export default function ModifierEvenementPage(): React.ReactElement {
         cover_url: mediaUrls[0],
         gallery_urls: mediaUrls.slice(1),
       });
-      setSuccess(res.message);
+
+      if (status === "rejected") {
+        const submitRes = await apiClient.patch<{ message?: string; payment_token?: string }>(`/events/${id}/submit`, {});
+        if (submitRes.payment_token) {
+          // Le paiement précédent ne couvre plus le nouveau montant (ex: pub ajoutée) — un
+          // nouveau paiement CinetPay est requis. Pas encore géré depuis cette page (le widget
+          // de paiement vit dans /evenements/publier) — informer plutôt que de prétendre que
+          // c'est terminé.
+          setError("Un nouveau paiement est requis pour cette resoumission (montant modifié) — contactez le support pour finaliser.");
+          return;
+        }
+        setSuccess(submitRes.message ?? "Événement resoumis pour approbation.");
+        setTimeout(() => router.push("/fournisseur/evenements"), 1800);
+      } else {
+        setSuccess("Événement modifié.");
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erreur réseau.");
     } finally {
@@ -108,14 +135,24 @@ export default function ModifierEvenementPage(): React.ReactElement {
       <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
           <button onClick={() => router.back()} className="text-gray-500 text-xl">‹</button>
-          <h1 className="text-lg font-sora font-bold text-gray-900">Modifier l&apos;événement</h1>
+          <h1 className="text-lg font-sora font-bold text-gray-900">
+            {status === "rejected" ? "Corriger et resoumettre" : "Modifier l'événement"}
+          </h1>
         </div>
       </header>
 
       <div className="px-4 py-5 space-y-5">
+        {status === "rejected" && rejectionReason && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-800 whitespace-pre-wrap">
+            <p className="font-semibold mb-1">Motif du rejet :</p>
+            {rejectionReason}
+          </div>
+        )}
+
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-800">
-          Les acheteurs ayant déjà réservé seront automatiquement notifiés (in-app + SMS) de tout
-          changement. La date et les billets ne se modifient pas ici.
+          {status === "rejected"
+            ? "Corrigez ce qui a motivé le rejet, puis enregistrez pour resoumettre à l'admin. Si les frais de mise en ligne ont déjà été payés et n'ont pas été remboursés, ils ne seront pas repayés."
+            : "Les acheteurs ayant déjà réservé seront automatiquement notifiés (in-app + SMS) de tout changement. La date et les billets ne se modifient pas ici."}
         </div>
 
         <div>
@@ -164,7 +201,9 @@ export default function ModifierEvenementPage(): React.ReactElement {
             disabled={saving}
             className="w-full bg-green-700 text-white font-jakarta font-bold py-4 rounded-2xl text-base disabled:opacity-50 active:scale-95 transition-all"
           >
-            {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+            {saving
+              ? "Enregistrement…"
+              : status === "rejected" ? "Enregistrer et resoumettre" : "Enregistrer les modifications"}
           </button>
         </div>
       </div>

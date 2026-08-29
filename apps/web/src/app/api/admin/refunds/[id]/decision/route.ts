@@ -40,6 +40,7 @@ export async function PATCH(
       reason: true,
       amount: true,
       booking_id: true,
+      booking_type: true,
       payment: { select: { user: { select: { id: true, email: true } } } },
     },
   });
@@ -50,11 +51,18 @@ export async function PATCH(
     return apiError(409, "INVALID_STATUS", `Statut actuel "${refund.status}" — rien à décider`);
   }
 
-  // booking_id est polymorphique (transport|property|food|event) — pas de relation Prisma directe.
-  const eventBooking = refund.booking_id
-    ? await prisma.eventBooking.findUnique({ where: { id: refund.booking_id }, select: { event: { select: { title: true } } } })
-    : null;
-  const eventTitle = eventBooking?.event.title ?? "votre réservation";
+  // booking_id est polymorphique (transport|property|food|event|event_listing) — pas de
+  // relation Prisma directe. "event_listing" pointe directement vers l'Event (frais de mise
+  // en ligne remboursés à l'organisateur, pas un billet acheté), pas vers un EventBooking.
+  const eventTitle = await (async () => {
+    if (!refund.booking_id) return "votre réservation";
+    if (refund.booking_type === "event_listing") {
+      const event = await prisma.event.findUnique({ where: { id: refund.booking_id }, select: { title: true } });
+      return event?.title ?? "votre événement";
+    }
+    const eventBooking = await prisma.eventBooking.findUnique({ where: { id: refund.booking_id }, select: { event: { select: { title: true } } } });
+    return eventBooking?.event.title ?? "votre réservation";
+  })();
 
   if (parsed.data.action === "complete") {
     await prisma.refund.update({

@@ -36,6 +36,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       safety_description: true,
       expected_profile: true,
       created_at: true,
+      publishing_fee_fcfa: true,
+      has_paid_publishing: true,
       city: { select: { name: true } },
       category: { select: { name: true } },
       organizer: { select: { id: true, first_name: true, last_name: true, phone: true } },

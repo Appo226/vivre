@@ -130,12 +130,33 @@ export async function PATCH(
     ? { pending_ad_media_url: ad.url, pending_ad_media_type: ad.mediaType, pending_ad_days: ad.days, pending_ad_price_fcfa: adFee }
     : { pending_ad_media_url: null, pending_ad_media_type: null, pending_ad_days: null, pending_ad_price_fcfa: null };
 
-  if (totalFcfa === 0) {
+  // Resoumission d'un événement REJETÉ : s'il a déjà un paiement complété pour la mise en
+  // ligne, non remboursé, qui couvre le nouveau total (même sélection de pub, ou aucune) —
+  // pas besoin de payer une seconde fois. Sans ce contrôle, chaque aller-retour rejet →
+  // correction → resoumission facturerait à nouveau les frais déjà réglés une première fois.
+  // Ne couvre PAS le cas où la nouvelle sélection coûte plus cher (ex : pub ajoutée après
+  // coup) — dans ce cas on retombe sur un paiement neuf pour le nouveau total, plus simple
+  // que de facturer seulement la différence pour un cas marginal.
+  let reusedPriorPayment = false;
+  if (event.status === "rejected" && totalFcfa > 0) {
+    const priorPayment = await prisma.payment.findFirst({
+      where: { booking_type: "event_listing", booking_id: id, status: "completed", amount: { gte: totalFcfa } },
+      select: { id: true },
+    });
+    if (priorPayment) {
+      const alreadyRefunded = await prisma.refund.findFirst({
+        where: { booking_type: "event_listing", booking_id: id, status: { not: "rejected" } },
+      });
+      reusedPriorPayment = !alreadyRefunded;
+    }
+  }
+
+  if (totalFcfa === 0 || reusedPriorPayment) {
     await prisma.event.update({
       where: { id },
       data: {
         status: "pending_approval",
-        publishing_fee_fcfa: 0,
+        publishing_fee_fcfa: totalFcfa,
         has_paid_publishing: true,
         ...pendingAdData,
       },
@@ -150,7 +171,9 @@ export async function PATCH(
     });
 
     return NextResponse.json({
-      message: "Événement soumis pour approbation — aucun frais à payer.",
+      message: reusedPriorPayment
+        ? "Événement resoumis pour approbation — déjà réglé lors de la soumission précédente."
+        : "Événement soumis pour approbation — aucun frais à payer.",
       event_id: id,
       status: "pending_approval",
       total_fcfa: 0,

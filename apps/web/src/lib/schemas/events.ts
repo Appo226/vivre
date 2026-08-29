@@ -93,4 +93,8 @@ export const CreateBookingSchema = z.object({
 
 export const RejectEventSchema = z.object({
   reason: z.string().min(10, "La raison doit être expliquée (min 10 caractères)"),
+  // Optionnel — l'admin peut rembourser immédiatement au moment du rejet (ex : contenu
+  // clairement contraire aux règles, pas de raison de laisser l'organisateur corriger) plutôt
+  // que d'attendre qu'il demande lui-même un remboursement depuis son événement rejeté.
+  refund_now: z.boolean().optional(),
 });

@@ -9,6 +9,7 @@ import { requireAuth } from "@/lib/require-auth";
 import { RejectEventSchema } from "@/lib/schemas/events";
 import { sendEmail, eventRejectedEmail } from "@/lib/email";
 import { notify } from "@/lib/notifications";
+import { refundEventListingPayment } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -40,11 +41,19 @@ export async function PATCH(
     data: { status: "rejected", rejection_reason: parsed.data.reason },
   });
 
+  let refundResult: Awaited<ReturnType<typeof refundEventListingPayment>> | null = null;
+  if (parsed.data.refund_now) {
+    refundResult = await refundEventListingPayment(id);
+  }
+  const refunded = refundResult?.outcome === "created";
+
   void notify({
     userId: event.organizer.id,
     type: "event_rejected",
     title: "Votre événement n'a pas été approuvé",
-    body: parsed.data.reason,
+    body: refunded
+      ? `${parsed.data.reason} Un remboursement de ${refundResult && "amountFcfa" in refundResult ? refundResult.amountFcfa.toLocaleString("fr-FR") : ""} FCFA a été mis en file de traitement.`
+      : parsed.data.reason,
     data: { event_id: id },
   });
 
@@ -58,5 +67,11 @@ export async function PATCH(
     }),
   });
 
-  return NextResponse.json({ message: "Événement rejeté. L'organisateur sera notifié.", event_id: id });
+  return NextResponse.json({
+    message: refunded
+      ? "Événement rejeté. Remboursement mis en file de traitement — voir la file des remboursements."
+      : "Événement rejeté. L'organisateur sera notifié.",
+    event_id: id,
+    refund: refundResult,
+  });
 }

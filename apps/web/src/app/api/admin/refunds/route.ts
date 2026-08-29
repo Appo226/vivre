@@ -17,7 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const status = request.nextUrl.searchParams.get("status") ?? "pending";
 
   const refunds = await prisma.refund.findMany({
-    where: { status, booking_type: "event" },
+    where: { status, booking_type: { in: ["event", "event_listing"] } },
     select: {
       id: true,
       amount: true,

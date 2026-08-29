@@ -28,6 +28,8 @@ interface AdminEvent {
   category: { name: string };
   organizer: { id: string; first_name: string | null; last_name: string | null; phone: string };
   ticket_types: { name: string; price_fcfa: number; quantity: number }[];
+  publishing_fee_fcfa: number;
+  has_paid_publishing: boolean;
 }
 
 function EventsQueue(): React.ReactElement {
@@ -36,6 +38,7 @@ function EventsQueue(): React.ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [refundNow, setRefundNow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -66,9 +69,9 @@ function EventsQueue(): React.ReactElement {
     if (rejectReason.trim().length < 10) { setError("Raison requise (min. 10 caractères)."); return; }
     setBusyId(id); setError(null);
     try {
-      await apiClient.patch(`/events/${id}/reject`, { reason: rejectReason.trim() });
+      await apiClient.patch(`/events/${id}/reject`, { reason: rejectReason.trim(), refund_now: refundNow });
       setEvents((prev) => prev.filter((e) => e.id !== id));
-      setRejectingId(null); setRejectReason("");
+      setRejectingId(null); setRejectReason(""); setRefundNow(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erreur réseau.");
     } finally { setBusyId(null); }
@@ -136,6 +139,21 @@ function EventsQueue(): React.ReactElement {
                       rows={2}
                       className="w-full rounded-xl border border-gray-300 p-2.5 text-sm"
                     />
+                    {event.has_paid_publishing && event.publishing_fee_fcfa > 0 && (
+                      <label className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2.5">
+                        <input
+                          type="checkbox"
+                          checked={refundNow}
+                          onChange={(e) => setRefundNow(e.target.checked)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          Rembourser immédiatement les {event.publishing_fee_fcfa.toLocaleString("fr-FR")} FCFA payés
+                          (sinon l&apos;organisateur peut corriger et resoumettre sans repayer, ou demander lui-même
+                          un remboursement plus tard).
+                        </span>
+                      </label>
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={() => void reject(event.id)}
@@ -145,7 +163,7 @@ function EventsQueue(): React.ReactElement {
                         Confirmer le rejet
                       </button>
                       <button
-                        onClick={() => { setRejectingId(null); setRejectReason(""); }}
+                        onClick={() => { setRejectingId(null); setRejectReason(""); setRefundNow(false); }}
                         className="px-4 text-sm font-semibold text-gray-500"
                       >
                         Annuler
