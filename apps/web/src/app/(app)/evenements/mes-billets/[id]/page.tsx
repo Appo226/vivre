@@ -494,6 +494,17 @@ function TicketRevealModal({
     },
   });
 
+  function downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleSaveTicket(): Promise<void> {
     if (!ticketCardRef.current) return;
     setIsSaving(true);
@@ -507,24 +518,24 @@ function TicketRevealModal({
       const filename = `billet-vivre-${booking.event.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${ticket.ticket_number}.png`;
       const file = new File([blob], filename, { type: "image/png" });
 
+      // La feuille de partage native échoue parfois pour des raisons hors de notre contrôle
+      // (support fichier incohérent selon iOS/Android/PWA installée) même quand canShare()
+      // avait répondu oui — sans repli, l'acheteur se retrouvait juste avec une erreur
+      // générique et aucun moyen d'obtenir son image. Le fallback plain-download tente
+      // toujours la sauvegarde, il ne fait qu'échouer moins souvent que le partage natif.
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: booking.event.title });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        try {
+          await navigator.share({ files: [file], title: booking.event.title });
+          return;
+        } catch (shareErr) {
+          if (shareErr instanceof Error && shareErr.name === "AbortError") return; // fermé volontairement
+          // Le partage a échoué pour une autre raison — on retente en téléchargement simple
+          // plutôt que d'abandonner.
+        }
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        // Utilisateur a fermé la feuille de partage — pas une erreur.
-      } else {
-        setSaveError("Impossible d'enregistrer le billet. Réessayez.");
-      }
+      downloadBlob(blob, filename);
+    } catch {
+      setSaveError("Impossible d'enregistrer le billet. Réessayez, ou faites une capture d'écran de ce QR code.");
     } finally {
       setIsSaving(false);
     }
@@ -605,13 +616,18 @@ function TicketRevealModal({
         {/* Actions */}
         <div className="mt-4 space-y-2">
           {ticket.status !== "cancelled" && (
-            <button
-              onClick={() => void handleSaveTicket()}
-              disabled={isSaving}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-semibold rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
-            >
-              {isSaving ? "Génération…" : "Enregistrer le billet"}
-            </button>
+            <>
+              <button
+                onClick={() => void handleSaveTicket()}
+                disabled={isSaving}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-semibold rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
+              >
+                {isSaving ? "Génération…" : "Enregistrer le billet"}
+              </button>
+              <p className="text-center text-white/40 text-[11px] -mt-1">
+                Sauvegarde ce billet en image sur votre téléphone — utile sans connexion à l&apos;entrée
+              </p>
+            </>
           )}
           {saveError && <p className="text-xs text-red-300 text-center">{saveError}</p>}
 
