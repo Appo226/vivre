@@ -1386,10 +1386,20 @@ model EventTicketType {
   sale_starts_at DateTime?
   sale_ends_at   DateTime?
 
+  // Places numérotées — pas de plan de salle interactif (voir la décision produit : un
+  // organisateur nomme déjà sa section/rangée/table via `name`, "Rangée VIP" ou "Table 3" par
+  // exemple ; il suffit d'attribuer un numéro de place séquentiel à chaque billet émis pour ce
+  // type, automatiquement, à l'émission — voir issueTicketsForBooking dans lib/events.ts).
+  // Aucun acheteur ne choisit sa place précise ; il reçoit la prochaine disponible dans sa
+  // section. Ça donne une place réelle et affichée sur le billet, sans plan de salle à
+  // construire ni sélecteur de siège à faire tenir sur un petit écran en réseau instable.
+  is_seated Boolean @default(false)
+
   is_active Boolean @default(true)
 
   event    Event          @relation(fields: [event_id], references: [id])
   bookings EventBooking[]
+  tickets  EventTicket[]
 
   @@index([event_id, is_active])
   @@map("event_ticket_types")
@@ -1509,12 +1519,18 @@ model EventBooking {
 // son propre détenteur (user_id — change indépendamment de EventBooking.user_id, l'acheteur
 // d'origine, au fil des transferts), et son propre statut de scan/annulation.
 model EventTicket {
-  id         String @id @default(uuid())
-  booking_id String
-  event_id   String // Dénormalisé — évite un join booking→event sur le scan et les listes organisateur
-  user_id    String // Détenteur ACTUEL de ce billet précis
+  id             String @id @default(uuid())
+  booking_id     String
+  event_id       String // Dénormalisé — évite un join booking→event sur le scan et les listes organisateur
+  ticket_type_id String // Dénormalisé — nécessaire pour numéroter les places par TYPE de billet, pas par commande
+  user_id        String // Détenteur ACTUEL de ce billet précis
 
   ticket_number Int // 1-based, position dans la commande — pour l'affichage ("Billet 2/4")
+
+  // Numéro de place, uniquement si le type de billet est marqué `is_seated` — séquentiel à
+  // travers TOUTES les commandes de ce type de billet (pas seulement celle-ci), attribué à
+  // l'émission. Null pour un billet non numéroté (l'immense majorité aujourd'hui).
+  seat_number Int?
 
   qr_code String @unique
 
@@ -1538,15 +1554,20 @@ model EventTicket {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  booking        EventBooking @relation(fields: [booking_id], references: [id])
-  event          Event        @relation(fields: [event_id], references: [id])
-  user           User         @relation("EventTicketHolder", fields: [user_id], references: [id])
-  transferred_to User?        @relation("EventTicketTransfer", fields: [transferred_to_id], references: [id])
+  booking        EventBooking    @relation(fields: [booking_id], references: [id])
+  event          Event           @relation(fields: [event_id], references: [id])
+  ticket_type    EventTicketType @relation(fields: [ticket_type_id], references: [id])
+  user           User            @relation("EventTicketHolder", fields: [user_id], references: [id])
+  transferred_to User?           @relation("EventTicketTransfer", fields: [transferred_to_id], references: [id])
 
   // Filet de sécurité niveau base : même si un bug futur contournait le verrou posé dans
   // issueTicketsForBooking, deux billets #1 pour la même commande resteraient impossibles —
-  // la seconde tentative échoue au lieu de doubler silencieusement les billets émis.
+  // la seconde tentative échoue au lieu de doubler silencieusement les billets émis. Idem pour
+  // les places : deux billets avec la même place dans le même type resteraient impossibles
+  // (NULL n'entre pas en collision avec NULL en SQL — n'affecte donc jamais les billets non
+  // numérotés).
   @@unique([booking_id, ticket_number])
+  @@unique([ticket_type_id, seat_number])
   @@index([booking_id])
   @@index([event_id, status])
   @@index([user_id, status])

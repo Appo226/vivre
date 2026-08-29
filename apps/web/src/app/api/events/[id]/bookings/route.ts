@@ -38,7 +38,7 @@ export async function GET(
       user: { select: { first_name: true, last_name: true, phone: true } },
       payment: { select: { payment_method: true, provider_ref: true } },
       tickets: {
-        select: { id: true, status: true, checked_in_at: true },
+        select: { id: true, status: true, checked_in_at: true, seat_number: true },
         orderBy: { ticket_number: "asc" },
       },
     },

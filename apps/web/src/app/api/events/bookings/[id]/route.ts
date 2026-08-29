@@ -42,6 +42,7 @@ export async function GET(
         select: {
           id: true,
           ticket_number: true,
+          seat_number: true,
           status: true,
           qr_code: true,
           checked_in_at: true,

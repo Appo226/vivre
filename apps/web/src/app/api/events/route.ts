@@ -158,6 +158,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           price_fcfa: tt.price_fcfa,
           quantity: tt.quantity,
           max_per_order: tt.max_per_order,
+          is_seated: tt.is_seated,
           included_items: tt.included_items,
           variant_options: tt.variant_options,
           ...(tt.sale_starts_at && { sale_starts_at: new Date(tt.sale_starts_at) }),

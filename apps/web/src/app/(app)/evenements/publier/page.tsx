@@ -101,6 +101,8 @@ interface TicketDraft {
   quantity:      string;
   max_per_order: string;
   description:   string;
+  /* Places numérotées — chaque billet reçoit un numéro de place automatique à l'achat. */
+  is_seated: boolean;
   /* Saisie libre séparée par virgules — parsée en tableau à la soumission */
   included_items_raw:  string;
   variant_options_raw: string;
@@ -140,6 +142,7 @@ interface FormState {
 
 const BLANK_TICKET: TicketDraft = {
   name: "", price_fcfa: "", quantity: "", max_per_order: "10", description: "",
+  is_seated: false,
   included_items_raw: "", variant_options_raw: "",
 };
 
@@ -287,7 +290,7 @@ export default function PublierEvenementPage(): React.ReactElement {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function setTicket(idx: number, key: keyof TicketDraft, value: string) {
+  function setTicket(idx: number, key: keyof TicketDraft, value: string | boolean) {
     setForm((f) => {
       const tickets = [...f.ticket_types];
       tickets[idx] = { ...tickets[idx]!, [key]: value };
@@ -430,6 +433,7 @@ export default function PublierEvenementPage(): React.ReactElement {
           price_fcfa:    Number(t.price_fcfa),
           quantity:      Number(t.quantity),
           max_per_order: Number(t.max_per_order) || 10,
+          is_seated: t.is_seated,
           included_items: parseCommaList(t.included_items_raw),
           variant_options: parseCommaList(t.variant_options_raw),
           ...(t.description.trim() && { description: t.description.trim() }),
@@ -806,6 +810,21 @@ export default function PublierEvenementPage(): React.ReactElement {
                     className={inputCls}
                   />
                 </Field>
+
+                <label className="flex items-start gap-2.5 bg-gray-50 dark:bg-dark-700 rounded-xl p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={ticket.is_seated}
+                    onChange={(e) => setTicket(idx, "is_seated", e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">Places numérotées</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      Chaque billet reçoit automatiquement un numéro de place (ex : « {ticket.name || "Rangée VIP"} · Place 1 », puis 2, 3…). Utile pour des chaises ou tables assignées. Le nom ci-dessus fait déjà office de section ou de rangée.
+                    </span>
+                  </span>
+                </label>
 
                 <Field label="Description du billet">
                   <input

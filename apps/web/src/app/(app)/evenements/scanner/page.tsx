@@ -41,6 +41,7 @@ interface ScanResult {
   ticket_type?: string;
   ticket_number?: number;
   ticket_count?: number;
+  seat_number?: number | null;
   holder?: { name: string; phone: string };
   checked_in_at?: string;
   error?: string;
@@ -219,6 +220,12 @@ export default function ScannerPage(): React.ReactElement | null {
             <p className="text-white font-bold text-2xl mb-2">
               {result.valid ? "VALIDE" : "REFUSÉ"}
             </p>
+
+            {result.valid && result.seat_number != null && (
+              <p className="text-white font-sora font-extrabold text-3xl mb-2">
+                Place {result.seat_number}
+              </p>
+            )}
 
             {result.valid ? (
               /* Détails du billet valide */

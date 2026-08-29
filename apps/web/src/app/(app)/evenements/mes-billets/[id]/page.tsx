@@ -28,6 +28,7 @@ import { VivreLogo } from "@/components/VivreLogo";
 interface TicketRow {
   id: string;
   ticket_number: number;
+  seat_number: number | null; // null = billet non numéroté (l'immense majorité)
   status: string; // "valid" | "checked_in" | "cancelled"
   qr_code: string;
   checked_in_at: string | null;
@@ -344,10 +345,14 @@ export default function EventBilletPage(): React.ReactElement {
                       </div>
                       <div>
                         <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">
-                          {booking.quantity > 1 ? `Billet ${t.ticket_number}` : booking.ticket_type.name}
+                          {t.seat_number !== null
+                            ? `${booking.ticket_type.name} · Place ${t.seat_number}`
+                            : booking.quantity > 1 ? `Billet ${t.ticket_number}` : booking.ticket_type.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {booking.quantity > 1 ? booking.ticket_type.name : "Toucher pour voir le QR"}
+                          {t.seat_number !== null
+                            ? "Toucher pour voir le QR"
+                            : booking.quantity > 1 ? booking.ticket_type.name : "Toucher pour voir le QR"}
                         </p>
                       </div>
                     </div>
@@ -571,6 +576,11 @@ function TicketRevealModal({
               {booking.ticket_type.name}
               {booking.quantity > 1 && ` · Billet ${ticket.ticket_number}/${booking.quantity}`}
             </p>
+            {ticket.seat_number !== null && (
+              <p className="text-white font-sora font-extrabold text-2xl mt-2">
+                Place {ticket.seat_number}
+              </p>
+            )}
             <p className="text-white/70 text-xs mt-1">
               {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
             </p>

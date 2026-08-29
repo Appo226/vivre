@@ -137,15 +137,27 @@ export async function issueTicketsForBooking(bookingId: string): Promise<void> {
         id: true,
         event_id: true,
         user_id: true,
+        ticket_type_id: true,
         quantity: true,
         total_amount: true,
-        ticket_type: { select: { name: true } },
+        ticket_type: { select: { name: true, is_seated: true } },
       },
     });
     if (!booking) return;
 
     const existing = await tx.eventTicket.count({ where: { booking_id: bookingId } });
     if (existing > 0) return;
+
+    // Places numérotées : la numérotation traverse TOUTES les commandes de ce type de billet,
+    // pas seulement celle-ci — deux acheteurs différents ne doivent jamais recevoir la même
+    // place. Le verrou ci-dessus protège cette commande contre un double appel sur elle-même,
+    // mais pas deux commandes DIFFÉRENTES du même type émises en même temps ; on verrouille
+    // donc aussi la ligne du type de billet avant de relire le compte de places déjà attribuées.
+    let nextSeatNumber: number | null = null;
+    if (booking.ticket_type.is_seated) {
+      await tx.$executeRaw`SELECT id FROM event_ticket_types WHERE id = ${booking.ticket_type_id} FOR UPDATE`;
+      nextSeatNumber = await tx.eventTicket.count({ where: { ticket_type_id: booking.ticket_type_id } }) + 1;
+    }
 
     const base = Math.floor(booking.total_amount / booking.quantity);
     const remainder = booking.total_amount - base * booking.quantity;
@@ -158,8 +170,10 @@ export async function issueTicketsForBooking(bookingId: string): Promise<void> {
           id,
           booking_id: booking.id,
           event_id: booking.event_id,
+          ticket_type_id: booking.ticket_type_id,
           user_id: booking.user_id,
           ticket_number: i + 1,
+          seat_number: nextSeatNumber !== null ? nextSeatNumber + i : null,
           qr_code: qrCode,
           price_fcfa_at_purchase: base + (i === booking.quantity - 1 ? remainder : 0),
         },

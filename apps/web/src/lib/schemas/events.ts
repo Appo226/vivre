@@ -48,6 +48,10 @@ export const CreateEventSchema = z.object({
         price_fcfa: z.number().int().min(0),
         quantity: z.number().int().min(1),
         max_per_order: z.number().int().min(1).max(100).default(10),
+        // Places numérotées — chaque billet émis pour ce type reçoit un numéro de place
+        // séquentiel automatique à l'achat (voir issueTicketsForBooking). Pas de plan de
+        // salle : le nom du type ("Rangée VIP", "Table 3") fait déjà office de section.
+        is_seated: z.boolean().default(false),
         sale_starts_at: z.string().datetime().optional(),
         sale_ends_at: z.string().datetime().optional(),
         // Merch mandatoire — déjà compris dans price_fcfa, libellés 100% libres pour

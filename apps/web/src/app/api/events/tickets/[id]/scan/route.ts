@@ -22,6 +22,7 @@ const TICKET_SELECT = {
   status: true,
   checked_in_at: true,
   ticket_number: true,
+  seat_number: true,
   booking: { select: { quantity: true, ticket_type: { select: { name: true } } } },
   event: { select: { id: true, title: true, organizer_id: true, starts_at: true, ends_at: true } },
   user: { select: { first_name: true, last_name: true, phone: true } },
@@ -107,6 +108,7 @@ export async function POST(
     ticket_type: ticket.booking.ticket_type.name,
     ticket_number: ticket.ticket_number,
     ticket_count: ticket.booking.quantity,
+    seat_number: ticket.seat_number,
     holder: {
       name: [ticket.user.first_name, ticket.user.last_name].filter(Boolean).join(" ") || "N/A",
       phone: ticket.user.phone,

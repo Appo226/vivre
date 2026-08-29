@@ -18,6 +18,7 @@ interface TicketRow {
   id: string;
   status: string; // "valid" | "checked_in" | "cancelled"
   checked_in_at: string | null;
+  seat_number: number | null;
 }
 
 interface Booking {
@@ -385,6 +386,14 @@ export default function ReservationsPage(): React.ReactElement {
               <p className="text-xs text-gray-600 font-dm">
                 {b.quantity} × {b.ticket_type.name} — {b.total_amount.toLocaleString("fr-FR")} FCFA
               </p>
+              {validTickets.some((t) => t.seat_number !== null) && (
+                <p className="text-xs text-gray-500 font-dm">
+                  Place{validTickets.length > 1 ? "s" : ""} : {validTickets
+                    .map((t) => t.seat_number)
+                    .filter((n): n is number => n !== null)
+                    .join(", ")}
+                </p>
+              )}
               {checkedInTickets.length > 0 && (
                 <p className="text-xs text-gray-400 font-dm">
                   Scanné à {checkedInTickets
