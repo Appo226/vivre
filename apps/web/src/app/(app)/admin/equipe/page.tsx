@@ -90,14 +90,14 @@ export default function AdminTeamPage(): React.ReactElement | null {
   if (!isSuperAdmin) return null;
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
+    <main className="min-h-screen bg-page pb-12">
       <AdminHeader title="Équipe" subtitle="Accorder ou retirer l'accès administrateur" />
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-2xl space-y-4">
         {/* Ajouter un admin */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <p className="font-jakarta font-bold text-gray-900 text-sm mb-1">Ajouter un administrateur</p>
-          <p className="text-xs text-gray-400 mb-3">
+        <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle">
+          <p className="font-jakarta font-bold text-ink text-sm mb-1">Ajouter un administrateur</p>
+          <p className="text-xs text-ink-soft mb-3">
             La personne doit déjà avoir un compte VIVRE (s&apos;être connectée au moins une fois).
           </p>
           <form onSubmit={(e) => void handleAdd(e)} className="flex gap-2">
@@ -107,7 +107,7 @@ export default function AdminTeamPage(): React.ReactElement | null {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+22670000000"
               required
-              className="flex-1 rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+              className="flex-1 rounded-xl border border-border-subtle bg-surface-card text-ink px-3 py-2.5 text-sm"
             />
             <button
               type="submit"
@@ -121,8 +121,8 @@ export default function AdminTeamPage(): React.ReactElement | null {
         </div>
 
         {/* Liste */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <p className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
+          <p className="px-4 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
             {loading ? "Chargement…" : `${team.length} administrateur${team.length > 1 ? "s" : ""}`}
           </p>
           {team.map((member) => {
@@ -130,17 +130,17 @@ export default function AdminTeamPage(): React.ReactElement | null {
             const isMemberSuperAdmin = member.roles.includes("super_admin");
             const name = [member.first_name, member.last_name].filter(Boolean).join(" ") || member.phone;
             return (
-              <div key={member.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50">
+              <div key={member.id} className="flex items-center gap-3 px-4 py-3 border-t border-border-subtle">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {name} {isSelf && <span className="text-gray-400 font-normal">(vous)</span>}
+                  <p className="text-sm font-semibold text-ink truncate">
+                    {name} {isSelf && <span className="text-ink-soft font-normal">(vous)</span>}
                   </p>
-                  <p className="text-xs text-gray-400">{member.phone}</p>
+                  <p className="text-xs text-ink-soft">{member.phone}</p>
                 </div>
                 <span
                   className={[
                     "text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full",
-                    isMemberSuperAdmin ? "bg-amber-50 text-amber-700" : "bg-green-50 text-[#1A6B3A]",
+                    isMemberSuperAdmin ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300" : "bg-green-50 dark:bg-green-950/40 text-[#1A6B3A] dark:text-green-300",
                   ].join(" ")}
                 >
                   {isMemberSuperAdmin ? "Super admin" : "Admin"}

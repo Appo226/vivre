@@ -134,7 +134,7 @@ export default function AiChat(): React.ReactElement {
         className={[
           "fixed left-0 right-0 bottom-0 z-[61]",
           "max-w-md mx-auto",
-          "bg-white rounded-t-2xl shadow-2xl",
+          "bg-surface-card rounded-t-2xl shadow-2xl",
           "flex flex-col",
           "transition-transform duration-300 ease-out",
           open ? "translate-y-0" : "translate-y-full",
@@ -145,17 +145,17 @@ export default function AiChat(): React.ReactElement {
         aria-label="Assistant IA VIVRE"
       >
         {/* --- En-tête --- */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
           <div className="flex items-center gap-2">
             <span className="text-xl">✨</span>
             <div>
-              <p className="font-sora font-bold text-gray-900 text-sm">Assistant VIVRE</p>
-              <p className="text-xs text-gray-400 font-dm">Propulsé par Claude</p>
+              <p className="font-sora font-bold text-ink text-sm">Assistant VIVRE</p>
+              <p className="text-xs text-ink-soft font-dm">Propulsé par Claude</p>
             </div>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-elevated text-ink-soft"
             aria-label="Fermer"
           >
             ✕
@@ -172,7 +172,7 @@ export default function AiChat(): React.ReactElement {
           {loading && (
             <div className="flex gap-2 items-end">
               <span className="text-lg">✨</span>
-              <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
+              <div className="bg-surface-elevated rounded-2xl rounded-bl-sm px-4 py-3">
                 <TypingDots />
               </div>
             </div>
@@ -198,7 +198,7 @@ export default function AiChat(): React.ReactElement {
                   setInput(s);
                   setTimeout(() => inputRef.current?.focus(), 50);
                 }}
-                className="shrink-0 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-dm px-3 py-1.5 rounded-full transition-colors"
+                className="shrink-0 text-xs bg-surface-elevated hover:bg-surface-elevated text-ink font-dm px-3 py-1.5 rounded-full transition-colors"
               >
                 {s}
               </button>
@@ -207,7 +207,7 @@ export default function AiChat(): React.ReactElement {
         )}
 
         {/* --- Zone de saisie --- */}
-        <div className="px-3 pb-safe-bottom py-2 border-t border-gray-100 flex gap-2 items-end">
+        <div className="px-3 pb-safe-bottom py-2 border-t border-border-subtle flex gap-2 items-end">
           <textarea
             ref={inputRef}
             value={input}
@@ -217,8 +217,8 @@ export default function AiChat(): React.ReactElement {
             rows={1}
             className={[
               "flex-1 resize-none rounded-2xl px-4 py-2.5",
-              "bg-gray-100 text-gray-900 font-dm text-sm",
-              "placeholder:text-gray-400",
+              "bg-surface-elevated text-ink font-dm text-sm",
+              "placeholder:text-ink-soft",
               "focus:outline-none focus:ring-2 focus:ring-amber-400",
               "max-h-24 overflow-y-auto",
             ].join(" ")}
@@ -232,7 +232,7 @@ export default function AiChat(): React.ReactElement {
               "transition-colors duration-150",
               input.trim() && !loading
                 ? "bg-amber-500 text-white hover:bg-amber-600"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed",
+                : "bg-surface-elevated text-ink-soft cursor-not-allowed",
             ].join(" ")}
             aria-label="Envoyer"
           >
@@ -259,7 +259,7 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
           "whitespace-pre-wrap break-words",
           isUser
             ? "bg-amber-500 text-white rounded-2xl rounded-br-sm"
-            : "bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm",
+            : "bg-surface-elevated text-ink rounded-2xl rounded-bl-sm",
         ].join(" ")}
       >
         {message.content}

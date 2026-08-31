@@ -149,9 +149,9 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
 
   return (
     <section className="px-4 mb-6">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Sponsorisé</p>
+      <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-2">Sponsorisé</p>
 
-      <div className="relative overflow-hidden rounded-2xl border border-gray-100 dark:border-dark-700 shadow-card">
+      <div className="relative overflow-hidden rounded-2xl border border-border-subtle shadow-card">
         <div
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
@@ -219,7 +219,7 @@ export function SponsoredSection({ ads: initialAds }: { ads: SponsoredAd[] }): R
                 onClick={() => { pauseAutoAdvance(); setActiveIndex(i); }}
                 className={[
                   "w-1.5 h-1.5 rounded-full transition-all",
-                  i === activeIndex ? "bg-white w-4" : "bg-white/50",
+                  i === activeIndex ? "bg-surface-card w-4" : "bg-white/50",
                 ].join(" ")}
               />
             ))}

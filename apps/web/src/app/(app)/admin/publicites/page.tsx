@@ -70,7 +70,7 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
       {c.media_type === "video" ? (
         <video src={c.image_url} className="w-full h-36 object-cover bg-black" controls muted playsInline />
       ) : (
@@ -79,24 +79,24 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
       <div className="p-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-jakarta font-bold text-gray-900">{c.title}</p>
-            <p className="text-xs text-gray-500">
+            <p className="font-jakarta font-bold text-ink">{c.title}</p>
+            <p className="text-xs text-ink-soft">
               {c.advertiser.first_name ?? "—"} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
             </p>
           </div>
-          <span className="text-xs font-jakarta font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+          <span className="text-xs font-jakarta font-semibold px-2 py-1 rounded-full bg-surface-elevated text-ink-soft">
             {PLACEMENT_LABELS[c.placement] ?? c.placement}
           </span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-ink-soft mt-2">
           {fmtDate(c.start_date)} → {fmtDate(c.end_date)}
         </p>
         {c.link_url ? (
-          <a href={c.link_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1A6B3A] underline mt-1 inline-block break-all">
+          <a href={c.link_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1A6B3A] dark:text-green-300 underline mt-1 inline-block break-all">
             {c.link_url}
           </a>
         ) : (
-          <p className="text-xs text-gray-400 mt-1">Aucun lien — pub non cliquable</p>
+          <p className="text-xs text-ink-soft mt-1">Aucun lien — pub non cliquable</p>
         )}
 
         {error && <p className="text-xs text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
@@ -108,13 +108,13 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
               onChange={(e) => setNote(e.target.value)}
               placeholder="Motif du refus…"
               rows={2}
-              className="w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+              className="w-full rounded-xl border border-border-subtle bg-surface-card text-ink p-2.5 text-sm"
             />
             <div className="flex gap-2">
               <button onClick={() => void reject()} disabled={busy} className="flex-1 bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
                 {busy ? "…" : "Confirmer le refus"}
               </button>
-              <button onClick={() => setRejecting(false)} className="px-4 text-sm font-semibold text-gray-500">Annuler</button>
+              <button onClick={() => setRejecting(false)} className="px-4 text-sm font-semibold text-ink-soft">Annuler</button>
             </div>
           </div>
         ) : (
@@ -122,7 +122,7 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
             <button onClick={() => void approve()} disabled={busy} className="flex-1 bg-[#1A6B3A] text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
               {busy ? "…" : "Approuver"}
             </button>
-            <button onClick={() => setRejecting(true)} className="flex-1 bg-white border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl">
+            <button onClick={() => setRejecting(true)} className="flex-1 bg-surface-card border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl">
               Refuser
             </button>
           </div>
@@ -147,25 +147,25 @@ function PaymentCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Re
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+    <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-jakarta font-bold text-gray-900">{c.title}</p>
-          <p className="text-xs text-gray-500">
+          <p className="font-jakarta font-bold text-ink">{c.title}</p>
+          <p className="text-xs text-ink-soft">
             {c.advertiser.first_name ?? "—"} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
           </p>
         </div>
         <p className="price-text text-sm">{c.price_fcfa.toLocaleString("fr-FR")} FCFA</p>
       </div>
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-xs text-ink-soft mt-2">
         {fmtDate(c.start_date)} → {fmtDate(c.end_date)} · {PLACEMENT_LABELS[c.placement] ?? c.placement}
       </p>
       {c.payment_reference_note ? (
-        <p className="text-sm text-gray-700 mt-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+        <p className="text-sm text-ink mt-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
           Réf. transmise par l&apos;annonceur : <strong>{c.payment_reference_note}</strong>
         </p>
       ) : (
-        <p className="text-xs text-gray-400 mt-3 italic">Aucune référence transmise pour l&apos;instant.</p>
+        <p className="text-xs text-ink-soft mt-3 italic">Aucune référence transmise pour l&apos;instant.</p>
       )}
 
       {error && <p className="text-xs text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
@@ -200,31 +200,31 @@ function AdsQueue(): React.ReactElement {
   useEffect(() => { void load(tab); }, [tab, load]);
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
+    <main className="min-h-screen bg-page pb-12">
       <AdminHeader title="Publicités" subtitle={`${campaigns.length} ${tab === "pending_review" ? "en attente de revue" : "en attente de paiement"}`} />
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-5xl">
         <div className="flex gap-2 mb-5">
           <button
             onClick={() => setTab("pending_review")}
-            className={`px-4 py-2 rounded-full text-sm font-jakarta font-semibold ${tab === "pending_review" ? "bg-[#1A6B3A] text-white" : "bg-white text-gray-600 border border-gray-200"}`}
+            className={`px-4 py-2 rounded-full text-sm font-jakarta font-semibold ${tab === "pending_review" ? "bg-[#1A6B3A] text-white" : "bg-surface-card text-ink-soft border border-border-subtle"}`}
           >
             En attente de revue
           </button>
           <button
             onClick={() => setTab("approved_unpaid")}
-            className={`px-4 py-2 rounded-full text-sm font-jakarta font-semibold ${tab === "approved_unpaid" ? "bg-[#1A6B3A] text-white" : "bg-white text-gray-600 border border-gray-200"}`}
+            className={`px-4 py-2 rounded-full text-sm font-jakarta font-semibold ${tab === "approved_unpaid" ? "bg-[#1A6B3A] text-white" : "bg-surface-card text-ink-soft border border-border-subtle"}`}
           >
             En attente de paiement
           </button>
         </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">{error}</p>}
-        {loading && <p className="text-center text-gray-400 text-sm py-8">Chargement…</p>}
+        {loading && <p className="text-center text-ink-soft text-sm py-8">Chargement…</p>}
         {!loading && campaigns.length === 0 && (
           <div className="text-center py-16">
             <p className="text-3xl mb-2">✅</p>
-            <p className="text-gray-500 text-sm">Rien ici pour l&apos;instant.</p>
+            <p className="text-ink-soft text-sm">Rien ici pour l&apos;instant.</p>
           </div>
         )}
         <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:items-start md:gap-4">

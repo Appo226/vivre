@@ -200,8 +200,8 @@ function VerifyPhoneContent(): React.ReactElement {
         <div className="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-3xl mb-4">
           ✓
         </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Numéro vérifié</h1>
-        <p className="text-gray-500 text-sm mb-6">Votre compte est prêt à réserver des billets.</p>
+        <h1 className="text-xl font-bold text-ink mb-1">Numéro vérifié</h1>
+        <p className="text-ink-soft text-sm mb-6">Votre compte est prêt à réserver des billets.</p>
         <button
           onClick={goNext}
           className="w-full max-w-xs py-4 rounded-xl text-white font-semibold text-base bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm transition-all"
@@ -224,9 +224,9 @@ function VerifyPhoneContent(): React.ReactElement {
           <div className="mb-6 text-center">
             {secondsLeft > 0 ? (
               <>
-                <p className="text-sm text-gray-500 mb-2">Code valable encore</p>
-                <span className="text-3xl font-bold font-mono text-green-700">{formatTime(secondsLeft)}</span>
-                <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <p className="text-sm text-ink-soft mb-2">Code valable encore</p>
+                <span className="text-3xl font-bold font-mono text-green-700 dark:text-green-300">{formatTime(secondsLeft)}</span>
+                <div className="mt-3 h-1.5 bg-surface-elevated rounded-full overflow-hidden">
                   <div
                     className="h-full bg-green-600 rounded-full transition-all duration-1000"
                     style={{ width: `${(secondsLeft / OTP_DURATION) * 100}%` }}
@@ -254,8 +254,8 @@ function VerifyPhoneContent(): React.ReactElement {
                 className={[
                   "w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 outline-none",
                   "transition-all duration-150",
-                  digit ? "border-green-600 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-900",
-                  "focus:border-green-600 focus:bg-green-50/50",
+                  digit ? "border-green-600 dark:border-green-500 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300" : "border-border-subtle bg-surface-elevated text-ink",
+                  "focus:border-green-600 focus:bg-green-50/50 dark:focus:bg-green-950/30",
                   isVerifying ? "opacity-50" : "",
                 ].join(" ")}
               />
@@ -270,7 +270,7 @@ function VerifyPhoneContent(): React.ReactElement {
 
           {isVerifying && (
             <div className="flex justify-center mb-4">
-              <svg className="animate-spin h-6 w-6 text-green-600" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin h-6 w-6 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -280,13 +280,13 @@ function VerifyPhoneContent(): React.ReactElement {
           <div className="flex-1" />
 
           <div className="text-center mt-4">
-            <p className="text-sm text-gray-500 mb-2">Vous n&apos;avez pas reçu le SMS ?</p>
+            <p className="text-sm text-ink-soft mb-2">Vous n&apos;avez pas reçu le SMS ?</p>
             <button
               onClick={handleResend}
               disabled={!canResend || isResending || isVerifying}
               className={[
                 "text-sm font-semibold transition-colors",
-                canResend && !isResending ? "text-green-700 hover:text-green-800 underline" : "text-gray-300 cursor-not-allowed",
+                canResend && !isResending ? "text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline" : "text-ink-soft cursor-not-allowed",
               ].join(" ")}
             >
               {isResending ? "Envoi en cours…" : "Renvoyer le code"}
@@ -295,7 +295,7 @@ function VerifyPhoneContent(): React.ReactElement {
 
           <button
             onClick={goNext}
-            className="text-center text-sm text-gray-400 hover:text-gray-600 mt-6 underline"
+            className="text-center text-sm text-ink-soft hover:text-ink-soft mt-6 underline"
           >
             Plus tard — je vérifierai avant de réserver
           </button>
@@ -309,7 +309,7 @@ export default function VerifyPhonePage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-surface-card flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-[#1A6B3A] border-t-transparent rounded-full animate-spin" />
         </div>
       }

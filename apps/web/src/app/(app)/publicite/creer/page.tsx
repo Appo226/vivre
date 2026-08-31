@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 
-const inputCls = "w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white";
+const inputCls = "w-full border border-border-subtle rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-surface-card";
 const MAX_VIDEO_SECONDS = 15;
 
 /**
@@ -79,7 +79,7 @@ function readMediaDimensions(file: File): Promise<{ width: number; height: numbe
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }): React.ReactElement {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+      <label className="block text-xs font-semibold text-ink-soft mb-1.5">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
@@ -190,13 +190,13 @@ export default function CreateAdPage(): React.ReactElement {
   }
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 pb-28">
-      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+    <div className="mobile-container min-h-screen bg-page pb-28">
+      <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
-          <button onClick={() => router.back()} className="text-gray-500 text-xl">‹</button>
+          <button onClick={() => router.back()} className="text-ink-soft text-xl">‹</button>
           <div>
-            <h1 className="text-base font-sora font-bold text-gray-900">Publier une annonce</h1>
-            <p className="text-xs text-gray-500 font-dm">Visible après validation admin</p>
+            <h1 className="text-base font-sora font-bold text-ink">Publier une annonce</h1>
+            <p className="text-xs text-ink-soft font-dm">Visible après validation admin</p>
           </div>
         </div>
       </header>
@@ -221,7 +221,7 @@ export default function CreateAdPage(): React.ReactElement {
 
         <Field label="Visuel (image ou vidéo)" required>
           {imageUrl ? (
-            <div className="relative rounded-xl overflow-hidden border border-gray-200">
+            <div className="relative rounded-xl overflow-hidden border border-border-subtle">
               {mediaType === "video" ? (
                 <video src={imageUrl} className="w-full h-40 object-cover" controls muted playsInline />
               ) : (
@@ -237,11 +237,11 @@ export default function CreateAdPage(): React.ReactElement {
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 cursor-pointer hover:bg-gray-50 text-center px-4">
+            <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border-subtle rounded-xl text-sm text-ink-soft cursor-pointer hover:bg-surface-elevated text-center px-4">
               {uploading ? "Envoi…" : (
                 <>
                   <span>Choisir une image ou une vidéo</span>
-                  <span className="text-[11px] text-gray-400 mt-1">Vidéo MP4 uniquement : {MAX_VIDEO_SECONDS}s max, 20 Mo max</span>
+                  <span className="text-[11px] text-ink-soft mt-1">Vidéo MP4 uniquement : {MAX_VIDEO_SECONDS}s max, 20 Mo max</span>
                 </>
               )}
               <input
@@ -276,14 +276,14 @@ export default function CreateAdPage(): React.ReactElement {
             <button
               type="button"
               onClick={() => setPlacement("home_feed")}
-              className={`px-3 py-3 rounded-xl text-sm font-semibold border ${placement === "home_feed" ? "bg-[#1A6B3A] text-white border-[#1A6B3A]" : "bg-white text-gray-600 border-gray-300"}`}
+              className={`px-3 py-3 rounded-xl text-sm font-semibold border ${placement === "home_feed" ? "bg-[#1A6B3A] text-white border-[#1A6B3A]" : "bg-surface-card text-ink-soft border-border-subtle"}`}
             >
               Section sponsorisée (accueil)
             </button>
             <button
               type="button"
               onClick={() => setPlacement("browse_tile")}
-              className={`px-3 py-3 rounded-xl text-sm font-semibold border ${placement === "browse_tile" ? "bg-[#1A6B3A] text-white border-[#1A6B3A]" : "bg-white text-gray-600 border-gray-300"}`}
+              className={`px-3 py-3 rounded-xl text-sm font-semibold border ${placement === "browse_tile" ? "bg-[#1A6B3A] text-white border-[#1A6B3A]" : "bg-surface-card text-ink-soft border-border-subtle"}`}
             >
               Tuile découverte
             </button>
@@ -311,7 +311,7 @@ export default function CreateAdPage(): React.ReactElement {
           const total = ratePerDay !== null && days !== null ? ratePerDay * days : null;
 
           return (
-            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-xs text-green-800 font-dm space-y-1">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl px-4 py-3 text-xs text-green-800 dark:text-green-300 font-dm space-y-1">
               {ratePerDay !== null ? (
                 <p>
                   Tarif actuel : <strong>{ratePerDay.toLocaleString("fr-FR")} FCFA/jour</strong>
@@ -322,7 +322,7 @@ export default function CreateAdPage(): React.ReactElement {
               ) : (
                 <p>Chargement du tarif…</p>
               )}
-              <p className="text-green-700">
+              <p className="text-green-700 dark:text-green-300">
                 Vous ne payez qu&apos;après validation du contenu par notre équipe (généralement sous 24h) —
                 le tarif facturé est celui en vigueur au moment de l&apos;approbation.
               </p>
@@ -331,7 +331,7 @@ export default function CreateAdPage(): React.ReactElement {
         })()}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-bottom pt-3 bg-white border-t border-gray-100 z-20">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-bottom pt-3 bg-surface-card border-t border-border-subtle z-20">
         <div className="mobile-container">
           <button
             onClick={() => void handleSubmit()}

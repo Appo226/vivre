@@ -59,9 +59,9 @@ export function VivreLogo({
         {showTagline && (
           <span className="font-dm text-[10px] tracking-[0.15em] mt-0.5">
             <span className={variant === "light" ? "text-[#77C28F]" : "text-[#1A6B3A]"}>Découvrez</span>
-            <span className={variant === "light" ? "text-white/50" : "text-gray-400"}> · </span>
+            <span className={variant === "light" ? "text-white/50" : "text-ink-soft"}> · </span>
             <span className={variant === "light" ? "text-[#F3797A]" : "text-[#EF2B2D]"}>Réservez</span>
-            <span className={variant === "light" ? "text-white/50" : "text-gray-400"}> · </span>
+            <span className={variant === "light" ? "text-white/50" : "text-ink-soft"}> · </span>
             <span className="text-[#F5A623]">Vivez</span>
           </span>
         )}

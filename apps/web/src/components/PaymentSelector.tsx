@@ -193,7 +193,7 @@ export default function PaymentSelector({
   ];
 
   return (
-    <div className="rounded-2xl border border-gray-100 overflow-hidden bg-white shadow-card">
+    <div className="rounded-2xl border border-border-subtle overflow-hidden bg-surface-card shadow-card">
       {methods.map((method, idx) => {
         const isSelected = selected === method.key;
         return (
@@ -203,8 +203,8 @@ export default function PaymentSelector({
             onClick={() => onChange(method.key)}
             className={[
               "w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors",
-              idx > 0 ? "border-t border-gray-50" : "",
-              isSelected ? "bg-green-50" : "bg-white hover:bg-gray-50 active:bg-gray-100",
+              idx > 0 ? "border-t border-border-subtle" : "",
+              isSelected ? "bg-green-50 dark:bg-green-950/40" : "bg-surface-card hover:bg-surface-elevated active:bg-surface-elevated",
             ].join(" ")}
           >
             {/* Logo */}
@@ -216,11 +216,11 @@ export default function PaymentSelector({
             <div className="flex-1 min-w-0">
               <p className={[
                 "text-sm font-semibold font-jakarta leading-tight",
-                isSelected ? "text-green-800" : "text-gray-900",
+                isSelected ? "text-green-800 dark:text-green-300" : "text-ink",
               ].join(" ")}>
                 {method.label}
               </p>
-              <p className="text-xs text-gray-400 font-dm mt-0.5 truncate">
+              <p className="text-xs text-ink-soft font-dm mt-0.5 truncate">
                 {method.subtitle}
               </p>
             </div>
@@ -232,7 +232,7 @@ export default function PaymentSelector({
                   <div className="w-2.5 h-2.5 rounded-full bg-green-600" />
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                <div className="w-5 h-5 rounded-full border-2 border-border-subtle" />
               )}
             </div>
           </button>

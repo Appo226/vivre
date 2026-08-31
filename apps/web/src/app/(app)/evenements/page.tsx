@@ -158,7 +158,7 @@ export default function EvenementsPage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
+    <div className="min-h-screen bg-page">
       {/* En-tête */}
       <div className="bg-gradient-to-br from-[#1A1A2E] to-[#1A6B3A] px-4 pt-12 pb-8">
         <h1 className="text-white text-2xl font-bold font-['Sora']">Événements</h1>
@@ -196,9 +196,9 @@ export default function EvenementsPage(): React.ReactElement {
             onChange={(e) => setSelectedCity(e.target.value)}
             className="bg-white/20 text-white text-sm rounded-lg px-2.5 py-1.5 focus:outline-none focus:bg-white/30 appearance-none"
           >
-            <option value="" className="text-gray-900">Toutes les villes</option>
+            <option value="" className="text-ink">Toutes les villes</option>
             {cities.map((c) => (
-              <option key={c.id} value={c.id} className="text-gray-900">{c.name}</option>
+              <option key={c.id} value={c.id} className="text-ink">{c.name}</option>
             ))}
           </select>
         </div>
@@ -212,7 +212,7 @@ export default function EvenementsPage(): React.ReactElement {
             className={`px-4 py-2 rounded-full text-sm font-medium flex-shrink-0 transition-all ${
               !selectedCategory
                 ? "bg-[#1A6B3A] text-white shadow-sm"
-                : "bg-white dark:bg-dark-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-dark-700"
+                : "bg-surface-card text-ink-soft border border-border-subtle"
             }`}
           >
             Tous
@@ -224,7 +224,7 @@ export default function EvenementsPage(): React.ReactElement {
               className={`px-4 py-2 rounded-full text-sm font-medium flex-shrink-0 transition-all flex items-center gap-1.5 ${
                 selectedCategory === cat.id
                   ? "text-white shadow-sm"
-                  : "bg-white dark:bg-dark-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-dark-700"
+                  : "bg-surface-card text-ink-soft border border-border-subtle"
               }`}
               style={selectedCategory === cat.id ? { backgroundColor: cat.color_hex } : {}}
             >
@@ -240,12 +240,12 @@ export default function EvenementsPage(): React.ReactElement {
         {/* Résultat de recherche */}
         {searchQuery && (
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-ink-soft">
               {total} résultat{total > 1 ? "s" : ""} pour « {searchQuery} »
             </p>
             <button
               onClick={() => { setSearchQuery(""); setSearchInput(""); }}
-              className="text-[#1A6B3A] text-xs font-medium"
+              className="text-[#1A6B3A] dark:text-green-300 text-xs font-medium"
             >
               Effacer
             </button>
@@ -259,7 +259,7 @@ export default function EvenementsPage(): React.ReactElement {
 
         {/* Titre section */}
         {!searchQuery && (
-          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mt-6 mb-3">
+          <h2 className="font-semibold text-ink mt-6 mb-3">
             {selectedCategory || selectedCity ? "Événements filtrés" : "Tous les événements"}
           </h2>
         )}
@@ -268,11 +268,11 @@ export default function EvenementsPage(): React.ReactElement {
         {isLoading && (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white dark:bg-dark-800 rounded-2xl overflow-hidden animate-pulse">
-                <div className="h-36 bg-gray-200 dark:bg-dark-700" />
+              <div key={i} className="bg-surface-card rounded-2xl overflow-hidden animate-pulse">
+                <div className="h-36 bg-surface-elevated" />
                 <div className="p-3 space-y-2">
-                  <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded w-1/2" />
+                  <div className="h-3 bg-surface-elevated rounded w-3/4" />
+                  <div className="h-3 bg-surface-elevated rounded w-1/2" />
                 </div>
               </div>
             ))}
@@ -281,10 +281,10 @@ export default function EvenementsPage(): React.ReactElement {
 
         {/* Aucun résultat */}
         {!isLoading && allEvents.length === 0 && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl p-8 text-center">
+          <div className="bg-surface-card rounded-2xl p-8 text-center">
             <div className="text-4xl mb-3">🎪</div>
-            <p className="font-semibold text-gray-800 dark:text-gray-100">Aucun événement</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="font-semibold text-ink">Aucun événement</p>
+            <p className="text-sm text-ink-soft mt-1">
               {searchQuery
                 ? "Essayez d'autres mots-clés"
                 : "Aucun événement disponible pour le moment"}
@@ -313,7 +313,7 @@ export default function EvenementsPage(): React.ReactElement {
           <button
             onClick={() => void fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="w-full mt-4 py-3 border border-gray-200 dark:border-dark-700 rounded-xl text-sm text-gray-600 dark:text-gray-300 font-medium disabled:opacity-60"
+            className="w-full mt-4 py-3 border border-border-subtle rounded-xl text-sm text-ink-soft font-medium disabled:opacity-60"
           >
             {isFetchingNextPage ? "Chargement..." : "Voir plus d'événements"}
           </button>
@@ -343,13 +343,13 @@ function FeaturedEvents({
 
   return (
     <div className="mt-2">
-      <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-3">À la une</h2>
+      <h2 className="font-semibold text-ink mb-3">À la une</h2>
       <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
         {featured.map((event) => (
           <button
             key={event.id}
             onClick={() => onSelect(event.id)}
-            className="flex-shrink-0 w-64 bg-white dark:bg-dark-800 rounded-2xl overflow-hidden shadow-md text-left active:scale-[0.98] transition-transform"
+            className="flex-shrink-0 w-64 bg-surface-card rounded-2xl overflow-hidden shadow-md text-left active:scale-[0.98] transition-transform"
           >
             {event.cover_url ? (
               <img
@@ -363,11 +363,11 @@ function FeaturedEvents({
               </div>
             )}
             <div className="p-3">
-              <p className="font-bold text-gray-900 dark:text-gray-100 text-sm line-clamp-2">{event.title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="font-bold text-ink text-sm line-clamp-2">{event.title}</p>
+              <p className="text-xs text-ink-soft mt-1">
                 {formatEventDate(event.starts_at)} • {formatEventTime(event.starts_at)}
               </p>
-              <p className="text-xs text-[#1A6B3A] font-semibold mt-1">
+              <p className="text-xs text-[#1A6B3A] dark:text-green-300 font-semibold mt-1">
                 {event.min_price === 0 ? "Gratuit" : `À partir de ${event.min_price.toLocaleString("fr-FR")} FCFA`}
               </p>
             </div>
@@ -392,7 +392,7 @@ function EventCardComponent({
   return (
     <button
       onClick={onPress}
-      className="bg-white dark:bg-dark-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98]"
+      className="bg-surface-card rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98]"
     >
       {/* Image ou gradient */}
       {event.cover_url ? (
@@ -417,14 +417,14 @@ function EventCardComponent({
             ⭐ À la une
           </span>
         )}
-        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs line-clamp-2 mt-0.5 leading-tight">
+        <p className="font-semibold text-ink text-xs line-clamp-2 mt-0.5 leading-tight">
           {event.title}
         </p>
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-[10px] text-ink-soft mt-1">
           {formatEventDate(event.starts_at)}
         </p>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{event.venue_name}</p>
-        <p className="text-xs font-bold text-[#1A6B3A] mt-1.5">
+        <p className="text-[10px] text-ink-soft truncate">{event.venue_name}</p>
+        <p className="text-xs font-bold text-[#1A6B3A] dark:text-green-300 mt-1.5">
           {event.min_price === 0 ? "Gratuit" : `${event.min_price.toLocaleString("fr-FR")} F`}
         </p>
       </div>
@@ -451,13 +451,13 @@ function AdBrowseTile({ ad }: { ad: BrowseAd }): React.ReactElement {
         </span>
       </div>
       <div className="p-2.5">
-        <p className="font-semibold text-gray-900 dark:text-gray-100 text-xs line-clamp-2 mt-0.5 leading-tight">
+        <p className="font-semibold text-ink text-xs line-clamp-2 mt-0.5 leading-tight">
           {ad.title}
         </p>
       </div>
     </>
   );
-  const className = "bg-white dark:bg-dark-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98] block";
+  const className = "bg-surface-card rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98] block";
 
   // Pas tous les annonceurs n'ont un lien — une pub sans link_url s'affiche mais ne mène nulle part.
   if (!ad.link_url) {

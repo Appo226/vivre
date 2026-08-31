@@ -79,17 +79,17 @@ export default function CitySelector(): React.ReactElement {
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white w-full rounded-t-3xl max-h-[70vh] flex flex-col pb-[env(safe-area-inset-bottom)]"
+            className="bg-surface-card w-full rounded-t-3xl max-h-[70vh] flex flex-col pb-[env(safe-area-inset-bottom)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* En-tête du sheet */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
-              <h2 className="text-base font-sora font-bold text-gray-900">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border-subtle">
+              <h2 className="text-base font-sora font-bold text-ink">
                 Choisir une ville
               </h2>
               <button
                 onClick={() => setOpen(false)}
-                className="text-gray-400 text-xl leading-none"
+                className="text-ink-soft text-xl leading-none"
                 aria-label="Fermer"
               >
                 ✕
@@ -106,7 +106,7 @@ export default function CitySelector(): React.ReactElement {
                     "w-full text-left px-4 py-3 rounded-xl font-dm text-sm transition-colors",
                     selected.name === DEFAULT_CITY.name
                       ? "bg-green-50 text-green-800 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50",
+                      : "text-ink hover:bg-surface-elevated",
                   ].join(" ")}
                 >
                   📍 {DEFAULT_CITY.name}
@@ -120,7 +120,7 @@ export default function CitySelector(): React.ReactElement {
                     "w-full text-left px-4 py-3 rounded-xl font-dm text-sm transition-colors",
                     selected.id === city.id
                       ? "bg-green-50 text-green-800 font-semibold"
-                      : "text-gray-700 hover:bg-gray-50",
+                      : "text-ink hover:bg-surface-elevated",
                   ].join(" ")}
                 >
                   📍 {city.name}

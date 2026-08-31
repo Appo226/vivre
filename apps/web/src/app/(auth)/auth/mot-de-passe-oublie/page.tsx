@@ -43,7 +43,7 @@ function normalizePhoneForDisplay(raw: string): string {
 }
 
 function inputCls(): string {
-  return "w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900 placeholder-gray-400 text-base";
+  return "w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink placeholder-gray-400 text-base";
 }
 
 export default function ForgotPasswordPage(): React.ReactElement {
@@ -145,7 +145,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
       <main className="flex-1 px-6 pt-8 pb-6 flex flex-col">
         <div className="max-w-sm mx-auto w-full flex flex-col flex-1">
           {info && step === "reset" && (
-            <p className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+            <p className="mb-4 text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl px-4 py-3">
               {info}
             </p>
           )}
@@ -153,7 +153,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
           {step === "phone" ? (
             <form onSubmit={(e) => void handleSend(e)} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Numéro de téléphone</label>
+                <label className="block text-sm font-medium text-ink mb-1.5">Numéro de téléphone</label>
                 <input
                   type="tel"
                   inputMode="tel"
@@ -171,7 +171,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
                 disabled={isLoading}
                 className={[
                   "w-full py-4 rounded-xl text-white font-semibold text-base mt-2 transition-all duration-200",
-                  isLoading ? "bg-gray-300 cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
+                  isLoading ? "bg-surface-elevated cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
                 ].join(" ")}
               >
                 {isLoading ? "…" : "Envoyer le code"}
@@ -180,7 +180,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
           ) : (
             <form onSubmit={(e) => void handleReset(e)} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Code reçu par SMS</label>
+                <label className="block text-sm font-medium text-ink mb-1.5">Code reçu par SMS</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -193,7 +193,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nouveau mot de passe</label>
+                <label className="block text-sm font-medium text-ink mb-1.5">Nouveau mot de passe</label>
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -210,7 +210,7 @@ export default function ForgotPasswordPage(): React.ReactElement {
                 disabled={isLoading}
                 className={[
                   "w-full py-4 rounded-xl text-white font-semibold text-base mt-2 transition-all duration-200",
-                  isLoading ? "bg-gray-300 cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
+                  isLoading ? "bg-surface-elevated cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
                 ].join(" ")}
               >
                 {isLoading ? "…" : "Réinitialiser le mot de passe"}

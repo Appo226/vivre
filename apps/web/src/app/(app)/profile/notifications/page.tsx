@@ -97,11 +97,11 @@ export default function NotificationsPage(): React.ReactElement | null {
   }
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 pb-24">
-      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+    <div className="mobile-container min-h-screen bg-page pb-24">
+      <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
-          <button onClick={() => router.back()} className="text-gray-500 text-xl">‹</button>
-          <h1 className="text-lg font-sora font-bold text-gray-900">Notifications</h1>
+          <button onClick={() => router.back()} className="text-ink-soft text-xl">‹</button>
+          <h1 className="text-lg font-sora font-bold text-ink">Notifications</h1>
         </div>
       </header>
 
@@ -109,12 +109,12 @@ export default function NotificationsPage(): React.ReactElement | null {
         {loading && (
           <>
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-4 animate-pulse flex gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0" />
+              <div key={i} className="bg-surface-card rounded-xl p-4 animate-pulse flex gap-3">
+                <div className="w-10 h-10 bg-surface-elevated rounded-full flex-shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-gray-200 rounded w-2/3" />
-                  <div className="h-2 bg-gray-100 rounded w-full" />
-                  <div className="h-2 bg-gray-100 rounded w-1/3" />
+                  <div className="h-3 bg-surface-elevated rounded w-2/3" />
+                  <div className="h-2 bg-surface-elevated rounded w-full" />
+                  <div className="h-2 bg-surface-elevated rounded w-1/3" />
                 </div>
               </div>
             ))}
@@ -124,7 +124,7 @@ export default function NotificationsPage(): React.ReactElement | null {
         {!loading && notifs.length === 0 && (
           <div className="text-center py-20">
             <p className="text-4xl mb-3">🔔</p>
-            <p className="text-gray-400 font-dm text-sm">Aucune notification pour le moment.</p>
+            <p className="text-ink-soft font-dm text-sm">Aucune notification pour le moment.</p>
           </div>
         )}
 
@@ -132,17 +132,17 @@ export default function NotificationsPage(): React.ReactElement | null {
           <div
             key={n.id}
             className={[
-              "bg-white rounded-xl p-4 flex gap-3 border transition-colors",
-              n.is_read ? "border-gray-100" : "border-green-200 bg-green-50/30",
+              "bg-surface-card rounded-xl p-4 flex gap-3 border transition-colors",
+              n.is_read ? "border-border-subtle" : "border-green-200 dark:border-green-900 bg-green-50/30 dark:bg-green-950/20",
             ].join(" ")}
           >
-            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-xl">
+            <div className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center flex-shrink-0 text-xl">
               {TYPE_ICONS[n.type] ?? "🔔"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 font-jakarta">{n.title}</p>
-              <p className="text-xs text-gray-500 font-dm mt-0.5 leading-relaxed">{n.body}</p>
-              <p className="text-xs text-gray-400 font-dm mt-1">{relativeTime(n.sent_at)}</p>
+              <p className="text-sm font-semibold text-ink font-jakarta">{n.title}</p>
+              <p className="text-xs text-ink-soft font-dm mt-0.5 leading-relaxed">{n.body}</p>
+              <p className="text-xs text-ink-soft font-dm mt-1">{relativeTime(n.sent_at)}</p>
             </div>
             {!n.is_read && (
               <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
@@ -154,7 +154,7 @@ export default function NotificationsPage(): React.ReactElement | null {
           <button
             onClick={() => void loadMore()}
             disabled={loadingMore}
-            className="w-full py-3 text-sm text-green-700 font-jakarta font-semibold disabled:opacity-50"
+            className="w-full py-3 text-sm text-green-700 dark:text-green-300 font-jakarta font-semibold disabled:opacity-50"
           >
             {loadingMore ? "Chargement…" : "Voir plus"}
           </button>

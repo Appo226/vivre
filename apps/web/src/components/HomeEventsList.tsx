@@ -17,6 +17,7 @@ interface HomeEvent {
   id: string;
   title: string;
   slug: string;
+  cover_url: string | null;
   starts_at: Date;
   venue_name: string;
   is_featured: boolean;
@@ -32,10 +33,10 @@ export function HomeEventsList({ events }: { events: HomeEvent[] }): React.React
 
   if (events.length === 0) {
     return (
-      <div className="kente-texture rounded-card border border-gray-100 dark:border-dark-700 p-8 text-center">
+      <div className="kente-texture rounded-card border border-border-subtle p-8 text-center">
         <p className="text-3xl mb-2">🎪</p>
-        <p className="font-jakarta font-semibold text-gray-700 dark:text-gray-200">Aucun événement pour l&apos;instant</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 font-dm mt-1">Soyez le premier à en publier un.</p>
+        <p className="font-jakarta font-semibold text-ink">Aucun événement pour l&apos;instant</p>
+        <p className="text-sm text-ink-soft font-dm mt-1">Soyez le premier à en publier un.</p>
       </div>
     );
   }
@@ -50,17 +51,30 @@ export function HomeEventsList({ events }: { events: HomeEvent[] }): React.React
           <Link
             key={event.id}
             href={`/evenements/${event.slug}`}
-            className="flex gap-3 rounded-card border border-gray-100 dark:border-dark-700 shadow-card hover:shadow-modal transition-shadow overflow-hidden bg-white dark:bg-dark-800"
+            className="flex gap-3 rounded-card border border-border-subtle shadow-elevated hover:shadow-modal transition-shadow overflow-hidden bg-surface-card"
           >
-            <div className="w-16 h-16 flex-shrink-0 gradient-green flex items-center justify-center text-2xl">
-              {event.category.icon ?? "🎫"}
+            {/*
+              Vraie photo de couverture quand elle existe — l'ADN visuel VIVRE ("photographie
+              d'événement forte") ne doit pas s'arrêter au hero, une card sans photo réelle
+              n'est qu'une icône sur un dégradé. Le dégradé+icône reste le repli honnête pour
+              les rares events sans photo, pas le traitement par défaut.
+            */}
+            <div className="relative w-16 h-16 flex-shrink-0">
+              {event.cover_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- couverture organisateur, pas dans /public
+                <img src={event.cover_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full gradient-green flex items-center justify-center text-2xl">
+                  {event.category.icon ?? "🎫"}
+                </div>
+              )}
             </div>
             <div className="py-1.5 pr-3 flex flex-col justify-center min-w-0">
               <div className="flex items-center gap-1.5">
                 {event.is_featured && <PatriotStar className="w-3 h-3 flex-shrink-0" />}
-                <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100 truncate">{event.title}</p>
+                <p className="font-jakarta font-bold text-sm text-ink truncate">{event.title}</p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-dm truncate">
+              <p className="text-xs text-ink-soft font-dm truncate">
                 {event.venue_name} · {event.city.name} · {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(event.starts_at)}
               </p>
               <p className="price-text text-sm mt-0.5">
@@ -76,7 +90,7 @@ export function HomeEventsList({ events }: { events: HomeEvent[] }): React.React
       {hiddenCount > 0 && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="w-full mt-3 py-2.5 text-sm font-semibold text-[#1A6B3A] dark:text-[#4ADE80] border border-[#1A6B3A]/20 dark:border-[#4ADE80]/30 rounded-xl hover:bg-green-50 dark:hover:bg-dark-700 transition-colors"
+          className="w-full mt-3 py-2.5 text-sm font-semibold text-[#1A6B3A] dark:text-[#4ADE80] border border-[#1A6B3A]/20 dark:border-[#4ADE80]/30 rounded-xl hover:bg-green-50 dark:hover:bg-surface-elevated transition-colors"
         >
           {expanded ? "Voir moins" : `Voir tout (${events.length})`}
         </button>

@@ -174,9 +174,9 @@ export default function RootLayout({ children }: RootLayoutProps): React.ReactEl
       </head>
       <body
         className={[
-          "min-h-screen bg-gray-50 dark:bg-dark-900",
+          "min-h-screen bg-page",
           "font-dm antialiased",             /* DM Sans par défaut, antialiasing CSS */
-          "text-gray-900 dark:text-gray-100",
+          "text-ink",
           /* Padding bas = hauteur de la bottom navigation pour éviter que le contenu
              soit caché derrière la nav (seulement sur mobile) */
           "pb-safe-bottom",

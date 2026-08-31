@@ -151,8 +151,8 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
           placeholder="Rechercher hôtels, restaurants, bus..."
           className={[
             "w-full h-12 px-4 pl-10",
-            "bg-white rounded-card text-gray-900",
-            "font-dm text-sm placeholder:text-gray-400",
+            "bg-surface-card rounded-card text-ink",
+            "font-dm text-sm placeholder:text-ink-soft",
             "focus:outline-none focus:ring-2 focus:ring-green-300",
           ].join(" ")}
           autoComplete="off"
@@ -160,13 +160,13 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
           aria-expanded={open}
           aria-autocomplete="list"
         />
-        <span className="absolute left-3 top-3.5 text-gray-400">
+        <span className="absolute left-3 top-3.5 text-ink-soft">
           {loading ? <SpinnerIcon /> : "🔍"}
         </span>
         {query && (
           <button
             onClick={() => { setQuery(""); setResults(null); setOpen(false); }}
-            className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 text-sm"
+            className="absolute right-3 top-3.5 text-ink-soft hover:text-ink-soft text-sm"
             aria-label="Effacer"
           >
             ✕
@@ -179,7 +179,7 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
         <div
           className={[
             "absolute left-0 right-0 top-full mt-1 z-50",
-            "bg-white rounded-xl shadow-xl border border-gray-100",
+            "bg-surface-card rounded-xl shadow-xl border border-border-subtle",
             "max-h-[70vh] overflow-y-auto",
           ].join(" ")}
           role="listbox"
@@ -188,7 +188,7 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
             <div key={group.label}>
               {/* Group header */}
               <div className="px-3 pt-2 pb-1">
-                <span className="text-xs font-jakarta font-semibold text-gray-400 uppercase tracking-wide">
+                <span className="text-xs font-jakarta font-semibold text-ink-soft uppercase tracking-wide">
                   {group.label}
                 </span>
               </div>
@@ -199,7 +199,7 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
                   onClick={() => handleSelect(item.href)}
                   className={[
                     "w-full flex items-center gap-3 px-3 py-2.5",
-                    "hover:bg-gray-50 transition-colors text-left",
+                    "hover:bg-surface-elevated transition-colors text-left",
                   ].join(" ")}
                   role="option"
                 >
@@ -207,10 +207,10 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
                     {TYPE_ICON[item.type]}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-jakarta font-medium text-gray-900 truncate">
+                    <p className="text-sm font-jakarta font-medium text-ink truncate">
                       {item.title}
                     </p>
-                    <p className="text-xs font-dm text-gray-500 truncate">
+                    <p className="text-xs font-dm text-ink-soft truncate">
                       {TYPE_LABEL[item.type]}
                       {item.subtitle ? ` · ${item.subtitle}` : ""}
                       {" · "}
@@ -224,7 +224,7 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
                       </span>
                     )}
                     {item.meta && (
-                      <p className="text-xs text-gray-400 font-dm">{item.meta}</p>
+                      <p className="text-xs text-ink-soft font-dm">{item.meta}</p>
                     )}
                   </div>
                 </button>
@@ -233,8 +233,8 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
           ))}
 
           {/* Footer */}
-          <div className="px-3 py-2 border-t border-gray-100">
-            <p className="text-xs text-gray-400 font-dm text-center">
+          <div className="px-3 py-2 border-t border-border-subtle">
+            <p className="text-xs text-ink-soft font-dm text-center">
               {results?.total} résultat{(results?.total ?? 0) > 1 ? "s" : ""} pour «{query}»
             </p>
           </div>
@@ -243,11 +243,11 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
 
       {/* No results state */}
       {open === false && query.length >= 2 && !loading && results?.total === 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-100 px-4 py-6 text-center">
-          <p className="text-sm text-gray-500 font-dm">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-surface-card rounded-xl shadow-xl border border-border-subtle px-4 py-6 text-center">
+          <p className="text-sm text-ink-soft font-dm">
             Aucun résultat pour «{query}»
           </p>
-          <p className="text-xs text-gray-400 font-dm mt-1">
+          <p className="text-xs text-ink-soft font-dm mt-1">
             Essayez un autre terme ou consultez les catégories.
           </p>
         </div>
@@ -263,7 +263,7 @@ export default function SearchBar({ cityId }: SearchBarProps): React.ReactElemen
 function SpinnerIcon(): React.ReactElement {
   return (
     <svg
-      className="animate-spin w-4 h-4 text-gray-400"
+      className="animate-spin w-4 h-4 text-ink-soft"
       viewBox="0 0 24 24"
       fill="none"
     >

@@ -78,18 +78,18 @@ function EventsQueue(): React.ReactElement {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
+    <main className="min-h-screen bg-page pb-12">
       <AdminHeader title="Événements à approuver" subtitle={`${events.length} en attente`} />
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-5xl">
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">{error}</p>}
 
-        {loading && <p className="text-center text-gray-400 text-sm py-8">Chargement…</p>}
+        {loading && <p className="text-center text-ink-soft text-sm py-8">Chargement…</p>}
 
         {!loading && events.length === 0 && (
           <div className="text-center py-16">
             <p className="text-3xl mb-2">✅</p>
-            <p className="text-gray-500 text-sm">Aucun événement en attente.</p>
+            <p className="text-ink-soft text-sm">Aucun événement en attente.</p>
           </div>
         )}
 
@@ -98,31 +98,31 @@ function EventsQueue(): React.ReactElement {
           const photoCount = (event.cover_url ? 1 : 0) + event.gallery_urls.length;
           const isPaid = event.ticket_types.some((tt) => tt.price_fcfa > 0);
           return (
-            <div key={event.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div key={event.id} className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
               {event.cover_url && (
                 <div className="h-36 bg-cover bg-center" style={{ backgroundImage: `url(${event.cover_url})` }} />
               )}
               <div className="p-4">
-                <p className="font-jakarta font-bold text-gray-900">{event.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="font-jakarta font-bold text-ink">{event.title}</p>
+                <p className="text-xs text-ink-soft mt-0.5">
                   {event.venue_name} · {event.city.name} · {event.category.name}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-ink-soft mt-0.5">
                   {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(event.starts_at))}
                   {" · "}Capacité {event.max_capacity}
                 </p>
 
-                <p className="text-sm text-gray-600 mt-3 whitespace-pre-wrap">{event.description}</p>
+                <p className="text-sm text-ink-soft mt-3 whitespace-pre-wrap">{event.description}</p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {event.ticket_types.map((tt) => (
-                    <span key={tt.name} className="text-xs font-semibold bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">
+                    <span key={tt.name} className="text-xs font-semibold bg-surface-elevated border border-border-subtle rounded-full px-2.5 py-1">
                       {tt.name} · {tt.price_fcfa === 0 ? "Gratuit" : `${tt.price_fcfa.toLocaleString("fr-FR")} FCFA`} · {tt.quantity} places
                     </span>
                   ))}
                 </div>
 
-                <div className="mt-3 text-xs text-gray-500 space-y-1">
+                <div className="mt-3 text-xs text-ink-soft space-y-1">
                   <p>📸 {photoCount} photo(s)/affiche(s) {photoCount < 3 && <span className="text-red-600 font-semibold">— insuffisant (min 3)</span>}</p>
                   <p>👤 Organisateur : {event.organizer.first_name ?? "—"} {event.organizer.last_name ?? ""} · {event.organizer.phone}</p>
                   {event.safety_description && <p>🛡️ Sécurité : {event.safety_description}</p>}
@@ -137,10 +137,10 @@ function EventsQueue(): React.ReactElement {
                       onChange={(e) => setRejectReason(e.target.value)}
                       placeholder="Raison du rejet (visible par l'organisateur)…"
                       rows={2}
-                      className="w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+                      className="w-full rounded-xl border border-border-subtle p-2.5 text-sm"
                     />
                     {event.has_paid_publishing && event.publishing_fee_fcfa > 0 && (
-                      <label className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg p-2.5">
+                      <label className="flex items-start gap-2 text-xs text-ink-soft bg-surface-elevated rounded-lg p-2.5">
                         <input
                           type="checkbox"
                           checked={refundNow}
@@ -164,7 +164,7 @@ function EventsQueue(): React.ReactElement {
                       </button>
                       <button
                         onClick={() => { setRejectingId(null); setRejectReason(""); setRefundNow(false); }}
-                        className="px-4 text-sm font-semibold text-gray-500"
+                        className="px-4 text-sm font-semibold text-ink-soft"
                       >
                         Annuler
                       </button>
@@ -181,7 +181,7 @@ function EventsQueue(): React.ReactElement {
                     </button>
                     <button
                       onClick={() => setRejectingId(event.id)}
-                      className="flex-1 bg-white border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl"
+                      className="flex-1 bg-surface-card border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl"
                     >
                       Rejeter
                     </button>

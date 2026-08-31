@@ -188,12 +188,12 @@ function StepIndicator({ step, total }: { step: number; total: number }): React.
             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
             i + 1 === step  ? "bg-green-700 text-white"
             : i + 1 < step  ? "bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200"
-            : "bg-gray-200 dark:bg-dark-700 text-gray-500 dark:text-gray-400",
+            : "bg-surface-elevated text-ink-soft",
           ].join(" ")}>
             {i + 1 < step ? "✓" : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={["flex-1 h-0.5 max-w-10", i + 1 < step ? "bg-green-300 dark:bg-green-800" : "bg-gray-200 dark:bg-dark-700"].join(" ")} />
+            <div className={["flex-1 h-0.5 max-w-10", i + 1 < step ? "bg-green-300 dark:bg-green-800" : "bg-surface-elevated"].join(" ")} />
           )}
         </React.Fragment>
       ))}
@@ -206,7 +206,7 @@ function Field({ label, required, children }: {
 }): React.ReactElement {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
+      <label className="block text-xs font-semibold text-ink-soft mb-1.5">
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       {children}
@@ -214,7 +214,7 @@ function Field({ label, required, children }: {
   );
 }
 
-const inputCls = "w-full border border-gray-300 dark:border-dark-600 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-gray-100";
+const inputCls = "w-full border border-border-subtle rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-surface-card text-ink";
 const selectCls = inputCls + " appearance-none";
 
 /* ============================================================
@@ -481,14 +481,14 @@ export default function PublierEvenementPage(): React.ReactElement {
    * ============================================================ */
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 dark:bg-dark-900 pb-28">
+    <div className="mobile-container min-h-screen bg-page pb-28">
       {/* Header */}
-      <header className="bg-white dark:bg-dark-800 border-b border-gray-100 dark:border-dark-700 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+      <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
-          <button onClick={() => (step > 1 ? setStep((s) => s - 1) : router.back())} className="text-gray-500 dark:text-gray-400 text-xl">‹</button>
+          <button onClick={() => (step > 1 ? setStep((s) => s - 1) : router.back())} className="text-ink-soft text-xl">‹</button>
           <div className="flex-1">
-            <h1 className="text-base font-sora font-bold text-gray-900 dark:text-gray-100">Publier un événement</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-dm">
+            <h1 className="text-base font-sora font-bold text-ink">Publier un événement</h1>
+            <p className="text-xs text-ink-soft font-dm">
               {step === 1 ? "Infos de base" : step === 2 ? "Lieu & dates" : step === 3 ? "Photos" : "Types de billets"}
             </p>
           </div>
@@ -570,7 +570,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                     className={selectCls}
                   />
                 </Field>
-                <p className="col-span-2 text-xs text-gray-500 -mt-1">
+                <p className="col-span-2 text-xs text-ink-soft -mt-1">
                   Votre ville sera ajoutée immédiatement — vous n&apos;avez pas besoin d&apos;attendre
                   une validation pour publier. On la localisera avec l&apos;adresse du lieu à l&apos;étape suivante.
                 </p>
@@ -578,7 +578,7 @@ export default function PublierEvenementPage(): React.ReactElement {
             )}
 
             <Field label="Autres catégories (optionnel)">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 -mt-1">
+              <p className="text-xs text-ink-soft mb-2 -mt-1">
                 Aide les gens à trouver votre événement depuis plusieurs catégories — n&apos;affecte
                 pas le badge affiché, qui suit toujours la catégorie principale. 5 max.
               </p>
@@ -600,7 +600,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                       className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                         selected
                           ? "bg-green-700 text-white border-green-700"
-                          : "bg-white dark:bg-dark-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-dark-600"
+                          : "bg-surface-card text-ink-soft border-border-subtle"
                       }`}
                     >
                       {c.icon} {c.name}
@@ -618,7 +618,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                 className={inputCls + " resize-none h-36"}
                 maxLength={10000}
               />
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-right">{form.description.length} / 10 000</p>
+              <p className="text-xs text-ink-soft mt-1 text-right">{form.description.length} / 10 000</p>
             </Field>
           </div>
         )}
@@ -651,7 +651,7 @@ export default function PublierEvenementPage(): React.ReactElement {
             </Field>
 
             <Field label="Position exacte sur la carte" required>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 -mt-1">
+              <p className="text-xs text-ink-soft mb-2 -mt-1">
                 Obligatoire : c&apos;est ce qui permet à un inconnu qui n&apos;a jamais mis les
                 pieds ici de trouver le lieu et d&apos;arriver le jour J. Sans position exacte,
                 le bouton « Itinéraire » ne s&apos;affichera pas sur la page de l&apos;événement.
@@ -697,7 +697,7 @@ export default function PublierEvenementPage(): React.ReactElement {
 
             {/* Optionnel */}
             <div className="pt-2">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Optionnel</p>
+              <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-3">Optionnel</p>
 
               <div className="space-y-4">
                 <Field label="Mesures de sécurité">
@@ -730,7 +730,7 @@ export default function PublierEvenementPage(): React.ReactElement {
          * ====================================================== */}
         {step === 3 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-dm">
+            <p className="text-sm text-ink-soft font-dm">
               Ajoutez au moins 3 photos de l&apos;événement (lieu, artistes, édition précédente…)
               ou votre affiche officielle. C&apos;est ce qui rassure vos futurs participants.
             </p>
@@ -746,14 +746,14 @@ export default function PublierEvenementPage(): React.ReactElement {
          * ====================================================== */}
         {step === 4 && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-dm">
+            <p className="text-sm text-ink-soft font-dm">
               Définissez les catégories de billets. Vous pouvez en ajouter plusieurs (VIP, Général, Presse…).
             </p>
 
             {form.ticket_types.map((ticket, idx) => (
-              <div key={idx} className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-200 dark:border-dark-700 p-4 space-y-3">
+              <div key={idx} className="bg-surface-card rounded-2xl border border-border-subtle p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-jakarta font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                  <p className="font-jakarta font-semibold text-ink text-sm">
                     Billet {idx + 1}
                   </p>
                   {form.ticket_types.length > 1 && (
@@ -812,8 +812,8 @@ export default function PublierEvenementPage(): React.ReactElement {
                 </Field>
 
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Type de placement</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-sm font-semibold text-ink-soft mb-1.5">Type de placement</p>
+                  <p className="text-xs text-ink-soft mb-2">
                     Un même événement peut mélanger les deux : par exemple une tribune en admission générale et une rangée VIP à places numérotées, chacune comme son propre type de billet.
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -822,11 +822,11 @@ export default function PublierEvenementPage(): React.ReactElement {
                       onClick={() => setTicket(idx, "is_seated", false)}
                       className={[
                         "text-left p-3 rounded-xl border-2 transition-colors",
-                        !ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-gray-200 dark:border-dark-700",
+                        !ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-border-subtle",
                       ].join(" ")}
                     >
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Admission générale</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm font-semibold text-ink">Admission générale</p>
+                      <p className="text-xs text-ink-soft mt-0.5">
                         Aucune place assignée — chacun s&apos;installe où il veut parmi les places libres.
                       </p>
                     </button>
@@ -835,11 +835,11 @@ export default function PublierEvenementPage(): React.ReactElement {
                       onClick={() => setTicket(idx, "is_seated", true)}
                       className={[
                         "text-left p-3 rounded-xl border-2 transition-colors",
-                        ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-gray-200 dark:border-dark-700",
+                        ticket.is_seated ? "border-green-600 bg-green-50 dark:bg-green-950/30" : "border-border-subtle",
                       ].join(" ")}
                     >
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Places numérotées</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-sm font-semibold text-ink">Places numérotées</p>
+                      <p className="text-xs text-ink-soft mt-0.5">
                         Chaque billet reçoit un numéro de place automatique (ex : « {ticket.name || "Rangée VIP"} · Place 1 », puis 2, 3…). Le nom ci-dessus fait déjà office de section ou de rangée.
                       </p>
                     </button>
@@ -865,7 +865,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                     placeholder="Ex : 1 T-shirt VIVRE, Cocktail offert"
                     className={inputCls}
                   />
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-ink-soft mt-1">
                     Séparez par des virgules. Déjà compris dans le prix — pas d&apos;achat séparé.
                   </p>
                 </Field>
@@ -878,7 +878,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                     placeholder="Ex : S, M, L, XL"
                     className={inputCls}
                   />
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-ink-soft mt-1">
                     Si rempli, l&apos;acheteur devra choisir une option avant de réserver.
                   </p>
                 </Field>
@@ -894,16 +894,16 @@ export default function PublierEvenementPage(): React.ReactElement {
 
             {/* Produits en option (merch) */}
             <div className="pt-2">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Optionnel</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-dm mb-3">
+              <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-1">Optionnel</p>
+              <p className="text-sm text-ink-soft font-dm mb-3">
                 Produits que l&apos;acheteur peut ajouter à sa commande, séparément du billet
                 (ex : tote bag, poster). Achat en plus — pas inclus dans un billet.
               </p>
 
               {form.merch_items.map((merch, idx) => (
-                <div key={idx} className="bg-white dark:bg-dark-800 rounded-2xl border border-gray-200 dark:border-dark-700 p-4 space-y-3 mb-3">
+                <div key={idx} className="bg-surface-card rounded-2xl border border-border-subtle p-4 space-y-3 mb-3">
                   <div className="flex items-center justify-between">
-                    <p className="font-jakarta font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                    <p className="font-jakarta font-semibold text-ink text-sm">
                       Produit {idx + 1}
                     </p>
                     <button
@@ -972,20 +972,20 @@ export default function PublierEvenementPage(): React.ReactElement {
 
               <button
                 onClick={addMerch}
-                className="w-full border-2 border-dashed border-gray-300 dark:border-dark-600 text-gray-600 dark:text-gray-300 font-jakarta font-semibold py-3 rounded-2xl text-sm hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                className="w-full border-2 border-dashed border-border-subtle text-ink-soft font-jakarta font-semibold py-3 rounded-2xl text-sm hover:bg-surface-elevated transition-colors"
               >
                 + Ajouter un produit
               </button>
             </div>
 
             {/* Publicité optionnelle */}
-            <div className="bg-white dark:bg-dark-800 border border-gray-100 dark:border-dark-700 rounded-2xl p-4">
+            <div className="bg-surface-card border border-border-subtle rounded-2xl p-4">
               <label className="flex items-center justify-between gap-3 cursor-pointer">
                 <div>
-                  <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">
+                  <p className="font-jakarta font-bold text-sm text-ink">
                     Ajouter une publicité (optionnel)
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <p className="text-xs text-ink-soft mt-0.5">
                     Photo ou vidéo mise en avant sur l&apos;accueil, dès l&apos;approbation de votre événement.
                   </p>
                 </div>
@@ -1009,7 +1009,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                           "flex-1 py-2 rounded-lg text-sm font-semibold border",
                           adMediaType === t
                             ? "bg-green-700 text-white border-green-700"
-                            : "bg-white dark:bg-dark-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-dark-600",
+                            : "bg-surface-card text-ink-soft border-border-subtle",
                         ].join(" ")}
                       >
                         {t === "image" ? "Photo" : "Vidéo"}
@@ -1024,9 +1024,9 @@ export default function PublierEvenementPage(): React.ReactElement {
                     disabled={adUploading}
                     className="text-sm"
                   />
-                  {adUploading && <p className="text-xs text-gray-400">Envoi…</p>}
+                  {adUploading && <p className="text-xs text-ink-soft">Envoi…</p>}
                   {adMediaUrl && (
-                    <p className="text-xs text-green-700">✓ Fichier envoyé</p>
+                    <p className="text-xs text-green-700 dark:text-green-300">✓ Fichier envoyé</p>
                   )}
 
                   <Field label="Nombre de jours">
@@ -1041,7 +1041,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                   </Field>
 
                   {pricing && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-ink-soft">
                       {adFeePerDay.toLocaleString("fr-FR")} FCFA/jour × {adDays} jour{adDays > 1 ? "s" : ""} ={" "}
                       <strong>{adTotal.toLocaleString("fr-FR")} FCFA</strong>
                     </p>
@@ -1070,15 +1070,15 @@ export default function PublierEvenementPage(): React.ReactElement {
 
       {payingMessage && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
-          <div className="bg-white dark:bg-dark-800 rounded-2xl px-6 py-8 text-center max-w-xs">
+          <div className="bg-surface-card rounded-2xl px-6 py-8 text-center max-w-xs">
             <div className="w-8 h-8 border-2 border-green-700 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{payingMessage}</p>
+            <p className="text-sm font-semibold text-ink">{payingMessage}</p>
           </div>
         </div>
       )}
 
       {/* Bouton bas de page */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-bottom pt-3 bg-white dark:bg-dark-800 border-t border-gray-100 dark:border-dark-700 z-20">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-safe-bottom pt-3 bg-surface-card border-t border-border-subtle z-20">
         <div className="mobile-container">
           {step < 4 ? (
             <button

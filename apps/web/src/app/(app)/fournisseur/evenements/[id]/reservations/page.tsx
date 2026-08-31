@@ -41,8 +41,8 @@ interface StaffAccess {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: "En attente de paiement", color: "text-amber-700 bg-amber-50 border-amber-200" },
-  confirmed: { label: "Confirmé", color: "text-green-700 bg-green-50 border-green-200" },
-  checked_in: { label: "Entré", color: "text-gray-600 bg-gray-50 border-gray-200" },
+  confirmed: { label: "Confirmé", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
+  checked_in: { label: "Entré", color: "text-ink-soft bg-surface-elevated border-border-subtle" },
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
@@ -163,11 +163,11 @@ export default function ReservationsPage(): React.ReactElement {
   }
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 pb-16">
-      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+    <div className="mobile-container min-h-screen bg-page pb-16">
+      <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
-          <button onClick={() => router.back()} className="text-gray-500">‹</button>
-          <h1 className="text-lg font-sora font-bold text-gray-900">Réservations</h1>
+          <button onClick={() => router.back()} className="text-ink-soft">‹</button>
+          <h1 className="text-lg font-sora font-bold text-ink">Réservations</h1>
         </div>
       </header>
 
@@ -177,7 +177,7 @@ export default function ReservationsPage(): React.ReactElement {
           <div className="flex gap-2">
             <button
               onClick={() => { setManagePanel("reschedule"); setManageError(null); }}
-              className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-jakarta font-semibold"
+              className="flex-1 py-2.5 border border-border-subtle text-ink rounded-xl text-sm font-jakarta font-semibold"
             >
               Reprogrammer
             </button>
@@ -191,25 +191,25 @@ export default function ReservationsPage(): React.ReactElement {
         )}
 
         {manageSuccess && (
-          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl px-4 py-3 text-sm text-green-800 dark:text-green-300">
             {manageSuccess}
           </div>
         )}
 
         {/* Staff — accès scan délégué */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-surface-card rounded-xl border border-border-subtle overflow-hidden">
           <button
             onClick={() => setShowStaffPanel((s) => !s)}
             className="w-full flex items-center justify-between px-4 py-3"
           >
             <div className="text-left">
-              <p className="font-jakarta font-semibold text-gray-900 text-sm">Staff — accès scan</p>
-              <p className="text-xs text-gray-500 font-dm">
+              <p className="font-jakarta font-semibold text-ink text-sm">Staff — accès scan</p>
+              <p className="text-xs text-ink-soft font-dm">
                 {staff.length === 0 ? "Personne d'autre ne peut scanner" : `${staff.length} numéro${staff.length > 1 ? "s" : ""} autorisé${staff.length > 1 ? "s" : ""}`}
               </p>
             </div>
             <svg
-              className={`w-4 h-4 text-gray-400 transition-transform ${showStaffPanel ? "rotate-180" : ""}`}
+              className={`w-4 h-4 text-ink-soft transition-transform ${showStaffPanel ? "rotate-180" : ""}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -217,8 +217,8 @@ export default function ReservationsPage(): React.ReactElement {
           </button>
 
           {showStaffPanel && (
-            <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
-              <p className="text-xs text-gray-500 font-dm">
+            <div className="px-4 pb-4 border-t border-border-subtle pt-3 space-y-3">
+              <p className="text-xs text-ink-soft font-dm">
                 Un numéro ajouté ici peut scanner les billets de CET événement en se connectant
                 normalement (OTP) — sans avoir votre compte. Il n&apos;a accès à rien d&apos;autre.
               </p>
@@ -226,8 +226,8 @@ export default function ReservationsPage(): React.ReactElement {
               {staff.length > 0 && (
                 <div className="space-y-2">
                   {staff.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-sm text-gray-700 font-dm">{s.phone}</span>
+                    <div key={s.id} className="flex items-center justify-between bg-surface-elevated rounded-lg px-3 py-2">
+                      <span className="text-sm text-ink font-dm">{s.phone}</span>
                       <button
                         onClick={() => void removeStaff(s.id)}
                         className="text-xs text-red-500 font-dm"
@@ -245,7 +245,7 @@ export default function ReservationsPage(): React.ReactElement {
                   value={staffPhone}
                   onChange={(e) => setStaffPhone(e.target.value)}
                   placeholder="+226 XX XX XX XX"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="flex-1 border border-border-subtle bg-surface-card text-ink rounded-lg px-3 py-2 text-sm"
                 />
                 <button
                   onClick={() => void addStaff()}
@@ -261,9 +261,9 @@ export default function ReservationsPage(): React.ReactElement {
         </div>
 
         {managePanel === "cancel" && (
-          <div className="bg-white rounded-xl border border-red-200 p-4 space-y-3">
-            <p className="font-jakarta font-semibold text-gray-900 text-sm">Annuler cet événement</p>
-            <p className="text-xs text-gray-500">
+          <div className="bg-surface-card rounded-xl border border-red-200 p-4 space-y-3">
+            <p className="font-jakarta font-semibold text-ink text-sm">Annuler cet événement</p>
+            <p className="text-xs text-ink-soft">
               Toutes les réservations actives seront annulées et les acheteurs ayant payé seront
               automatiquement mis en file de remboursement.
             </p>
@@ -271,11 +271,11 @@ export default function ReservationsPage(): React.ReactElement {
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="Motif de l'annulation (min. 10 caractères)"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none h-20"
+              className="w-full border border-border-subtle bg-surface-card text-ink rounded-lg px-3 py-2 text-sm resize-none h-20"
             />
             {manageError && <p className="text-xs text-red-600">{manageError}</p>}
             <div className="flex gap-2">
-              <button onClick={() => setManagePanel("none")} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">
+              <button onClick={() => setManagePanel("none")} className="flex-1 py-2 border border-border-subtle rounded-lg text-sm text-ink-soft">
                 Retour
               </button>
               <button
@@ -290,27 +290,27 @@ export default function ReservationsPage(): React.ReactElement {
         )}
 
         {managePanel === "reschedule" && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-            <p className="font-jakarta font-semibold text-gray-900 text-sm">Reprogrammer cet événement</p>
-            <p className="text-xs text-gray-500">
+          <div className="bg-surface-card rounded-xl border border-border-subtle p-4 space-y-3">
+            <p className="font-jakarta font-semibold text-ink text-sm">Reprogrammer cet événement</p>
+            <p className="text-xs text-ink-soft">
               Les acheteurs déjà inscrits pourront annuler librement, même à moins de 24h de la
               nouvelle date.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <input type="datetime-local" value={newStartsAt} onChange={(e) => setNewStartsAt(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-2 text-sm" />
+                className="border border-border-subtle bg-surface-card text-ink rounded-lg px-2 py-2 text-sm" />
               <input type="datetime-local" value={newEndsAt} onChange={(e) => setNewEndsAt(e.target.value)}
-                className="border border-gray-300 rounded-lg px-2 py-2 text-sm" />
+                className="border border-border-subtle bg-surface-card text-ink rounded-lg px-2 py-2 text-sm" />
             </div>
             <textarea
               value={rescheduleReason}
               onChange={(e) => setRescheduleReason(e.target.value)}
               placeholder="Motif de la reprogrammation (min. 10 caractères)"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none h-20"
+              className="w-full border border-border-subtle bg-surface-card text-ink rounded-lg px-3 py-2 text-sm resize-none h-20"
             />
             {manageError && <p className="text-xs text-red-600">{manageError}</p>}
             <div className="flex gap-2">
-              <button onClick={() => setManagePanel("none")} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">
+              <button onClick={() => setManagePanel("none")} className="flex-1 py-2 border border-border-subtle rounded-lg text-sm text-ink-soft">
                 Retour
               </button>
               <button
@@ -324,10 +324,10 @@ export default function ReservationsPage(): React.ReactElement {
           </div>
         )}
 
-        {loading && <p className="text-sm text-gray-400 text-center py-8">Chargement…</p>}
+        {loading && <p className="text-sm text-ink-soft text-center py-8">Chargement…</p>}
 
         {!loading && bookings.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-8">Aucune réservation pour l&apos;instant.</p>
+          <p className="text-sm text-ink-soft text-center py-8">Aucune réservation pour l&apos;instant.</p>
         )}
 
         {/* Tableau de bord des entrées — billets scannés vs total valide, mis à jour à
@@ -340,16 +340,16 @@ export default function ReservationsPage(): React.ReactElement {
           if (totalQty === 0) return null;
           const pct = Math.round((checkedInQty / totalQty) * 100);
           return (
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="bg-surface-card rounded-xl border border-border-subtle p-4">
               <div className="flex items-baseline justify-between mb-2">
-                <p className="font-jakarta font-semibold text-gray-900 text-sm">Entrées scannées</p>
-                <p className="text-xs text-gray-500 font-dm">{pct}%</p>
+                <p className="font-jakarta font-semibold text-ink text-sm">Entrées scannées</p>
+                <p className="text-xs text-ink-soft font-dm">{pct}%</p>
               </div>
               <div className="flex items-baseline gap-1.5 mb-2">
-                <span className="text-2xl font-sora font-extrabold text-gray-900">{checkedInQty}</span>
-                <span className="text-sm text-gray-400 font-dm">/ {totalQty} billets</span>
+                <span className="text-2xl font-sora font-extrabold text-ink">{checkedInQty}</span>
+                <span className="text-sm text-ink-soft font-dm">/ {totalQty} billets</span>
               </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
                 <div className="h-full bg-green-700 rounded-full transition-all" style={{ width: `${pct}%` }} />
               </div>
             </div>
@@ -361,33 +361,33 @@ export default function ReservationsPage(): React.ReactElement {
           const validTickets = b.tickets.filter((t) => t.status !== "cancelled");
           const checkedInTickets = validTickets.filter((t) => t.status === "checked_in");
 
-          let statusCfg = STATUS_LABELS[b.status] ?? { label: b.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
+          let statusCfg = STATUS_LABELS[b.status] ?? { label: b.status, color: "text-ink-soft bg-surface-elevated border-border-subtle" };
           if (b.status === "confirmed" && validTickets.length > 0) {
             if (checkedInTickets.length === 0) {
               statusCfg = STATUS_LABELS["confirmed"]!;
             } else if (checkedInTickets.length === validTickets.length) {
               statusCfg = STATUS_LABELS["checked_in"]!;
             } else {
-              statusCfg = { label: `${checkedInTickets.length}/${validTickets.length} entrés`, color: "text-gray-600 bg-gray-50 border-gray-200" };
+              statusCfg = { label: `${checkedInTickets.length}/${validTickets.length} entrés`, color: "text-ink-soft bg-surface-elevated border-border-subtle" };
             }
           }
 
           return (
-            <div key={b.id} className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+            <div key={b.id} className="bg-surface-card rounded-xl border border-border-subtle p-4 space-y-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-jakarta font-semibold text-gray-900 text-sm">{buyerName}</p>
-                  <p className="text-xs text-gray-500 font-dm">{b.user.phone}</p>
+                  <p className="font-jakarta font-semibold text-ink text-sm">{buyerName}</p>
+                  <p className="text-xs text-ink-soft font-dm">{b.user.phone}</p>
                 </div>
                 <span className={`text-xs font-dm px-2 py-0.5 rounded-full border ${statusCfg.color}`}>
                   {statusCfg.label}
                 </span>
               </div>
-              <p className="text-xs text-gray-600 font-dm">
+              <p className="text-xs text-ink-soft font-dm">
                 {b.quantity} × {b.ticket_type.name} — {b.total_amount.toLocaleString("fr-FR")} FCFA
               </p>
               {validTickets.some((t) => t.seat_number !== null) && (
-                <p className="text-xs text-gray-500 font-dm">
+                <p className="text-xs text-ink-soft font-dm">
                   Place{validTickets.length > 1 ? "s" : ""} : {validTickets
                     .map((t) => t.seat_number)
                     .filter((n): n is number => n !== null)
@@ -395,7 +395,7 @@ export default function ReservationsPage(): React.ReactElement {
                 </p>
               )}
               {checkedInTickets.length > 0 && (
-                <p className="text-xs text-gray-400 font-dm">
+                <p className="text-xs text-ink-soft font-dm">
                   Scanné à {checkedInTickets
                     .map((t) => (t.checked_in_at ? formatCheckInTime(t.checked_in_at) : null))
                     .filter(Boolean)
@@ -403,7 +403,7 @@ export default function ReservationsPage(): React.ReactElement {
                 </p>
               )}
               {b.payment?.payment_method === "manual_mobile_money" && b.payment.provider_ref && (
-                <p className="text-xs text-gray-400 font-dm">Réf. paiement : {b.payment.provider_ref}</p>
+                <p className="text-xs text-ink-soft font-dm">Réf. paiement : {b.payment.provider_ref}</p>
               )}
 
               {b.status === "pending" && b.total_amount > 0 && (
@@ -414,13 +414,13 @@ export default function ReservationsPage(): React.ReactElement {
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       placeholder="Référence de la transaction reçue (ex : OM-88213)"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      className="w-full border border-border-subtle bg-surface-card text-ink rounded-lg px-3 py-2 text-sm"
                     />
                     {error && <p className="text-xs text-red-600">{error}</p>}
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setConfirmingId(null); setError(null); }}
-                        className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600"
+                        className="flex-1 py-2 border border-border-subtle rounded-lg text-sm text-ink-soft"
                       >
                         Annuler
                       </button>
@@ -435,7 +435,7 @@ export default function ReservationsPage(): React.ReactElement {
                 ) : (
                   <button
                     onClick={() => { setConfirmingId(b.id); setNote(""); setError(null); }}
-                    className="w-full py-2 border-2 border-green-200 text-green-700 rounded-lg text-sm font-semibold mt-1"
+                    className="w-full py-2 border-2 border-green-200 text-green-700 dark:text-green-300 rounded-lg text-sm font-semibold mt-1"
                   >
                     J&apos;ai reçu ce paiement
                   </button>

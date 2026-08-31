@@ -107,7 +107,7 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
         {locating ? "Localisation en cours…" : "Je suis sur place — utiliser ma position"}
       </button>
 
-      <p className="text-xs text-gray-400 text-center">— ou —</p>
+      <p className="text-xs text-ink-soft text-center">— ou —</p>
 
       <div className="flex gap-2">
         <input
@@ -116,7 +116,7 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), void search())}
           placeholder="Rechercher le lieu (ex : Stade du 4-Août, Ouagadougou)"
-          className="flex-1 border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white"
+          className="flex-1 border border-border-subtle rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-surface-card"
         />
         <button
           type="button"
@@ -131,13 +131,13 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
       {searchError && <p className="text-xs text-amber-600">{searchError}</p>}
 
       {results.length > 0 && (
-        <ul className="border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
+        <ul className="border border-border-subtle rounded-xl divide-y divide-gray-100 overflow-hidden">
           {results.map((r, i) => (
             <li key={i}>
               <button
                 type="button"
                 onClick={() => pickResult(r)}
-                className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-green-50 transition-colors"
+                className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors"
               >
                 {r.display_name}
               </button>
@@ -146,7 +146,7 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
         </ul>
       )}
 
-      <div className="rounded-xl overflow-hidden border border-gray-200 h-56">
+      <div className="rounded-xl overflow-hidden border border-border-subtle h-56">
         <Map
           ref={mapRef}
           initialViewState={{ longitude: center.longitude, latitude: center.latitude, zoom: value ? 15 : 12 }}
@@ -166,7 +166,7 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
           )}
         </Map>
       </div>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-ink-soft">
         {value
           ? "Glissez le repère pour ajuster précisément l'emplacement."
           : "Cherchez une adresse ou touchez la carte pour placer le repère."}

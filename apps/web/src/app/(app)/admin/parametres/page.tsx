@@ -49,17 +49,17 @@ function NumberField({ label, value, onChange, step = 1, suffix }: {
   label: string; value: number; onChange: (v: number) => void; step?: number; suffix?: string;
 }): React.ReactElement {
   return (
-    <label className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-700">{label}</span>
+    <label className="flex items-center justify-between gap-4 py-3 border-b border-border-subtle last:border-0">
+      <span className="text-sm text-ink">{label}</span>
       <span className="flex items-center gap-1.5">
         <input
           type="number"
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-24 text-right rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm font-semibold"
+          className="w-24 text-right rounded-lg border border-border-subtle bg-surface-card text-ink px-2.5 py-1.5 text-sm font-semibold"
         />
-        {suffix && <span className="text-xs text-gray-400 w-8">{suffix}</span>}
+        {suffix && <span className="text-xs text-ink-soft w-8">{suffix}</span>}
       </span>
     </label>
   );
@@ -69,18 +69,18 @@ function TextField({ label, value, onChange, maxLength, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; maxLength?: number; placeholder?: string;
 }): React.ReactElement {
   return (
-    <label className="flex flex-col gap-1.5 py-3 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-700">{label}</span>
+    <label className="flex flex-col gap-1.5 py-3 border-b border-border-subtle last:border-0">
+      <span className="text-sm text-ink">{label}</span>
       <input
         type="text"
         value={value}
         maxLength={maxLength}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-border-subtle bg-surface-card text-ink px-3 py-2 text-sm"
       />
       {maxLength && (
-        <span className="text-xs text-gray-400 text-right">{value.length}/{maxLength}</span>
+        <span className="text-xs text-ink-soft text-right">{value.length}/{maxLength}</span>
       )}
     </label>
   );
@@ -90,17 +90,17 @@ function ToggleField({ label, sub, value, onChange }: {
   label: string; sub: string; value: boolean; onChange: (v: boolean) => void;
 }): React.ReactElement {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-3 border-b border-border-subtle last:border-0">
       <div>
-        <p className="text-sm font-semibold text-gray-900">{label}</p>
-        <p className="text-xs text-gray-400">{sub}</p>
+        <p className="text-sm font-semibold text-ink">{label}</p>
+        <p className="text-xs text-ink-soft">{sub}</p>
       </div>
       <button
         onClick={() => onChange(!value)}
         className={["w-12 h-7 rounded-full transition-colors relative flex-shrink-0",
-          value ? "bg-[#1A6B3A]" : "bg-gray-200"].join(" ")}
+          value ? "bg-[#1A6B3A]" : "bg-surface-elevated"].join(" ")}
       >
-        <span className={["absolute top-1 w-5 h-5 rounded-full bg-white transition-transform",
+        <span className={["absolute top-1 w-5 h-5 rounded-full bg-surface-card transition-transform",
           value ? "translate-x-6" : "translate-x-1"].join(" ")} />
       </button>
     </div>
@@ -166,17 +166,17 @@ function SettingsForm(): React.ReactElement {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24">
+    <main className="min-h-screen bg-page pb-24">
       <AdminHeader title="Paramètres de la plateforme" />
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-2xl flex flex-col gap-4">
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{error}</p>}
-        {loading && <p className="text-center text-gray-400 text-sm py-8">Chargement…</p>}
+        {loading && <p className="text-center text-ink-soft text-sm py-8">Chargement…</p>}
 
         {settings && (
           <>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Interrupteurs</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Interrupteurs</p>
               <ToggleField
                 label="Période gratuite"
                 sub="Tous les frais à 0%, quel que soit l'événement"
@@ -191,8 +191,8 @@ function SettingsForm(): React.ReactElement {
               />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Page d&apos;accueil</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Page d&apos;accueil</p>
               <TextField
                 label="Sous-titre du hero"
                 value={settings.home_subtitle}
@@ -200,14 +200,14 @@ function SettingsForm(): React.ReactElement {
                 placeholder="Concerts, mariages, kermesses, conférences et bien plus — trouvez votre prochain événement."
                 onChange={(v) => setSettings({ ...settings, home_subtitle: v })}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 Affiché sous « Vivez le Faso. Un billet à la fois. » — garder large, ne pas lister
                 seulement quelques catégories.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Bannière VIVRE (accueil)</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Bannière VIVRE (accueil)</p>
               <ToggleField
                 label="Activer la bannière"
                 sub="Contenu propre à VIVRE dans le hero de l'accueil — jamais une pub tierce payante"
@@ -216,7 +216,7 @@ function SettingsForm(): React.ReactElement {
               />
               <div className="py-3">
                 {settings.hero_banner_image_url ? (
-                  <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                  <div className="relative rounded-xl overflow-hidden border border-border-subtle">
                     {settings.hero_banner_media_type === "video" ? (
                       <video src={settings.hero_banner_image_url} className="w-full h-32 object-cover" controls muted playsInline />
                     ) : (
@@ -232,7 +232,7 @@ function SettingsForm(): React.ReactElement {
                     </button>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 cursor-pointer hover:bg-gray-50 text-center px-4">
+                  <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-border-subtle rounded-xl text-sm text-ink-soft cursor-pointer hover:bg-surface-elevated text-center px-4">
                     {uploadingBanner ? "Envoi…" : "Choisir une image ou une vidéo"}
                     <input
                       type="file"
@@ -253,8 +253,8 @@ function SettingsForm(): React.ReactElement {
               />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Message d&apos;accueil</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Message d&apos;accueil</p>
               <ToggleField
                 label="Afficher le message"
                 sub="Sous « Bonjour/Bonsoir, {prénom} » sur le profil de chaque personne connectée"
@@ -274,7 +274,7 @@ function SettingsForm(): React.ReactElement {
                     key={s}
                     type="button"
                     onClick={() => setSettings({ ...settings, greeting_message: s })}
-                    className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    className="text-xs px-2.5 py-1 rounded-full bg-surface-elevated text-ink-soft hover:bg-surface-elevated transition-colors"
                   >
                     {s}
                   </button>
@@ -282,8 +282,8 @@ function SettingsForm(): React.ReactElement {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Frais</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Frais</p>
               <NumberField
                 label="Commission organisateur"
                 value={settings.organizer_fee_percent}
@@ -307,8 +307,8 @@ function SettingsForm(): React.ReactElement {
               />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Délais de versement</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Délais de versement</p>
               <NumberField
                 label="Nouvel organisateur"
                 value={settings.payout_delay_new_organizer_days}
@@ -329,8 +329,8 @@ function SettingsForm(): React.ReactElement {
               />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Publicité</p>
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Publicité</p>
               <NumberField
                 label="Section sponsorisée accueil (par jour)"
                 value={settings.ad_price_home_feed_fcfa_per_day}
@@ -345,14 +345,14 @@ function SettingsForm(): React.ReactElement {
                 suffix="FCFA"
                 onChange={(v) => setSettings({ ...settings, ad_price_browse_fcfa_per_day: v })}
               />
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-ink-soft mt-2">
                 Figé au moment où vous approuvez une campagne — un changement ici n&apos;affecte
                 jamais une campagne déjà approuvée.
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+            <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+              <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">
                 Mise en ligne d&apos;événement
               </p>
               <NumberField
@@ -376,7 +376,7 @@ function SettingsForm(): React.ReactElement {
                 suffix="FCFA"
                 onChange={(v) => setSettings({ ...settings, ad_price_video_fcfa_per_day: v })}
               />
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-ink-soft mt-2">
                 Payé par l&apos;organisateur à la soumission (frais de mise en ligne + jours de
                 publicité s&apos;il en ajoute une) — même montant que l&apos;événement soit
                 gratuit ou payant. Désactivé entièrement si &quot;Période gratuite&quot; est
@@ -427,11 +427,11 @@ function OrganizerDiscountCard(): React.ReactElement {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+    <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
+      <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">
         Réduction organisateur (bêta-testeurs, promos)
       </p>
-      <p className="text-xs text-gray-400 mb-3">
+      <p className="text-xs text-ink-soft mb-3">
         Applique une réduction (0-100%) sur les frais de mise en ligne, publicité et commission
         pour UN compte précis, sans toucher aux tarifs de toute la plateforme. 100% = gratuit
         pour lui.
@@ -442,7 +442,7 @@ function OrganizerDiscountCard(): React.ReactElement {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Numéro de téléphone (ex: +22670000000)"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-border-subtle bg-surface-card text-ink px-3 py-2 text-sm"
         />
         <div className="flex items-center gap-2">
           <input
@@ -451,9 +451,9 @@ function OrganizerDiscountCard(): React.ReactElement {
             max={100}
             value={discount}
             onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
-            className="w-20 text-right rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm font-semibold"
+            className="w-20 text-right rounded-lg border border-border-subtle bg-surface-card text-ink px-2.5 py-1.5 text-sm font-semibold"
           />
-          <span className="text-sm text-gray-500">%</span>
+          <span className="text-sm text-ink-soft">%</span>
           <button
             onClick={() => void apply()}
             disabled={applying || !phone.trim()}
@@ -464,7 +464,7 @@ function OrganizerDiscountCard(): React.ReactElement {
         </div>
       </div>
       {message && (
-        <p className={`text-xs mt-2 ${message.isError ? "text-red-600" : "text-green-700"}`}>{message.text}</p>
+        <p className={`text-xs mt-2 ${message.isError ? "text-red-600" : "text-green-700 dark:text-green-300"}`}>{message.text}</p>
       )}
     </div>
   );

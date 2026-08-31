@@ -119,7 +119,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
           <Link
             href="/evenements"
-            className="flex items-center gap-2 bg-white rounded-full px-4 py-3 text-gray-500 font-dm text-sm shadow-modal hover:bg-white/95 transition-colors"
+            className="flex items-center gap-2 bg-surface-card rounded-full px-4 py-3 text-ink-soft font-dm text-sm shadow-modal hover:bg-white/95 transition-colors"
           >
             <span aria-hidden="true" className="text-[#F5A623]">🔍</span>
             Rechercher un événement, un lieu…
@@ -146,7 +146,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="pb-4">
         <div className="flex items-center gap-2 mb-4">
           <PatriotStar className="w-4 h-4" />
-          <h2 className="font-sora font-bold text-gray-900 dark:text-gray-100">À l&apos;affiche</h2>
+          <h2 className="font-sora font-bold text-ink">À l&apos;affiche</h2>
         </div>
 
         <HomeEventsList events={events} />
@@ -171,14 +171,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="mb-6">
         <Link
           href="/publicite/creer"
-          className="flex items-center gap-3 p-4 rounded-card bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+          className="flex items-center gap-3 p-4 rounded-card bg-surface-card border border-border-subtle hover:bg-surface-elevated transition-colors"
         >
           <span className="text-2xl">📣</span>
           <div>
-            <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">Annoncez sur VIVRE</p>
-            <p className="text-gray-500 dark:text-gray-400 text-xs font-dm">Touchez les fans d&apos;événements du Burkina — soumettez votre pub</p>
+            <p className="font-jakarta font-bold text-sm text-ink">Annoncez sur VIVRE</p>
+            <p className="text-ink-soft text-xs font-dm">Touchez les fans d&apos;événements du Burkina — soumettez votre pub</p>
           </div>
-          <span className="ml-auto text-gray-400">›</span>
+          <span className="ml-auto text-ink-soft">›</span>
         </Link>
       </section>
 

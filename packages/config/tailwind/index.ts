@@ -118,6 +118,24 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
         "accent-light": vivreColors.gold[50],
 
         surface: vivreColors.dark.DEFAULT,
+
+        /*
+         * Tokens de thème — séparés des couleurs de marque ci-dessus. Le vert/rouge/or ne
+         * bougent jamais entre les thèmes ; ces tokens-ci, si. Chacun lit une variable CSS
+         * (définie dans globals.css : valeurs claires sur :root, sombres sous .dark) — un
+         * composant qui écrit `bg-page` ou `text-ink` n'a plus jamais besoin d'une paire
+         * `bg-x dark:bg-y` répétée à chaque site d'utilisation. Voir globals.css pour les
+         * valeurs réelles et le raisonnement design (chaleur du clair, verdeur du sombre).
+         */
+        page: "var(--surface-page)",
+        "surface-elevated": "var(--surface-elevated)",
+        "surface-card": "var(--surface-card)",
+        ink: {
+          DEFAULT: "var(--text-primary)",
+          soft: "var(--text-secondary)",
+        },
+        "border-subtle": "var(--border-subtle)",
+        "nav-surface": "var(--nav-surface)",
       },
 
       fontFamily: {
@@ -229,6 +247,12 @@ export const vivreTailwindConfig: Omit<Config, "content"> = {
         modal: "0 20px 60px rgba(0, 0, 0, 0.15)",
         /* Ombre de la bottom navigation */
         "bottom-nav": "0 -2px 10px rgba(0, 0, 0, 0.08)",
+        /*
+         * Ombre tokenisée — chaude et douce en clair, plus profonde en sombre (voir
+         * --shadow-color dans globals.css). À utiliser sur les cards qui vivent sur
+         * `bg-page`/`bg-surface-elevated` plutôt que réinventer une ombre par composant.
+         */
+        elevated: "0 1px 2px var(--shadow-color), 0 8px 24px var(--shadow-color)",
       },
     },
   },

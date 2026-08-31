@@ -14,9 +14,9 @@ export default function PrivacyPage(): React.ReactElement {
       </header>
       <div className="flag-band" />
 
-      <div className="px-4 py-6 space-y-6 text-sm text-gray-700 font-dm leading-relaxed">
+      <div className="px-4 py-6 space-y-6 text-sm text-ink font-dm leading-relaxed">
         <section>
-          <h2 className="font-jakarta font-bold text-gray-900 mb-1.5">Ce que nous collectons</h2>
+          <h2 className="font-jakarta font-bold text-ink mb-1.5">Ce que nous collectons</h2>
           <p>
             Numéro de téléphone (connexion), et pour les organisateurs souhaitant vendre des
             billets payants : une pièce d&apos;identité et les informations de votre compte mobile
@@ -24,7 +24,7 @@ export default function PrivacyPage(): React.ReactElement {
           </p>
         </section>
         <section>
-          <h2 className="font-jakarta font-bold text-gray-900 mb-1.5">Pièces d&apos;identité</h2>
+          <h2 className="font-jakarta font-bold text-ink mb-1.5">Pièces d&apos;identité</h2>
           <p>
             Stockées de façon chiffrée, dans un espace privé accessible uniquement à notre
             équipe de vérification. Jamais partagées publiquement ni avec d&apos;autres
@@ -32,7 +32,7 @@ export default function PrivacyPage(): React.ReactElement {
           </p>
         </section>
         <section>
-          <h2 className="font-jakarta font-bold text-gray-900 mb-1.5">Partage avec les autorités</h2>
+          <h2 className="font-jakarta font-bold text-ink mb-1.5">Partage avec les autorités</h2>
           <p>
             Nous pouvons partager les informations nécessaires avec les autorités compétentes en
             cas de fraude avérée, de demande légale, ou pour la sécurité d&apos;un grand événement.

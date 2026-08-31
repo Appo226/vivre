@@ -69,20 +69,20 @@ export function InstallPrompt(): React.ReactElement | null {
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-40 animate-slide-up">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-center gap-4">
+      <div className="bg-surface-card rounded-2xl shadow-2xl border border-border-subtle p-4 flex items-center gap-4">
         {/* Logo VIVRE */}
         <div className="w-12 h-12 rounded-xl bg-[#1A6B3A] flex items-center justify-center flex-shrink-0">
           <span className="text-white font-black text-xl">V</span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-sm">Installer VIVRE</p>
+          <p className="font-bold text-ink text-sm">Installer VIVRE</p>
           {isIos ? (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-ink-soft mt-0.5">
               Appuyez sur <strong>Partager</strong> puis <strong>"Sur l'écran d'accueil"</strong>
             </p>
           ) : (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-ink-soft mt-0.5">
               Accès rapide même sans internet
             </p>
           )}
@@ -92,7 +92,7 @@ export function InstallPrompt(): React.ReactElement | null {
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setDismissed(true)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-ink-soft hover:bg-surface-elevated"
             aria-label="Fermer"
           >
             ✕

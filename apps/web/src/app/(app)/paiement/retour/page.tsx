@@ -146,11 +146,11 @@ function RetourContent() {
    * ============================================================ */
   if (!paymentId || error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow p-8 max-w-sm w-full text-center">
+      <div className="min-h-screen bg-page flex items-center justify-center p-6">
+        <div className="bg-surface-card rounded-2xl shadow p-8 max-w-sm w-full text-center">
           <p className="text-5xl mb-4">⚠️</p>
-          <h1 className="font-bold text-gray-900 text-xl mb-2">Paiement introuvable</h1>
-          <p className="text-gray-500 text-sm">{error ?? "Lien de paiement invalide."}</p>
+          <h1 className="font-bold text-ink text-xl mb-2">Paiement introuvable</h1>
+          <p className="text-ink-soft text-sm">{error ?? "Lien de paiement invalide."}</p>
           <Link href="/" className="mt-6 inline-block bg-orange-500 text-white px-6 py-2.5 rounded-xl font-semibold">
             Retour à l'accueil
           </Link>
@@ -165,13 +165,13 @@ function RetourContent() {
   if (!payment || payment.status === "pending") {
     const isTimeout = pollCount >= MAX_POLLS;
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow p-8 max-w-sm w-full text-center">
+      <div className="min-h-screen bg-page flex items-center justify-center p-6">
+        <div className="bg-surface-card rounded-2xl shadow p-8 max-w-sm w-full text-center">
           <div className="text-5xl mb-4 animate-pulse">⏳</div>
-          <h1 className="font-bold text-gray-900 text-xl mb-2">
+          <h1 className="font-bold text-ink text-xl mb-2">
             {isTimeout ? "Traitement en cours…" : "Vérification du paiement…"}
           </h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-ink-soft text-sm">
             {isTimeout
               ? "Votre paiement est en cours de traitement. Vous recevrez une confirmation dans quelques minutes."
               : "Patientez quelques secondes pendant que nous confirmons votre paiement."}
@@ -206,28 +206,28 @@ function RetourContent() {
   if (payment.status === "completed") {
     const methodLabel = METHOD_LABELS[payment.payment_method] ?? payment.payment_method;
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow p-8 max-w-sm w-full text-center">
+      <div className="min-h-screen bg-page flex items-center justify-center p-6">
+        <div className="bg-surface-card rounded-2xl shadow p-8 max-w-sm w-full text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-4xl">✅</span>
           </div>
-          <h1 className="font-bold text-gray-900 text-2xl mb-1">Paiement validé !</h1>
-          <p className="text-gray-500 text-sm mb-6">
+          <h1 className="font-bold text-ink text-2xl mb-1">Paiement validé !</h1>
+          <p className="text-ink-soft text-sm mb-6">
             {payment.amount.toLocaleString()} FCFA payés via {methodLabel}
           </p>
 
-          <div className="bg-green-50 rounded-xl p-4 text-left space-y-2 text-sm mb-6">
+          <div className="bg-green-50 dark:bg-green-950/30 rounded-xl p-4 text-left space-y-2 text-sm mb-6">
             <div className="flex justify-between">
-              <span className="text-gray-500">Montant</span>
+              <span className="text-ink-soft">Montant</span>
               <span className="font-semibold">{payment.amount.toLocaleString()} FCFA</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Méthode</span>
+              <span className="text-ink-soft">Méthode</span>
               <span className="font-semibold">{methodLabel}</span>
             </div>
             {payment.paid_at && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
+                <span className="text-ink-soft">Date</span>
                 <span className="font-semibold">
                   {new Date(payment.paid_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
                 </span>
@@ -235,7 +235,7 @@ function RetourContent() {
             )}
           </div>
 
-          <p className="text-xs text-gray-400 mb-4">Redirection automatique dans 2 secondes…</p>
+          <p className="text-xs text-ink-soft mb-4">Redirection automatique dans 2 secondes…</p>
 
           <Link
             href={getSuccessUrl(payment.booking_type, payment.booking_id)}
@@ -252,13 +252,13 @@ function RetourContent() {
    * RENDER : échec
    * ============================================================ */
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow p-8 max-w-sm w-full text-center">
+    <div className="min-h-screen bg-page flex items-center justify-center p-6">
+      <div className="bg-surface-card rounded-2xl shadow p-8 max-w-sm w-full text-center">
         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <span className="text-4xl">❌</span>
         </div>
-        <h1 className="font-bold text-gray-900 text-2xl mb-1">Paiement échoué</h1>
-        <p className="text-gray-500 text-sm mb-6">
+        <h1 className="font-bold text-ink text-2xl mb-1">Paiement échoué</h1>
+        <p className="text-ink-soft text-sm mb-6">
           {payment.failure_reason ?? "Le paiement n'a pas pu être traité. Aucun montant n'a été débité."}
         </p>
 
@@ -271,7 +271,7 @@ function RetourContent() {
           </button>
           <Link
             href="/"
-            className="block w-full border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors"
+            className="block w-full border border-border-subtle text-ink font-semibold py-3 rounded-xl hover:bg-surface-elevated transition-colors"
           >
             Retour à l'accueil
           </Link>
@@ -288,7 +288,7 @@ export default function PaiementRetourPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-page flex items-center justify-center">
           <div className="text-4xl animate-pulse">⏳</div>
         </div>
       }

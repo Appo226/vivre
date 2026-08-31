@@ -239,7 +239,7 @@ export default function ProfilePage(): React.ReactElement {
     : "…";
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pb-24">
+    <div className="min-h-screen bg-page pb-24">
       {/* ===== HEADER VERT ===== */}
       <div className="bg-[#1A6B3A] text-white px-4 pt-safe-top pb-20">
         <div className="flex items-start justify-between gap-3 pt-4 mb-1">
@@ -266,7 +266,7 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* ===== CARTE PROFIL (chevauchement sur le header) ===== */}
       <div className="px-4 -mt-14">
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-md p-5">
+        <div className="bg-surface-card rounded-2xl shadow-md p-5">
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <button
@@ -291,7 +291,7 @@ export default function ProfilePage(): React.ReactElement {
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
-              <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-[10px] shadow-sm">
+              <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-surface-card border border-border-subtle rounded-full flex items-center justify-center text-[10px] shadow-sm">
                 📷
               </span>
             </button>
@@ -305,17 +305,17 @@ export default function ProfilePage(): React.ReactElement {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 dark:text-gray-100 text-base truncate">{displayName}</p>
+              <p className="font-bold text-ink text-base truncate">{displayName}</p>
               {profile?.username && realName && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{realName}</p>
+                <p className="text-sm text-ink-soft truncate">{realName}</p>
               )}
-              <p className="text-sm text-gray-500 dark:text-gray-400">{profile?.phone ?? "…"}</p>
+              <p className="text-sm text-ink-soft">{profile?.phone ?? "…"}</p>
               {profile?.created_at && (
-                <p className="text-xs text-gray-400 mt-0.5">Membre depuis {memberSince(profile.created_at)}</p>
+                <p className="text-xs text-ink-soft mt-0.5">Membre depuis {memberSince(profile.created_at)}</p>
               )}
               {profile?.id && (
-                <p className="text-xs font-mono text-gray-500 mt-0.5">
-                  <span className="text-gray-400 mr-1">ID VIVRE</span>
+                <p className="text-xs font-mono text-ink-soft mt-0.5">
+                  <span className="text-ink-soft mr-1">ID VIVRE</span>
                   🪪 {vivreId(profile.id)}
                 </p>
               )}
@@ -323,7 +323,7 @@ export default function ProfilePage(): React.ReactElement {
 
             {/* Badge vérifié */}
             {profile?.is_verified && (
-              <span className="flex-shrink-0 text-xs bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-full border border-green-200">
+              <span className="flex-shrink-0 text-xs bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-semibold px-2 py-0.5 rounded-full border border-green-200 dark:border-green-900">
                 ✓ {t.verified}
               </span>
             )}
@@ -331,56 +331,56 @@ export default function ProfilePage(): React.ReactElement {
 
           {/* ===== FORMULAIRE D'ÉDITION ===== */}
           {editing && (
-            <div className="mt-5 pt-5 border-t border-gray-100 dark:border-dark-700 space-y-4">
+            <div className="mt-5 pt-5 border-t border-border-subtle space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">{error}</div>
               )}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Nom d&apos;utilisateur</label>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">Nom d&apos;utilisateur</label>
                 <input
                   type="text"
                   value={form.username}
                   onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                   placeholder="awa_bf"
-                  className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                  className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Prénom</label>
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">Prénom</label>
                   <input
                     type="text"
                     value={form.first_name}
                     onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
                     placeholder="Jean"
-                    className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                    className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Nom</label>
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">Nom</label>
                   <input
                     type="text"
                     value={form.last_name}
                     onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
                     placeholder="Dupont"
-                    className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                    className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Email</label>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">Email</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="jean@exemple.com"
-                  className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
+                  className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A6B3A]"
                 />
               </div>
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setEditing(false)}
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-dark-700 rounded-xl hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+                  className="flex-1 py-2.5 text-sm font-medium text-ink-soft bg-surface-elevated rounded-xl hover:bg-surface-elevated transition-colors"
                 >
                   Annuler
                 </button>
@@ -405,8 +405,8 @@ export default function ProfilePage(): React.ReactElement {
             trop (même icône, mots quasi identiques) et menaient les organisateurs au mauvais
             endroit — voir le commentaire sur `t.events` plus bas. */}
         {profile?.roles.includes("supplier") && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden border-2 border-green-100 dark:border-green-900">
-            <p className="px-5 pt-4 pb-2 text-xs font-bold text-green-700 dark:text-green-500 uppercase tracking-widest">
+          <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden border-2 border-green-100 dark:border-green-900">
+            <p className="px-5 pt-4 pb-2 text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest">
               Mon espace fournisseur
             </p>
             {[
@@ -415,22 +415,22 @@ export default function ProfilePage(): React.ReactElement {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
+                className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
               >
                 <span className="text-xl w-8 text-center">{item.icon}</span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
-                  <p className="text-xs text-gray-400">{item.sub}</p>
+                  <p className="text-sm font-semibold text-ink">{item.label}</p>
+                  <p className="text-xs text-ink-soft">{item.sub}</p>
                 </div>
-                <span className="text-gray-300 text-sm">›</span>
+                <span className="text-ink-soft text-sm">›</span>
               </Link>
             ))}
           </div>
         )}
 
         {/* ===== MON ACTIVITÉ ===== */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
+          <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
             {t.my_activity}
           </p>
           {[
@@ -439,36 +439,36 @@ export default function ProfilePage(): React.ReactElement {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
             >
               <span className="text-xl w-8 text-center">{item.icon}</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
-                <p className="text-xs text-gray-400">{item.sub}</p>
+                <p className="text-sm font-semibold text-ink">{item.label}</p>
+                <p className="text-xs text-ink-soft">{item.sub}</p>
               </div>
-              <span className="text-gray-300 text-sm">›</span>
+              <span className="text-ink-soft text-sm">›</span>
             </Link>
           ))}
         </div>
 
         {/* ===== PARAMÈTRES ===== */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
+          <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
             {t.settings}
           </p>
 
           {/* Langue */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-4">
               <span className="text-xl w-8 text-center">🌐</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.language}</p>
-                <p className="text-xs text-gray-400">Interface de l&apos;application</p>
+                <p className="text-sm font-semibold text-ink">{t.language}</p>
+                <p className="text-xs text-ink-soft">Interface de l&apos;application</p>
               </div>
             </div>
             <button
               onClick={() => void toggleLanguage()}
-              className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1"
+              className="flex items-center gap-1 bg-surface-elevated rounded-xl p-1"
             >
               {(["fr", "en"] as const).map((lang) => (
                 <span
@@ -476,7 +476,7 @@ export default function ProfilePage(): React.ReactElement {
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     (profile?.preferred_language ?? "fr") === lang
                       ? "bg-[#1A6B3A] text-white"
-                      : "text-gray-500 dark:text-gray-400"
+                      : "text-ink-soft"
                   }`}
                 >
                   {lang.toUpperCase()}
@@ -486,15 +486,15 @@ export default function ProfilePage(): React.ReactElement {
           </div>
 
           {/* Thème */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
+          <div className="flex items-center justify-between px-5 py-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-4">
               <span className="text-xl w-8 text-center">🌓</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.theme}</p>
-                <p className="text-xs text-gray-400">Apparence de l&apos;application</p>
+                <p className="text-sm font-semibold text-ink">{t.theme}</p>
+                <p className="text-xs text-ink-soft">Apparence de l&apos;application</p>
               </div>
             </div>
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-surface-elevated rounded-xl p-1">
               {(["light", "dark"] as const).map((option) => (
                 <button
                   key={option}
@@ -502,7 +502,7 @@ export default function ProfilePage(): React.ReactElement {
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
                     theme === option
                       ? "bg-[#1A6B3A] text-white"
-                      : "text-gray-500 dark:text-gray-400"
+                      : "text-ink-soft"
                   }`}
                 >
                   {t[`theme_${option}`]}
@@ -514,57 +514,57 @@ export default function ProfilePage(): React.ReactElement {
           {/* Notifications */}
           <Link
             href="/profile/notifications"
-            className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
+            className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
           >
             <span className="text-xl w-8 text-center">🔔</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.notifications}</p>
-              <p className="text-xs text-gray-400">Gérer les alertes</p>
+              <p className="text-sm font-semibold text-ink">{t.notifications}</p>
+              <p className="text-xs text-ink-soft">Gérer les alertes</p>
             </div>
-            <span className="text-gray-300 text-sm">›</span>
+            <span className="text-ink-soft text-sm">›</span>
           </Link>
         </div>
 
         {/* ===== ADMINISTRATION ===== */}
         {profile?.roles.includes("admin") && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
-            <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+          <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
+            <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
               Administration
             </p>
             <Link
               href="/admin"
-              className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 active:bg-gray-100 transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
             >
               <span className="text-xl w-8 text-center">⚙️</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dashboard administrateur</p>
-                <p className="text-xs text-gray-400">Approbations, vérifications, remboursements, versements</p>
+                <p className="text-sm font-semibold text-ink">Dashboard administrateur</p>
+                <p className="text-xs text-ink-soft">Approbations, vérifications, remboursements, versements</p>
               </div>
-              <span className="text-gray-300 text-sm">›</span>
+              <span className="text-ink-soft text-sm">›</span>
             </Link>
           </div>
         )}
 
         {/* ===== COMPTE ===== */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-5 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
+          <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
             {t.account}
           </p>
 
           {/* Aide */}
-          <div className="flex items-center gap-4 px-5 py-3.5 border-t border-gray-50 dark:border-dark-700">
+          <div className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle">
             <span className="text-xl w-8 text-center">❓</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t.help}</p>
-              <p className="text-xs text-gray-400">Contacter l&apos;équipe VIVRE</p>
+              <p className="text-sm font-semibold text-ink">{t.help}</p>
+              <p className="text-xs text-ink-soft">Contacter l&apos;équipe VIVRE</p>
             </div>
-            <span className="text-gray-300 text-sm">›</span>
+            <span className="text-ink-soft text-sm">›</span>
           </div>
 
           {/* Déconnexion */}
           <button
             onClick={() => void handleLogout()}
-            className="w-full flex items-center gap-4 px-5 py-4 border-t border-gray-50 dark:border-dark-700 hover:bg-red-50 active:bg-red-100 transition-colors text-left"
+            className="w-full flex items-center gap-4 px-5 py-4 border-t border-border-subtle hover:bg-red-50 active:bg-red-100 transition-colors text-left"
           >
             <span className="text-xl w-8 text-center">🚪</span>
             <p className="text-sm font-semibold text-red-600">{t.logout}</p>
@@ -572,7 +572,7 @@ export default function ProfilePage(): React.ReactElement {
         </div>
 
         {/* Version */}
-        <p className="text-center text-xs text-gray-300 pb-2">VIVRE v1.0 · Ouagadougou, Burkina Faso</p>
+        <p className="text-center text-xs text-ink-soft pb-2">VIVRE v1.0 · Ouagadougou, Burkina Faso</p>
       </div>
     </div>
   );

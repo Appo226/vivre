@@ -58,7 +58,7 @@ export function MediaUploader({ urls, onChange, minRequired = 3 }: MediaUploader
       <div className="grid grid-cols-3 gap-2">
         {urls.map((url, i) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200">
+          <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border-subtle">
             <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
             {i === 0 && (
               <span className="absolute top-1 left-1 bg-dark/80 text-white text-[10px] font-jakarta font-semibold px-1.5 py-0.5 rounded">
@@ -76,9 +76,9 @@ export function MediaUploader({ urls, onChange, minRequired = 3 }: MediaUploader
           </div>
         ))}
 
-        <label className="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-green-400 transition-colors">
+        <label className="aspect-square rounded-xl border-2 border-dashed border-border-subtle flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-green-400 transition-colors">
           <span className="text-2xl">{uploading ? "…" : "+"}</span>
-          <span className="text-[10px] text-gray-400 font-dm">Ajouter</span>
+          <span className="text-[10px] text-ink-soft font-dm">Ajouter</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -92,7 +92,7 @@ export function MediaUploader({ urls, onChange, minRequired = 3 }: MediaUploader
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <p className={["text-xs font-dm", urls.length >= minRequired ? "text-green-600" : "text-amber-600"].join(" ")}>
+      <p className={["text-xs font-dm", urls.length >= minRequired ? "text-green-600 dark:text-green-300" : "text-amber-600"].join(" ")}>
         {urls.length}/{minRequired} photos minimum — photos de l&apos;événement ou affiche officielle
       </p>
     </div>

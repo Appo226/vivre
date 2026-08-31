@@ -27,8 +27,8 @@ export function AdminGuard({ children }: { children: React.ReactNode }): React.R
      que de rediriger prématurément un admin légitime dont le store n'a pas encore chargé. */
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-[#1A6B3A] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-surface-elevated">
+        <div className="w-8 h-8 border-2 border-border-subtle border-t-[#1A6B3A] rounded-full animate-spin" />
       </div>
     );
   }

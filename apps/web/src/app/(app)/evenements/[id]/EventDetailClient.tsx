@@ -196,11 +196,11 @@ export default function EventDetailClient(): React.ReactElement | null {
   /* ---- LOADING ---- */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 animate-pulse">
-        <div className="h-64 bg-gray-300" />
+      <div className="min-h-screen bg-page animate-pulse">
+        <div className="h-64 bg-surface-elevated" />
         <div className="px-4 py-4 space-y-3">
-          <div className="h-6 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2" />
+          <div className="h-6 bg-surface-elevated rounded w-3/4" />
+          <div className="h-4 bg-surface-elevated rounded w-1/2" />
         </div>
       </div>
     );
@@ -211,7 +211,7 @@ export default function EventDetailClient(): React.ReactElement | null {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-red-600 font-semibold">Événement introuvable</p>
-          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] text-sm">
+          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] dark:text-green-300 text-sm">
             Retour
           </button>
         </div>
@@ -223,7 +223,7 @@ export default function EventDetailClient(): React.ReactElement | null {
   const isSoldOut = event.ticket_types.every((tt) => tt.available === 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-screen bg-page pb-8">
       {/* Image de couverture */}
       <div className="relative">
         {event.cover_url ? (
@@ -271,27 +271,27 @@ export default function EventDetailClient(): React.ReactElement | null {
 
         {/* Titre + lieu + date */}
         <div>
-          <h1 className="text-xl font-bold text-gray-900 font-['Sora']">{event.title}</h1>
+          <h1 className="text-xl font-bold text-ink font-['Sora']">{event.title}</h1>
           <div className="mt-2 space-y-1.5">
-            <div className="flex items-start gap-2 text-sm text-gray-600">
-              <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-start gap-2 text-sm text-ink-soft">
+              <svg className="w-4 h-4 text-ink-soft flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               </svg>
               <div>
                 <p>{event.venue_name}, {event.city.name}</p>
-                <p className="text-xs text-gray-400">{event.venue_address}</p>
+                <p className="text-xs text-ink-soft">{event.venue_address}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-2 text-sm text-ink-soft">
+              <svg className="w-4 h-4 text-ink-soft flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="capitalize">{formatFullDate(event.starts_at)}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center gap-2 text-sm text-ink-soft">
+              <svg className="w-4 h-4 text-ink-soft flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -304,7 +304,7 @@ export default function EventDetailClient(): React.ReactElement | null {
               href={`https://maps.google.com/maps?daddr=${event.latitude},${event.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#1A6B3A]"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#1A6B3A] dark:text-green-300"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -313,23 +313,23 @@ export default function EventDetailClient(): React.ReactElement | null {
               Itinéraire
             </a>
           ) : (
-            <p className="mt-3 text-xs text-gray-400">
+            <p className="mt-3 text-xs text-ink-soft">
               Itinéraire non disponible — l&apos;organisateur n&apos;a pas positionné le lieu sur la carte.
             </p>
           )}
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <h2 className="font-semibold text-gray-800 mb-2">À propos</h2>
-          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+        <div className="bg-surface-card rounded-2xl p-4 shadow-sm">
+          <h2 className="font-semibold text-ink mb-2">À propos</h2>
+          <p className="text-sm text-ink-soft leading-relaxed whitespace-pre-line">
             {event.description}
           </p>
         </div>
 
         {/* Informations de sécurité — bouton toggle */}
         {event.safety_description && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
             <button
               onClick={() => setShowSafetyInfo((s) => !s)}
               className="w-full flex items-center justify-between p-4"
@@ -339,18 +339,18 @@ export default function EventDetailClient(): React.ReactElement | null {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <span className="font-semibold text-gray-800 text-sm">Informations de sécurité</span>
+                <span className="font-semibold text-ink text-sm">Informations de sécurité</span>
               </div>
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform ${showSafetyInfo ? "rotate-180" : ""}`}
+                className={`w-4 h-4 text-ink-soft transition-transform ${showSafetyInfo ? "rotate-180" : ""}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {showSafetyInfo && (
-              <div className="px-4 pb-4 border-t border-gray-100">
-                <p className="text-sm text-gray-600 leading-relaxed mt-3 whitespace-pre-line">
+              <div className="px-4 pb-4 border-t border-border-subtle">
+                <p className="text-sm text-ink-soft leading-relaxed mt-3 whitespace-pre-line">
                   {event.safety_description}
                 </p>
               </div>
@@ -360,10 +360,10 @@ export default function EventDetailClient(): React.ReactElement | null {
 
         {/* Types de billets */}
         <div>
-          <h2 className="font-semibold text-gray-800 mb-3">Billets</h2>
+          <h2 className="font-semibold text-ink mb-3">Billets</h2>
           {isPast ? (
-            <div className="bg-gray-100 rounded-2xl p-4 text-center">
-              <p className="text-gray-500 font-medium">Cet événement est passé</p>
+            <div className="bg-surface-elevated rounded-2xl p-4 text-center">
+              <p className="text-ink-soft font-medium">Cet événement est passé</p>
             </div>
           ) : isSoldOut ? (
             <div className="bg-red-50 rounded-2xl p-4 text-center border border-red-200">
@@ -386,30 +386,30 @@ export default function EventDetailClient(): React.ReactElement | null {
       {/* Modal réservation */}
       {showBookingModal && selectedTicketType && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-[60]">
-          <div className="w-full bg-white rounded-t-3xl px-4 py-6 max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Réserver un billet</h2>
-            <p className="text-sm text-gray-500 mb-4">{event.title}</p>
+          <div className="w-full bg-surface-card rounded-t-3xl px-4 py-6 max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+            <h2 className="text-lg font-bold text-ink mb-1">Réserver un billet</h2>
+            <p className="text-sm text-ink-soft mb-4">{event.title}</p>
 
             {/* Résumé ticket */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <div className="bg-surface-elevated rounded-xl p-4 mb-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-semibold text-gray-900">{selectedTicketType.name}</p>
+                  <p className="font-semibold text-ink">{selectedTicketType.name}</p>
                   {selectedTicketType.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">{selectedTicketType.description}</p>
+                    <p className="text-xs text-ink-soft mt-0.5">{selectedTicketType.description}</p>
                   )}
                 </div>
-                <p className="font-bold text-[#1A6B3A]">
+                <p className="font-bold text-[#1A6B3A] dark:text-green-300">
                   {selectedTicketType.price_fcfa === 0
                     ? "Gratuit"
                     : `${selectedTicketType.price_fcfa.toLocaleString("fr-FR")} FCFA`}
                 </p>
               </div>
               {selectedTicketType.included_items.length > 0 && (
-                <ul className="mt-3 pt-3 border-t border-gray-200 space-y-1">
+                <ul className="mt-3 pt-3 border-t border-border-subtle space-y-1">
                   {selectedTicketType.included_items.map((item, i) => (
-                    <li key={i} className="text-xs text-gray-600 flex items-center gap-1.5">
-                      <span className="text-[#1A6B3A]">✓</span> {item}
+                    <li key={i} className="text-xs text-ink-soft flex items-center gap-1.5">
+                      <span className="text-[#1A6B3A] dark:text-green-300">✓</span> {item}
                     </li>
                   ))}
                 </ul>
@@ -418,7 +418,7 @@ export default function EventDetailClient(): React.ReactElement | null {
 
             {selectedTicketType.variant_options.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Choisissez une option</p>
+                <p className="text-sm font-medium text-ink mb-2">Choisissez une option</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTicketType.variant_options.map((opt) => (
                     <button
@@ -427,7 +427,7 @@ export default function EventDetailClient(): React.ReactElement | null {
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
                         selectedVariant === opt
                           ? "bg-[#1A6B3A] text-white border-[#1A6B3A]"
-                          : "bg-white text-gray-700 border-gray-300"
+                          : "bg-surface-card text-ink border-border-subtle"
                       }`}
                     >
                       {opt}
@@ -439,18 +439,18 @@ export default function EventDetailClient(): React.ReactElement | null {
 
             {/* Quantité */}
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-gray-700">Quantité</p>
-              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+              <p className="text-sm font-medium text-ink">Quantité</p>
+              <div className="flex items-center border border-border-subtle rounded-xl overflow-hidden">
                 <button
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="px-4 py-3 text-gray-600 hover:bg-gray-100 font-bold"
+                  className="px-4 py-3 text-ink-soft hover:bg-surface-elevated font-bold"
                 >
                   −
                 </button>
-                <span className="px-4 font-semibold text-gray-900">{quantity}</span>
+                <span className="px-4 font-semibold text-ink">{quantity}</span>
                 <button
                   onClick={() => setQuantity((q) => Math.min(selectedTicketType.max_per_order, selectedTicketType.available, q + 1))}
-                  className="px-4 py-3 text-gray-600 hover:bg-gray-100 font-bold"
+                  className="px-4 py-3 text-ink-soft hover:bg-surface-elevated font-bold"
                 >
                   +
                 </button>
@@ -460,13 +460,13 @@ export default function EventDetailClient(): React.ReactElement | null {
             {/* Produits en option */}
             {event.merch_items.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Ajouter des produits (optionnel)</p>
+                <p className="text-sm font-medium text-ink mb-2">Ajouter des produits (optionnel)</p>
                 <div className="space-y-2">
                   {event.merch_items.map((item) => {
                     const sel = selectedMerch[item.id];
                     const soldOut = item.available === 0;
                     return (
-                      <div key={item.id} className="border border-gray-200 rounded-xl p-3">
+                      <div key={item.id} className="border border-border-subtle rounded-xl p-3">
                         <div className="flex items-start justify-between gap-2">
                           <button
                             type="button"
@@ -474,16 +474,16 @@ export default function EventDetailClient(): React.ReactElement | null {
                             onClick={() => toggleMerch(item.id)}
                             className="flex items-start gap-2 flex-1 text-left disabled:opacity-40"
                           >
-                            <span className={`w-4 h-4 rounded border mt-0.5 flex-shrink-0 flex items-center justify-center ${sel ? "bg-[#1A6B3A] border-[#1A6B3A]" : "border-gray-300"}`}>
+                            <span className={`w-4 h-4 rounded border mt-0.5 flex-shrink-0 flex items-center justify-center ${sel ? "bg-[#1A6B3A] border-[#1A6B3A]" : "border-border-subtle"}`}>
                               {sel && <span className="text-white text-[10px]">✓</span>}
                             </span>
                             <span>
-                              <span className="text-sm font-medium text-gray-800 block">{item.name}</span>
-                              {item.description && <span className="text-xs text-gray-500 block">{item.description}</span>}
-                              <span className="text-xs text-gray-400 block">{soldOut ? "Épuisé" : `${item.available} disponible(s)`}</span>
+                              <span className="text-sm font-medium text-ink block">{item.name}</span>
+                              {item.description && <span className="text-xs text-ink-soft block">{item.description}</span>}
+                              <span className="text-xs text-ink-soft block">{soldOut ? "Épuisé" : `${item.available} disponible(s)`}</span>
                             </span>
                           </button>
-                          <span className="text-sm font-semibold text-[#1A6B3A] flex-shrink-0">
+                          <span className="text-sm font-semibold text-[#1A6B3A] dark:text-green-300 flex-shrink-0">
                             {item.price_fcfa.toLocaleString("fr-FR")} F
                           </span>
                         </div>
@@ -500,7 +500,7 @@ export default function EventDetailClient(): React.ReactElement | null {
                                     className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${
                                       sel.variant === opt
                                         ? "bg-[#1A6B3A] text-white border-[#1A6B3A]"
-                                        : "bg-white text-gray-600 border-gray-300"
+                                        : "bg-surface-card text-ink-soft border-border-subtle"
                                     }`}
                                   >
                                     {opt}
@@ -512,15 +512,15 @@ export default function EventDetailClient(): React.ReactElement | null {
                               <button
                                 type="button"
                                 onClick={() => setMerchQuantity(item.id, Math.max(1, sel.quantity - 1))}
-                                className="w-7 h-7 border border-gray-200 rounded-lg text-gray-600 font-bold"
+                                className="w-7 h-7 border border-border-subtle rounded-lg text-ink-soft font-bold"
                               >
                                 −
                               </button>
-                              <span className="text-sm font-medium text-gray-900 w-4 text-center">{sel.quantity}</span>
+                              <span className="text-sm font-medium text-ink w-4 text-center">{sel.quantity}</span>
                               <button
                                 type="button"
                                 onClick={() => setMerchQuantity(item.id, Math.min(item.available, sel.quantity + 1))}
-                                className="w-7 h-7 border border-gray-200 rounded-lg text-gray-600 font-bold"
+                                className="w-7 h-7 border border-border-subtle rounded-lg text-ink-soft font-bold"
                               >
                                 +
                               </button>
@@ -535,9 +535,9 @@ export default function EventDetailClient(): React.ReactElement | null {
             )}
 
             {/* Total */}
-            <div className="flex justify-between items-center py-3 border-t border-gray-100 mb-4">
-              <p className="text-gray-600 font-medium">Total</p>
-              <p className="text-xl font-bold text-gray-900">
+            <div className="flex justify-between items-center py-3 border-t border-border-subtle mb-4">
+              <p className="text-ink-soft font-medium">Total</p>
+              <p className="text-xl font-bold text-ink">
                 {(
                   selectedTicketType.price_fcfa * quantity +
                   Object.entries(selectedMerch).reduce((sum, [itemId, sel]) => {
@@ -555,7 +555,7 @@ export default function EventDetailClient(): React.ReactElement | null {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBookingModal(false)}
-                className="flex-1 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold"
+                className="flex-1 py-3 border border-border-subtle rounded-xl text-ink font-semibold"
               >
                 Annuler
               </button>
@@ -589,29 +589,29 @@ function TicketTypeCard({
   const isAlmostGone = ticket.available > 0 && ticket.available <= 10;
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle">
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-gray-900">{ticket.name}</p>
+            <p className="font-semibold text-ink">{ticket.name}</p>
             {ticket.is_seated && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A6B3A] bg-green-50 border border-green-200 rounded-full px-1.5 py-0.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A6B3A] dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-full px-1.5 py-0.5">
                 Place numérotée
               </span>
             )}
           </div>
           {ticket.description && (
-            <p className="text-xs text-gray-500 mt-0.5">{ticket.description}</p>
+            <p className="text-xs text-ink-soft mt-0.5">{ticket.description}</p>
           )}
         </div>
         <div className="text-right ml-3">
-          <p className="font-bold text-[#1A6B3A] text-lg">
+          <p className="font-bold text-[#1A6B3A] dark:text-green-300 text-lg">
             {ticket.price_fcfa === 0
               ? "Gratuit"
               : `${ticket.price_fcfa.toLocaleString("fr-FR")}`}
           </p>
           {ticket.price_fcfa > 0 && (
-            <p className="text-xs text-gray-400">FCFA</p>
+            <p className="text-xs text-ink-soft">FCFA</p>
           )}
         </div>
       </div>
@@ -622,7 +622,7 @@ function TicketTypeCard({
             ? "text-red-500"
             : isAlmostGone
             ? "text-amber-600"
-            : "text-gray-500"
+            : "text-ink-soft"
         }`}>
           {!isAvailable
             ? "Épuisé"

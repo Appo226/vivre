@@ -35,9 +35,9 @@ export default function AuthLayout({ children }: AuthLayoutProps): React.ReactEl
     /*
      * min-h-screen = l'écran auth remplit toujours la hauteur du viewport.
      * flex flex-col = organise le contenu verticalement.
-     * bg-white = fond blanc (les écrans auth ont leur propre gradient).
+     * bg-surface-card = fond blanc (les écrans auth ont leur propre gradient).
      */
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-surface-card">
       {children}
     </div>
   );

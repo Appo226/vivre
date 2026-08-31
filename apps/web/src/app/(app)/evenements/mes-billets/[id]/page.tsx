@@ -106,13 +106,13 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 const BOOKING_STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: "En attente de paiement", color: "text-amber-700 bg-amber-50 border-amber-200", icon: "⏳" },
-  confirmed: { label: "Confirmé — Prêt à entrer", color: "text-green-700 bg-green-50 border-green-200", icon: "✅" },
+  confirmed: { label: "Confirmé — Prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900", icon: "✅" },
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200", icon: "❌" },
 };
 
 const TICKET_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  valid: { label: "Prêt à entrer", color: "text-green-700 bg-green-50 border-green-200" },
-  checked_in: { label: "Utilisé", color: "text-gray-600 bg-gray-50 border-gray-200" },
+  valid: { label: "Prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
+  checked_in: { label: "Utilisé", color: "text-ink-soft bg-surface-elevated border-border-subtle" },
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
@@ -172,7 +172,7 @@ export default function EventBilletPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 flex items-center justify-center">
+      <div className="min-h-screen bg-page flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#1A6B3A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -183,14 +183,14 @@ export default function EventBilletPage(): React.ReactElement {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-red-600 font-semibold">Billet introuvable</p>
-          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] text-sm">Retour</button>
+          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] dark:text-green-300 text-sm">Retour</button>
         </div>
       </div>
     );
   }
 
   const statusConfig = BOOKING_STATUS_CONFIG[booking.status] ?? {
-    label: booking.status, color: "text-gray-600 bg-gray-50 border-gray-200", icon: "•",
+    label: booking.status, color: "text-ink-soft bg-surface-elevated border-border-subtle", icon: "•",
   };
 
   const eventEndedAt = new Date(booking.event.ends_at);
@@ -203,7 +203,7 @@ export default function EventBilletPage(): React.ReactElement {
   const openTicket = booking.tickets.find((t) => t.id === openTicketId) ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 pb-8">
+    <div className="min-h-screen bg-page pb-8">
       {/* En-tête */}
       <div className="bg-dark px-4 pt-12 pb-6">
         <button
@@ -231,16 +231,16 @@ export default function EventBilletPage(): React.ReactElement {
 
         {/* Paiement manuel — pendant la phase pilote, avant que CinetPay soit branché */}
         {booking.is_original_buyer && booking.status === "pending" && booking.manual_payment_instructions && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
-            <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Finaliser le paiement</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Total : <span className="font-bold text-gray-900 dark:text-gray-100">{new Intl.NumberFormat("fr-FR").format(booking.total_amount)} FCFA</span>
+          <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
+            <p className="font-bold text-ink mb-1">Finaliser le paiement</p>
+            <p className="text-sm text-ink-soft mb-4">
+              Total : <span className="font-bold text-ink">{new Intl.NumberFormat("fr-FR").format(booking.total_amount)} FCFA</span>
             </p>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
               <p className="text-sm text-amber-900 font-dm">
                 Envoyez ce montant via <span className="font-bold">{PROVIDER_LABELS[booking.manual_payment_instructions.provider] ?? booking.manual_payment_instructions.provider}</span> au numéro :
               </p>
-              <p className="text-xl font-bold text-gray-900 font-mono">{booking.manual_payment_instructions.phone}</p>
+              <p className="text-xl font-bold text-ink font-mono">{booking.manual_payment_instructions.phone}</p>
               <p className="text-xs text-amber-700">Titulaire : {booking.manual_payment_instructions.account_name}</p>
               <p className="text-xs text-amber-700 pt-1">
                 Vos billets seront confirmés et apparaîtront ici dès que l&apos;organisateur aura validé la réception du paiement.
@@ -251,10 +251,10 @@ export default function EventBilletPage(): React.ReactElement {
 
         {/* Paiement automatique — une fois CinetPay branché */}
         {booking.is_original_buyer && booking.status === "pending" && !booking.manual_payment_instructions && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
-            <p className="font-bold text-gray-900 dark:text-gray-100 mb-1">Finaliser le paiement</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Total : <span className="font-bold text-gray-900 dark:text-gray-100">{new Intl.NumberFormat("fr-FR").format(booking.total_amount)} FCFA</span>
+          <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900">
+            <p className="font-bold text-ink mb-1">Finaliser le paiement</p>
+            <p className="text-sm text-ink-soft mb-4">
+              Total : <span className="font-bold text-ink">{new Intl.NumberFormat("fr-FR").format(booking.total_amount)} FCFA</span>
             </p>
             <div className="space-y-2 mb-4">
               {[
@@ -264,10 +264,10 @@ export default function EventBilletPage(): React.ReactElement {
               ].map((m) => (
                 <button key={m.v} onClick={() => setPayMethod(m.v)}
                   className={["w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
-                    payMethod === m.v ? "border-[#1A6B3A] bg-green-50 dark:bg-green-950/30" : "border-gray-200 dark:border-dark-700"].join(" ")}>
+                    payMethod === m.v ? "border-[#1A6B3A] bg-green-50 dark:bg-green-950/30" : "border-border-subtle"].join(" ")}>
                   <span className="text-xl">{m.i}</span>
-                  <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex-1">{m.l}</p>
-                  {payMethod === m.v && <span className="text-green-700 font-bold text-sm">✓</span>}
+                  <p className="font-semibold text-ink text-sm flex-1">{m.l}</p>
+                  {payMethod === m.v && <span className="text-green-700 dark:text-green-300 font-bold text-sm">✓</span>}
                 </button>
               ))}
             </div>
@@ -282,41 +282,41 @@ export default function EventBilletPage(): React.ReactElement {
         )}
 
         {/* Infos événement + commande */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="bg-surface-card rounded-2xl p-4 shadow-sm space-y-3">
           <div className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-ink-soft flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{formatFullDate(booking.event.starts_at)}</p>
+            <p className="text-sm font-semibold text-ink capitalize">{formatFullDate(booking.event.starts_at)}</p>
           </div>
           <div className="flex items-center gap-3">
-            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-ink-soft flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="text-sm text-ink-soft">
               {formatTime(booking.event.starts_at)} → {formatTime(booking.event.ends_at)}
             </p>
           </div>
           <div className="flex items-start gap-3">
-            <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-ink-soft mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             </svg>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{booking.event.venue_name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{booking.event.city.name}</p>
+              <p className="font-semibold text-ink text-sm">{booking.event.venue_name}</p>
+              <p className="text-xs text-ink-soft">{booking.event.city.name}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
-              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ {booking.is_original_buyer ? "Commande" : "Billets détenus"}</p>
-              <p className="font-bold text-gray-900 dark:text-gray-100 mt-0.5">{booking.tickets.length} billet{booking.tickets.length > 1 ? "s" : ""}</p>
+            <div className="bg-surface-elevated rounded-xl p-3">
+              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ {booking.is_original_buyer ? "Commande" : "Billets détenus"}</p>
+              <p className="font-bold text-ink mt-0.5">{booking.tickets.length} billet{booking.tickets.length > 1 ? "s" : ""}</p>
             </div>
-            <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
-              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">◆ Montant</p>
-              <p className="font-bold text-[#1A6B3A] mt-0.5">
+            <div className="bg-surface-elevated rounded-xl p-3">
+              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ Montant</p>
+              <p className="font-bold text-[#1A6B3A] dark:text-green-300 mt-0.5">
                 {booking.total_amount === 0 ? "Gratuit" : `${booking.total_amount.toLocaleString("fr-FR")} FCFA`}
               </p>
             </div>
@@ -327,29 +327,29 @@ export default function EventBilletPage(): React.ReactElement {
             révèle la carte artistique + le QR au clic (voir TicketRevealModal). */}
         {booking.tickets.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
+            <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-2">
               {booking.tickets.length > 1 ? `Mes billets (${booking.tickets.length})` : "Mon billet"}
             </p>
             <div className="space-y-2">
               {booking.tickets.map((t) => {
-                const tCfg = TICKET_STATUS_CONFIG[t.status] ?? { label: t.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
+                const tCfg = TICKET_STATUS_CONFIG[t.status] ?? { label: t.status, color: "text-ink-soft bg-surface-elevated border-border-subtle" };
                 return (
                   <button
                     key={t.id}
                     onClick={() => setOpenTicketId(t.id)}
-                    className="w-full flex items-center justify-between bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 active:scale-[0.99] transition-transform text-left"
+                    className="w-full flex items-center justify-between bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle active:scale-[0.99] transition-transform text-left"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#0F2E20] flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-sm">🎟️</span>
                       </div>
                       <div>
-                        <p className="font-jakarta font-bold text-sm text-gray-900 dark:text-gray-100">
+                        <p className="font-jakarta font-bold text-sm text-ink">
                           {t.seat_number !== null
                             ? `${booking.ticket_type.name} · Place ${t.seat_number}`
                             : booking.quantity > 1 ? `Billet ${t.ticket_number}` : booking.ticket_type.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-ink-soft">
                           {t.seat_number !== null
                             ? "Toucher pour voir le QR"
                             : booking.quantity > 1 ? booking.ticket_type.name : "Toucher pour voir le QR"}
@@ -367,17 +367,17 @@ export default function EventBilletPage(): React.ReactElement {
         )}
 
         {/* Contact organisateur */}
-        <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm">
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Organisateur</p>
+        <div className="bg-surface-card rounded-2xl p-4 shadow-sm">
+          <p className="text-sm font-semibold text-ink mb-2">Organisateur</p>
           <div className="flex items-center gap-3">
-            <p className="text-gray-700 dark:text-gray-300 text-sm flex-1">
+            <p className="text-ink-soft text-sm flex-1">
               {[booking.event.organizer.first_name, booking.event.organizer.last_name]
                 .filter(Boolean)
                 .join(" ") || "Organisateur VIVRE"}
             </p>
             <a
               href={`tel:${booking.event.organizer.phone}`}
-              className="text-[#1A6B3A] font-medium text-sm"
+              className="text-[#1A6B3A] dark:text-green-300 font-medium text-sm"
             >
               {booking.event.organizer.phone}
             </a>
@@ -395,22 +395,22 @@ export default function EventBilletPage(): React.ReactElement {
         )}
 
         {showReportForm && (
-          <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900 space-y-3">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Que s&apos;est-il passé ?</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-amber-200 dark:border-amber-900 space-y-3">
+            <p className="text-sm font-semibold text-ink">Que s&apos;est-il passé ?</p>
+            <p className="text-xs text-ink-soft">
               Ex : l&apos;événement n&apos;a pas eu lieu, le lieu était fermé, aucune communication reçue…
             </p>
             <textarea
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
               placeholder="Décrivez le problème (min. 10 caractères)"
-              className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2 text-sm resize-none h-24"
+              className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2 text-sm resize-none h-24"
             />
             {reportError && <p className="text-xs text-red-600">{reportError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={() => { setShowReportForm(false); setReportError(""); }}
-                className="flex-1 py-2.5 border border-gray-200 dark:border-dark-700 rounded-xl text-sm text-gray-600 dark:text-gray-300"
+                className="flex-1 py-2.5 border border-border-subtle rounded-xl text-sm text-ink-soft"
               >
                 Annuler
               </button>
@@ -430,7 +430,7 @@ export default function EventBilletPage(): React.ReactElement {
         )}
 
         {reportSent && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-800">
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-2xl p-4 text-sm text-green-800 dark:text-green-300">
             Signalement envoyé. Notre équipe examine votre demande de remboursement.
           </div>
         )}
@@ -595,15 +595,37 @@ function TicketRevealModal({
 
           {/* Panneau QR — seule zone claire du billet */}
           <div className="relative flex justify-center">
-            <div className="relative bg-white rounded-2xl p-4 shadow-inner">
+            <div className="relative bg-surface-card rounded-2xl p-4 shadow-inner">
               <div className="absolute top-1/2 -left-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
               <div className="absolute top-1/2 -right-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
+              {/*
+                Logo centré dans le QR — niveau H (30% de correction d'erreur) obligatoire
+                pour absorber les modules recouverts par le logo sans compromettre le scan ;
+                "M" (15%) suffisait pour un QR nu mais serait marginal ici. excavate=true fait
+                lire à la librairie un "trou" propre plutôt que de superposer une image sur des
+                modules encodés — c'est ça, pas la seule montée de niveau, qui protège vraiment
+                la lecture. Vérifié par décodage réel via jsQR (même lib que le scanner en
+                porte), pas seulement visuellement — voir le commit associé.
+              */}
               {ticket.status === "cancelled" ? (
                 <div className="relative opacity-30">
-                  <QRCodeSVG value={ticket.qr_code} size={168} level="M" fgColor="#0F2E20" />
+                  <QRCodeSVG
+                    value={ticket.qr_code}
+                    size={168}
+                    level="H"
+                    fgColor="#0F2E20"
+                    imageSettings={{ src: "/icons/vivre-mark-64.png", height: 32, width: 32, excavate: true }}
+                  />
                 </div>
               ) : (
-                <QRCodeSVG value={ticket.qr_code} size={168} level="M" fgColor="#0F2E20" bgColor="#FFFFFF" />
+                <QRCodeSVG
+                  value={ticket.qr_code}
+                  size={168}
+                  level="H"
+                  fgColor="#0F2E20"
+                  bgColor="#FFFFFF"
+                  imageSettings={{ src: "/icons/vivre-mark-64.png", height: 32, width: 32, excavate: true }}
+                />
               )}
             </div>
           </div>
@@ -651,9 +673,9 @@ function TicketRevealModal({
           )}
 
           {showTransferForm && (
-            <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 shadow-sm space-y-3">
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Transférer à qui ?</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="bg-surface-card rounded-2xl p-4 shadow-sm space-y-3">
+              <p className="text-sm font-semibold text-ink">Transférer à qui ?</p>
+              <p className="text-xs text-ink-soft">
                 Ce billet précis passera immédiatement au numéro indiqué — vous n&apos;y aurez plus accès.
                 La personne le retrouvera dans « Mes billets » en se connectant avec ce numéro sur VIVRE.
               </p>
@@ -663,13 +685,13 @@ function TicketRevealModal({
                 value={transferPhone}
                 onChange={(e) => setTransferPhone(e.target.value)}
                 placeholder="Numéro du destinataire (ex: 70000000 ou +226...)"
-                className="w-full border border-gray-300 dark:border-dark-600 dark:bg-dark-700 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm"
+                className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2.5 text-sm"
               />
               {transferError && <p className="text-xs text-red-600">{transferError}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShowTransferForm(false); setTransferError(""); setTransferPhone(""); }}
-                  className="flex-1 py-2.5 border border-gray-200 dark:border-dark-700 rounded-xl text-sm text-gray-600 dark:text-gray-300"
+                  className="flex-1 py-2.5 border border-border-subtle rounded-xl text-sm text-ink-soft"
                 >
                   Annuler
                 </button>
@@ -689,7 +711,7 @@ function TicketRevealModal({
           )}
 
           {transferSent && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-sm text-green-800">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-2xl p-4 text-sm text-green-800 dark:text-green-300">
               Billet transféré. Redirection vers vos billets…
             </div>
           )}
@@ -712,9 +734,9 @@ function TicketRevealModal({
       {/* Modal confirmation annulation */}
       {showCancelConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-[70]" onClick={() => setShowCancelConfirm(false)}>
-          <div className="w-full max-w-xs mx-auto bg-white dark:bg-dark-800 rounded-t-3xl px-4 py-6 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">Annuler ce billet ?</h2>
-            <p className={`text-sm mb-4 ${refund.eligible ? "text-green-700" : "text-gray-500 dark:text-gray-400"}`}>
+          <div className="w-full max-w-xs mx-auto bg-surface-card rounded-t-3xl px-4 py-6 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold mb-2 text-ink">Annuler ce billet ?</h2>
+            <p className={`text-sm mb-4 ${refund.eligible ? "text-green-700 dark:text-green-300" : "text-ink-soft"}`}>
               {refund.eligible
                 ? `${refund.label} — remboursement automatique de ${ticket.price_fcfa_at_purchase.toLocaleString("fr-FR")} FCFA.`
                 : refund.label}
@@ -723,7 +745,7 @@ function TicketRevealModal({
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowCancelConfirm(false); setCancelError(""); }}
-                className="flex-1 py-3 border border-gray-200 dark:border-dark-700 rounded-xl text-gray-700 dark:text-gray-300 font-semibold"
+                className="flex-1 py-3 border border-border-subtle rounded-xl text-ink-soft font-semibold"
               >
                 Garder
               </button>

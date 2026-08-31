@@ -140,8 +140,8 @@ export default function ProfileSetupPage(): React.ReactElement {
 
             {/* --- Nom d'utilisateur (optionnel — l'identité que la personne choisit d'afficher) --- */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Nom d&apos;utilisateur <span className="text-gray-400 text-xs">(optionnel)</span>
+              <label className="block text-sm font-medium text-ink mb-1.5">
+                Nom d&apos;utilisateur <span className="text-ink-soft text-xs">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -150,15 +150,15 @@ export default function ProfileSetupPage(): React.ReactElement {
                 placeholder="awa_bf"
                 value={username}
                 onChange={(e) => { setUsername(e.target.value); setError(null); }}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900"
+                className="w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink"
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-400 mt-1">3 à 20 caractères, lettres/chiffres/underscore. Affiché à la place de votre nom si renseigné.</p>
+              <p className="text-xs text-ink-soft mt-1">3 à 20 caractères, lettres/chiffres/underscore. Affiché à la place de votre nom si renseigné.</p>
             </div>
 
             {/* --- Prénom (obligatoire) --- */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink mb-1.5">
                 Prénom <span className="text-red-500">*</span>
               </label>
               <input
@@ -167,15 +167,15 @@ export default function ProfileSetupPage(): React.ReactElement {
                 placeholder="Aminata"
                 value={firstName}
                 onChange={(e) => { setFirstName(e.target.value); setError(null); }}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900"
+                className="w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink"
                 disabled={isLoading}
               />
             </div>
 
             {/* --- Nom (optionnel) --- */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Nom <span className="text-gray-400 text-xs">(optionnel)</span>
+              <label className="block text-sm font-medium text-ink mb-1.5">
+                Nom <span className="text-ink-soft text-xs">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -183,15 +183,15 @@ export default function ProfileSetupPage(): React.ReactElement {
                 placeholder="Sawadogo"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900"
+                className="w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink"
                 disabled={isLoading}
               />
             </div>
 
             {/* --- Email (optionnel) --- */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email <span className="text-gray-400 text-xs">(optionnel — pour les reçus)</span>
+              <label className="block text-sm font-medium text-ink mb-1.5">
+                Email <span className="text-ink-soft text-xs">(optionnel — pour les reçus)</span>
               </label>
               <input
                 type="email"
@@ -199,14 +199,14 @@ export default function ProfileSetupPage(): React.ReactElement {
                 placeholder="aminata@example.com"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900"
+                className="w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink"
                 disabled={isLoading}
               />
             </div>
 
             {/* --- Langue préférée --- */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink mb-1.5">
                 Langue préférée
               </label>
               <div className="flex gap-3">
@@ -218,8 +218,8 @@ export default function ProfileSetupPage(): React.ReactElement {
                     className={[
                       "flex-1 py-3 rounded-xl text-sm font-medium border-2 transition-all",
                       language === lang
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-gray-50 text-gray-600",
+                        ? "border-green-600 dark:border-green-500 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300"
+                        : "border-border-subtle bg-surface-elevated text-ink-soft",
                     ].join(" ")}
                   >
                     {lang === "fr" ? "🇫🇷 Français" : "🇬🇧 English"}
@@ -241,7 +241,7 @@ export default function ProfileSetupPage(): React.ReactElement {
                 "w-full py-4 rounded-xl text-white font-semibold text-base mt-2",
                 "transition-all focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
                 isLoading || !firstName.trim()
-                  ? "bg-gray-300 cursor-not-allowed"
+                  ? "bg-surface-elevated cursor-not-allowed"
                   : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
               ].join(" ")}
             >
@@ -252,7 +252,7 @@ export default function ProfileSetupPage(): React.ReactElement {
             <button
               type="button"
               onClick={handleSkip}
-              className="text-sm text-gray-500 hover:text-gray-700 underline mt-1"
+              className="text-sm text-ink-soft hover:text-ink underline mt-1"
             >
               Passer pour l&apos;instant
             </button>

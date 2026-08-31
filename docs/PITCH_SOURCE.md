@@ -174,6 +174,54 @@ summary of it.
 - Real-device QR scanner testing before relying on it at a live event door.
 - See `docs/POST_MVP_ROADMAP.md` for the complete, current technical roadmap.
 
+## Visual assets
+
+`docs/assets/marketing/` — files `08` through `12` (2026-08-31) are the current live
+set (`v2`), replacing `01`–`07` in the actual in-app ad carousel — the user judged the
+newer AI-generated source photos a better fit. Both sets stay in the repo (`01`–`07`
+below are still fine for slides if a specific shot fits better), but pull from the `v2`
+files first for anything meant to represent "what's live today."
+
+- `08-decouvrez-v2.png` / `09-reservez-sortez-vivez-v2.png` / `11-entre-amis-v2.png` —
+  used as the 3-clip video (`12-...mp4`, discover → book → enjoy with friends).
+- `10-tout-vos-evenements-v2.png` — kept as a standalone static (text-dense, needs
+  reading time, not a video frame) — the same reasoning as `04` in the first set.
+- `11-entre-amis-v2.png` had false Google Play/App Store badges, a QR code, and
+  unverified `@vivre.bf` social handles removed via a soft feathered black overlay
+  (not a hard box — the badges sat across real photographed people, so a crisp-edged
+  box would have read as an obvious paste; a blurred-edge patch blends with the
+  night-photo shadow instead). Verified by direct pixel sampling, not just a visual
+  glance — the chat image-preview pipeline visibly recompresses flat black regions
+  with faint ringing artifacts around former hard edges, which can look like a
+  residual, incompletely-removed logo even when the underlying file is genuinely flat.
+  If this ever comes up again: trust `im.getpixel(...)` over the rendered preview.
+
+Older set, still in the repo for reference —
+6 photos + 1 short video (2026-08-30), all real product content
+(genuine authenticated screenshots composited into the scenes — real events, real QR
+tickets, real nav, no invented UI or false store-availability claims). Pull directly
+from here for slide imagery rather than regenerating new visuals per deck; these are
+already fact-checked against the live product.
+
+- `01-hero-cinematique.png` — flagship brand shot, tagline "Vivez le Faso. Un billet
+  à la fois." Good as a title-slide or closing-slide background.
+- `02-decouvrez.png` — concert crowd + phone showing the real home feed. Good for a
+  "the product" or "how it works" slide.
+- `03-reservez-sortez-vivez.png` — phone showing a real QR ticket. Good for the
+  ticketing/checkout part of a product-walkthrough slide.
+- `04-tout-vos-evenements.png` — category/feature infographic, text-dense. Good as a
+  standalone "what's in the app" slide, not a background (needs reading time).
+- `05-experience-commence-ici.png` — door/entry moment with a scanning-kiosk prop.
+  **Note:** the kiosk hardware shown is aspirational/roadmap, not a shipped product —
+  say so explicitly if this image is used in front of investors, don't let it imply
+  VIVRE already manufactures check-in hardware.
+- `06-entre-amis.png` — lifestyle/social proof shot (friends + Ouagadougou landmark).
+  Good for a "who this is for" or market-context slide.
+- `07-video-decouvrez-reservez-vivez.mp4` — 14.5s, discover → book → scan-in narrative
+  crossfade, same footage as 02/03/05 in sequence. Also live in-app today (`home_feed`
+  ad placement) — see the `AdCampaign` rows for it if a fresher/different cut is ever
+  wanted.
+
 ## Talking points worth remembering for a pitch
 
 - The platform was built with a real, working, adversarially-tested money-safety

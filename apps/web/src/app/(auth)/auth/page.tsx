@@ -63,7 +63,7 @@ function normalizePhoneForDisplay(raw: string): string {
 }
 
 function inputCls(): string {
-  return "w-full px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-gray-900 placeholder-gray-400 text-base";
+  return "w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink placeholder-gray-400 text-base";
 }
 
 function AuthForm(): React.ReactElement {
@@ -216,10 +216,10 @@ function AuthForm(): React.ReactElement {
       {/* === FORMULAIRE === */}
       <main className="flex-1 px-6 pt-8 pb-6 flex flex-col">
         <div className="max-w-sm mx-auto w-full flex flex-col flex-1">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">
+          <h2 className="text-2xl font-bold text-ink mb-1">
             {mode === "login" ? "Bon retour !" : "Bienvenue !"}
           </h2>
-          <p className="text-gray-500 text-sm mb-6">
+          <p className="text-ink-soft text-sm mb-6">
             {mode === "login"
               ? "Connectez-vous avec votre numéro et votre mot de passe."
               : "Créez votre compte pour découvrir et réserver des événements."}
@@ -230,7 +230,7 @@ function AuthForm(): React.ReactElement {
           </Suspense>
 
           {/* --- Onglets Connexion / Inscription --- */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+          <div className="flex gap-1 bg-surface-elevated rounded-xl p-1 mb-6">
             {(["login", "signup"] as const).map((m) => (
               <button
                 key={m}
@@ -238,7 +238,7 @@ function AuthForm(): React.ReactElement {
                 onClick={() => switchMode(m)}
                 className={[
                   "flex-1 py-2.5 rounded-lg text-sm font-semibold transition-colors",
-                  mode === m ? "bg-white text-green-700 shadow-sm" : "text-gray-500",
+                  mode === m ? "bg-surface-card text-green-700 dark:text-green-300 shadow-sm" : "text-ink-soft",
                 ].join(" ")}
               >
                 {m === "login" ? "Se connecter" : "Créer un compte"}
@@ -250,7 +250,7 @@ function AuthForm(): React.ReactElement {
             {mode === "signup" && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-ink mb-1.5">
                     Nom d&apos;utilisateur <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -265,7 +265,7 @@ function AuthForm(): React.ReactElement {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-ink mb-1.5">
                       Prénom <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -279,7 +279,7 @@ function AuthForm(): React.ReactElement {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium text-ink mb-1.5">
                       Nom <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -297,11 +297,11 @@ function AuthForm(): React.ReactElement {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink mb-1.5">
                 Numéro de téléphone <span className="text-red-500">*</span>
               </label>
-              <div className="flex rounded-xl border border-gray-300 overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-r border-gray-300 shrink-0">
+              <div className="flex rounded-xl border border-border-subtle overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
+                <div className="flex items-center gap-2 px-4 py-3 bg-surface-elevated border-r border-border-subtle shrink-0">
                   <span className="text-lg leading-none">📱</span>
                 </div>
                 <input
@@ -314,7 +314,7 @@ function AuthForm(): React.ReactElement {
                     setPhone(e.target.value.replace(/[^\d\s\-+]/g, ""));
                     setError(null);
                   }}
-                  className="flex-1 px-4 py-3 text-gray-900 placeholder-gray-400 bg-white outline-none text-base"
+                  className="flex-1 px-4 py-3 text-ink placeholder-gray-400 bg-surface-card outline-none text-base"
                   disabled={isLoading}
                 />
               </div>
@@ -322,8 +322,8 @@ function AuthForm(): React.ReactElement {
 
             {mode === "signup" && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email <span className="text-gray-400 text-xs">(optionnel — pour récupérer l&apos;accès et vos reçus)</span>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  Email <span className="text-ink-soft text-xs">(optionnel — pour récupérer l&apos;accès et vos reçus)</span>
                 </label>
                 <input
                   type="email"
@@ -338,7 +338,7 @@ function AuthForm(): React.ReactElement {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink mb-1.5">
                 Mot de passe <span className="text-red-500">*</span>
               </label>
               <input
@@ -351,7 +351,7 @@ function AuthForm(): React.ReactElement {
                 disabled={isLoading}
               />
               {mode === "login" && (
-                <a href="/auth/mot-de-passe-oublie" className="block mt-1.5 text-right text-sm text-green-700 hover:text-green-800 underline">
+                <a href="/auth/mot-de-passe-oublie" className="block mt-1.5 text-right text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline">
                   Mot de passe oublié ?
                 </a>
               )}
@@ -371,17 +371,17 @@ function AuthForm(): React.ReactElement {
                 "w-full py-4 rounded-xl text-white font-semibold text-base mt-2",
                 "transition-all duration-200",
                 "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
-                isLoading ? "bg-gray-300 cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
+                isLoading ? "bg-surface-elevated cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
               ].join(" ")}
             >
               {isLoading ? "…" : mode === "login" ? "Se connecter" : "Créer mon compte"}
             </button>
 
-            <p className="text-center text-xs text-gray-400 mt-1 px-4">
+            <p className="text-center text-xs text-ink-soft mt-1 px-4">
               En continuant, vous acceptez nos{" "}
-              <a href="/terms" className="text-green-700 underline">Conditions d&apos;utilisation</a>{" "}
+              <a href="/terms" className="text-green-700 dark:text-green-300 underline">Conditions d&apos;utilisation</a>{" "}
               et notre{" "}
-              <a href="/privacy" className="text-green-700 underline">Politique de confidentialité</a>.
+              <a href="/privacy" className="text-green-700 dark:text-green-300 underline">Politique de confidentialité</a>.
             </p>
           </form>
         </div>

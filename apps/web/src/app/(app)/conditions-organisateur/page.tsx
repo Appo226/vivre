@@ -17,7 +17,7 @@ export default function OrganizerTermsPage(): React.ReactElement {
       </header>
       <div className="flag-band" />
 
-      <div className="px-4 py-6 space-y-6 text-sm text-gray-700 font-dm leading-relaxed">
+      <div className="px-4 py-6 space-y-6 text-sm text-ink font-dm leading-relaxed">
         <Section title="1. Votre responsabilité">
           En publiant un événement sur VIVRE, vous déclarez avoir le droit d&apos;organiser cet
           événement au lieu et à la date indiqués (autorisations, permis, accord du propriétaire
@@ -80,7 +80,7 @@ export default function OrganizerTermsPage(): React.ReactElement {
 function Section({ title, children }: { title: string; children: React.ReactNode }): React.ReactElement {
   return (
     <section>
-      <h2 className="font-jakarta font-bold text-gray-900 mb-1.5">{title}</h2>
+      <h2 className="font-jakarta font-bold text-ink mb-1.5">{title}</h2>
       <p>{children}</p>
     </section>
   );

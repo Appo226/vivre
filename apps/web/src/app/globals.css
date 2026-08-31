@@ -32,6 +32,43 @@
 
   /* Hauteur de la bottom navigation mobile */
   --bottom-nav-height: 72px;
+
+  /* ============================================================
+   * TOKENS DE THÈME — CLAIR (valeurs par défaut de :root)
+   * ============================================================
+   * Le clair n'est pas un gris SaaS générique : ivoire chaud plutôt que blanc/gris
+   * froid, texte vert-noir profond plutôt que gris neutre, ombres teintées plutôt que
+   * noir pur. L'objectif : que "VIVRE le jour" reste identifiable comme la même marque
+   * que "VIVRE la nuit" (voir --dark ci-dessous), pas une skin SaaS interchangeable.
+   * Les couleurs de marque (vert/rouge/or, au-dessus) ne changent JAMAIS entre thèmes —
+   * seuls ces tokens-ci s'inversent, via la classe .dark (voir plus bas), pas
+   * prefers-color-scheme : VIVRE utilise un choix explicite clair/sombre, jamais le
+   * thème système (voir store/theme.store.ts).
+   */
+  --surface-page: #F7F3EC;       /* fond de page — ivoire chaud, jamais gris-50 froid */
+  --surface-elevated: #EDE7D8;   /* sections secondaires, légèrement plus soutenu que la page */
+  --surface-card: #FFFDF8;       /* cards — blanc chaud, se détache de l'ivoire sans trancher */
+  --text-primary: #16261D;       /* quasi-noir vert-foncé, jamais gris-900 neutre */
+  --text-secondary: #5B6B60;     /* gris chaud à biais vert, pour le texte secondaire */
+  --border-subtle: #E2DCCB;      /* bordures chaudes, pas gray-200 */
+  --overlay-scrim: rgba(20, 35, 27, 0.55); /* dégradés sur photo — vert-noir, pas noir pur */
+  --shadow-color: rgba(20, 35, 27, 0.09);
+  --nav-surface: rgba(255, 253, 248, 0.85); /* verre translucide chaud, avec backdrop-blur */
+}
+
+/* ============================================================
+ * TOKENS DE THÈME — SOMBRE (override sous .dark, voir darkMode:"class")
+ * ============================================================ */
+.dark {
+  --surface-page: #0F2E20;      /* vert-forêt de marque — jamais un noir neutre générique */
+  --surface-elevated: #143526;  /* panneaux secondaires, un cran plus riche que la page */
+  --surface-card: #1B4030;      /* cards — plus clair que la page, élévation lisible */
+  --text-primary: #F5F3EA;      /* blanc chaud, jamais #FFFFFF pur */
+  --text-secondary: #A9C2AE;    /* vert-sage doux pour le texte secondaire */
+  --border-subtle: #2A4E3A;
+  --overlay-scrim: rgba(6, 19, 13, 0.55);
+  --shadow-color: rgba(0, 0, 0, 0.35);
+  --nav-surface: rgba(15, 46, 32, 0.85); /* verre translucide sombre, avec backdrop-blur */
 }
 
 /* ============================================================
@@ -110,15 +147,19 @@
     @apply bg-gradient-to-br from-green-500 to-green-700;
   }
 
-  /* Card de résultat cliquable */
+  /* Card de résultat cliquable — thème via tokens, plus besoin de dark: par site d'appel */
   .result-card {
-    @apply rounded-card bg-white border border-gray-100 shadow-card
+    @apply rounded-card bg-surface-card border border-border-subtle shadow-elevated
            hover:shadow-modal transition-shadow duration-200 cursor-pointer;
   }
 
-  /* Texte de prix FCFA — police Sora, couleur vert */
+  /*
+   * Texte de prix FCFA — police Sora, couleur vert. Assombri en clair (contraste sur
+   * bg-surface-card blanc-chaud) mais éclairci en sombre (green-700 se fondrait dans
+   * --surface-card sombre, qui est déjà un vert moyen — un vert clair reste lisible).
+   */
   .price-text {
-    @apply font-sora font-bold text-green-700;
+    @apply font-sora font-bold text-green-700 dark:text-green-300;
   }
 
   /* Badge de statut générique */

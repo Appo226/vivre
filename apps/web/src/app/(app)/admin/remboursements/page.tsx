@@ -51,18 +51,18 @@ function RefundCard({ r, onDecide }: { r: Refund; onDecide: () => void }): React
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+    <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-jakarta font-bold text-gray-900">
+          <p className="font-jakarta font-bold text-ink">
             {r.payment?.user.first_name ?? "—"} {r.payment?.user.last_name ?? ""}
           </p>
-          <p className="text-xs text-gray-500">{r.payment?.user.phone}</p>
+          <p className="text-xs text-ink-soft">{r.payment?.user.phone}</p>
         </div>
         <p className="price-text text-sm">{r.amount.toLocaleString("fr-FR")} FCFA</p>
       </div>
-      <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{r.reason}</p>
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-sm text-ink-soft mt-2 whitespace-pre-wrap">{r.reason}</p>
+      <p className="text-xs text-ink-soft mt-2">
         Méthode : {r.refund_method} · {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(r.created_at))}
       </p>
 
@@ -75,13 +75,13 @@ function RefundCard({ r, onDecide }: { r: Refund; onDecide: () => void }): React
             onChange={(e) => setNote(e.target.value)}
             placeholder="Motif du refus…"
             rows={2}
-            className="w-full rounded-xl border border-gray-300 p-2.5 text-sm"
+            className="w-full rounded-xl border border-border-subtle bg-surface-card text-ink p-2.5 text-sm"
           />
           <div className="flex gap-2">
             <button onClick={() => void reject()} disabled={busy} className="flex-1 bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
               {busy ? "…" : "Confirmer le refus"}
             </button>
-            <button onClick={() => setRejecting(false)} className="px-4 text-sm font-semibold text-gray-500">Annuler</button>
+            <button onClick={() => setRejecting(false)} className="px-4 text-sm font-semibold text-ink-soft">Annuler</button>
           </div>
         </div>
       ) : (
@@ -89,7 +89,7 @@ function RefundCard({ r, onDecide }: { r: Refund; onDecide: () => void }): React
           <button onClick={() => void complete()} disabled={busy} className="flex-1 bg-[#1A6B3A] text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
             {busy ? "…" : "Virement effectué"}
           </button>
-          <button onClick={() => setRejecting(true)} className="flex-1 bg-white border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl">
+          <button onClick={() => setRejecting(true)} className="flex-1 bg-surface-card border border-red-200 text-red-600 text-sm font-semibold py-2.5 rounded-xl">
             Refuser
           </button>
         </div>
@@ -116,16 +116,16 @@ function RefundsQueue(): React.ReactElement {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
+    <main className="min-h-screen bg-page pb-12">
       <AdminHeader title="Remboursements" subtitle={`${refunds.length} en attente`} />
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-5xl">
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">{error}</p>}
-        {loading && <p className="text-center text-gray-400 text-sm py-8">Chargement…</p>}
+        {loading && <p className="text-center text-ink-soft text-sm py-8">Chargement…</p>}
         {!loading && refunds.length === 0 && (
           <div className="text-center py-16">
             <p className="text-3xl mb-2">✅</p>
-            <p className="text-gray-500 text-sm">Aucun remboursement en attente.</p>
+            <p className="text-ink-soft text-sm">Aucun remboursement en attente.</p>
           </div>
         )}
         <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:items-start md:gap-4">

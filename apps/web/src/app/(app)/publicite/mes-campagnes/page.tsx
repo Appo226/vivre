@@ -18,7 +18,7 @@ function SubmittedBanner(): React.ReactElement | null {
   const params = useSearchParams();
   if (params.get("submitted") !== "1") return null;
   return (
-    <div className="mx-4 mt-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
+    <div className="mx-4 mt-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-xl px-4 py-3 text-sm text-green-800 dark:text-green-300">
       Campagne soumise ! Vous serez notifié une fois la revue terminée.
     </div>
   );
@@ -41,7 +41,7 @@ interface Campaign {
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending_review: { label: "En attente de revue", color: "text-amber-700 bg-amber-50 border-amber-200" },
   approved_unpaid: { label: "Approuvée — paiement attendu", color: "text-blue-700 bg-blue-50 border-blue-200" },
-  paid: { label: "Payée", color: "text-green-700 bg-green-50 border-green-200" },
+  paid: { label: "Payée", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
   rejected: { label: "Rejetée", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
@@ -53,7 +53,7 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const statusCfg = STATUS_LABELS[c.status] ?? { label: c.status, color: "text-gray-600 bg-gray-50 border-gray-200" };
+  const statusCfg = STATUS_LABELS[c.status] ?? { label: c.status, color: "text-ink-soft bg-surface-elevated border-border-subtle" };
 
   async function submitPayment(): Promise<void> {
     if (note.trim().length < 3) { setError("Ajoutez une référence de transaction."); return; }
@@ -67,7 +67,7 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-surface-card rounded-2xl border border-border-subtle overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {c.media_type === "video" ? (
         <video src={c.image_url} className="w-full h-32 object-cover bg-black" controls muted playsInline />
@@ -76,10 +76,10 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
       )}
       <div className="p-4">
         <div className="flex items-start justify-between">
-          <p className="font-jakarta font-bold text-gray-900">{c.title}</p>
+          <p className="font-jakarta font-bold text-ink">{c.title}</p>
           <span className={`text-xs font-dm px-2 py-0.5 rounded-full border ${statusCfg.color}`}>{statusCfg.label}</span>
         </div>
-        <p className="text-xs text-gray-500 font-dm mt-1">
+        <p className="text-xs text-ink-soft font-dm mt-1">
           {fmtDate(c.start_date)} → {fmtDate(c.end_date)}
         </p>
 
@@ -89,8 +89,8 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
 
         {c.status === "approved_unpaid" && (
           <div className="mt-3 space-y-2">
-            <p className="text-sm font-semibold text-gray-900">{c.price_fcfa.toLocaleString("fr-FR")} FCFA</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-semibold text-ink">{c.price_fcfa.toLocaleString("fr-FR")} FCFA</p>
+            <p className="text-xs text-ink-soft">
               Envoyez le paiement par mobile money au numéro communiqué par l&apos;équipe VIVRE, puis
               indiquez la référence de transaction ci-dessous.
             </p>
@@ -105,7 +105,7 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Ex : OM-88213"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-border-subtle bg-surface-card text-ink rounded-lg px-3 py-2 text-sm"
                 />
                 {error && <p className="text-xs text-red-600">{error}</p>}
                 <button
@@ -144,11 +144,11 @@ export default function MyCampaignsPage(): React.ReactElement {
   }, [hasHydrated, accessToken, router, load]);
 
   return (
-    <div className="mobile-container min-h-screen bg-gray-50 pb-8">
-      <header className="bg-white border-b border-gray-100 px-4 pt-safe-top pb-4 sticky top-0 z-10">
+    <div className="mobile-container min-h-screen bg-page pb-8">
+      <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
-          <button onClick={() => router.back()} className="text-gray-500 text-xl">‹</button>
-          <h1 className="text-base font-sora font-bold text-gray-900">Mes campagnes</h1>
+          <button onClick={() => router.back()} className="text-ink-soft text-xl">‹</button>
+          <h1 className="text-base font-sora font-bold text-ink">Mes campagnes</h1>
         </div>
       </header>
 
@@ -157,14 +157,14 @@ export default function MyCampaignsPage(): React.ReactElement {
       </Suspense>
 
       <div className="px-4 pt-4 space-y-3">
-        {loading && <p className="text-sm text-gray-400 text-center py-8">Chargement…</p>}
+        {loading && <p className="text-sm text-ink-soft text-center py-8">Chargement…</p>}
         {!loading && campaigns.length === 0 && (
-          <div className="bg-white rounded-2xl p-8 text-center">
+          <div className="bg-surface-card rounded-2xl p-8 text-center">
             <p className="text-4xl mb-2">📢</p>
-            <p className="font-semibold text-gray-800">Aucune campagne pour l&apos;instant</p>
+            <p className="font-semibold text-ink">Aucune campagne pour l&apos;instant</p>
             <button
               onClick={() => router.push("/publicite/creer")}
-              className="mt-3 text-[#1A6B3A] text-sm font-semibold"
+              className="mt-3 text-[#1A6B3A] dark:text-green-300 text-sm font-semibold"
             >
               Publier une annonce →
             </button>

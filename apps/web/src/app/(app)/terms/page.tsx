@@ -18,7 +18,7 @@ export default function TermsPage(): React.ReactElement {
       </header>
       <div className="flag-band" />
 
-      <div className="px-4 py-6 space-y-6 text-sm text-gray-700 font-dm leading-relaxed">
+      <div className="px-4 py-6 space-y-6 text-sm text-ink font-dm leading-relaxed">
         <Section title="1. Ce qu'est VIVRE">
           VIVRE est une plateforme de billetterie qui met en relation des organisateurs
           d&apos;événements et des personnes souhaitant y assister. VIVRE facilite la vente et
@@ -83,7 +83,7 @@ export default function TermsPage(): React.ReactElement {
 function Section({ title, children }: { title: string; children: React.ReactNode }): React.ReactElement {
   return (
     <section>
-      <h2 className="font-jakarta font-bold text-gray-900 mb-1.5">{title}</h2>
+      <h2 className="font-jakarta font-bold text-ink mb-1.5">{title}</h2>
       <p>{children}</p>
     </section>
   );

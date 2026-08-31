@@ -28,16 +28,16 @@ function StatCard({ href, icon, label, count, loading }: {
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+      className="flex items-center gap-4 bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle hover:shadow-md transition-shadow"
     >
       <span className="text-2xl w-10 text-center">{icon}</span>
       <div className="flex-1">
-        <p className="font-jakarta font-bold text-gray-900 text-sm">{label}</p>
-        <p className="text-xs text-gray-400">En attente de traitement</p>
+        <p className="font-jakarta font-bold text-ink text-sm">{label}</p>
+        <p className="text-xs text-ink-soft">En attente de traitement</p>
       </div>
       <span className={[
         "font-sora font-extrabold text-2xl min-w-[2ch] text-right",
-        loading ? "text-gray-300" : count > 0 ? "text-[#EF2B2D]" : "text-gray-300",
+        loading ? "text-ink-soft" : count > 0 ? "text-[#EF2B2D]" : "text-ink-soft",
       ].join(" ")}>
         {loading ? "…" : count}
       </span>
@@ -74,7 +74,7 @@ function AdminDashboard(): React.ReactElement {
   }, []);
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-12">
+    <main className="min-h-screen bg-page pb-12">
       <header className="md:hidden bg-dark text-white px-4 pt-safe-top pb-6">
         <div className="flex items-center justify-between pt-4 mb-4">
           <VivreLogo size={26} variant="light" />
@@ -88,8 +88,8 @@ function AdminDashboard(): React.ReactElement {
       </header>
 
       <div className="px-4 md:px-8 mt-5 md:mt-8 md:max-w-4xl">
-        <p className="hidden md:block font-sora font-bold text-2xl text-gray-900 mb-1">Vue d&apos;ensemble</p>
-        <p className="hidden md:block text-gray-400 text-sm mb-6">Files d&apos;attente et paramètres de la plateforme</p>
+        <p className="hidden md:block font-sora font-bold text-2xl text-ink mb-1">Vue d&apos;ensemble</p>
+        <p className="hidden md:block text-ink-soft text-sm mb-6">Files d&apos;attente et paramètres de la plateforme</p>
 
         <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
           <StatCard href="/admin/evenements" icon="🎟️" label="Événements à approuver" count={counts.events} loading={loading} />
@@ -100,27 +100,27 @@ function AdminDashboard(): React.ReactElement {
 
         <Link
           href="/admin/parametres"
-          className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow mt-3 md:mt-4"
+          className="flex items-center gap-4 bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle hover:shadow-md transition-shadow mt-3 md:mt-4"
         >
           <span className="text-2xl w-10 text-center">⚙️</span>
           <div className="flex-1">
-            <p className="font-jakarta font-bold text-gray-900 text-sm">Paramètres de la plateforme</p>
-            <p className="text-xs text-gray-400">Frais, période gratuite, délais de versement</p>
+            <p className="font-jakarta font-bold text-ink text-sm">Paramètres de la plateforme</p>
+            <p className="text-xs text-ink-soft">Frais, période gratuite, délais de versement</p>
           </div>
-          <span className="text-gray-300 text-sm">›</span>
+          <span className="text-ink-soft text-sm">›</span>
         </Link>
 
         {isSuperAdmin && (
           <Link
             href="/admin/equipe"
-            className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow mt-3"
+            className="flex items-center gap-4 bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle hover:shadow-md transition-shadow mt-3"
           >
             <span className="text-2xl w-10 text-center">🔑</span>
             <div className="flex-1">
-              <p className="font-jakarta font-bold text-gray-900 text-sm">Équipe</p>
-              <p className="text-xs text-gray-400">Accorder ou retirer l&apos;accès administrateur</p>
+              <p className="font-jakarta font-bold text-ink text-sm">Équipe</p>
+              <p className="text-xs text-ink-soft">Accorder ou retirer l&apos;accès administrateur</p>
             </div>
-            <span className="text-gray-300 text-sm">›</span>
+            <span className="text-ink-soft text-sm">›</span>
           </Link>
         )}
       </div>
