@@ -81,12 +81,12 @@ function VerificationCard({ v, onDecide }: { v: Verification; onDecide: () => vo
   return (
     <div className="bg-surface-card rounded-2xl shadow-sm border border-border-subtle p-4">
       <p className="font-jakarta font-bold text-ink">
-        {v.user.first_name ?? "—"} {v.user.last_name ?? ""}
+        {v.user.first_name ?? ""} {v.user.last_name ?? ""}
       </p>
       <p className="text-xs text-ink-soft">{v.user.phone}</p>
 
       <div className="mt-3 text-sm space-y-1.5">
-        <p><span className="text-ink-soft">Pièce d&apos;identité :</span> {v.id_document_type} — {v.id_document_holder_name}</p>
+        <p><span className="text-ink-soft">Pièce d&apos;identité :</span> {v.id_document_type} ({v.id_document_holder_name})</p>
         <p className={nameOnAccountMatches ? "text-ink" : "text-red-600 font-semibold"}>
           <span className="text-ink-soft">Compte de versement :</span> {v.payout_provider} · {v.payout_phone} · {v.payout_account_name}
           {!nameOnAccountMatches && " ⚠️ le nom ne correspond pas à la pièce"}

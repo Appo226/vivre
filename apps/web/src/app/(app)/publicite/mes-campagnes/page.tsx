@@ -40,7 +40,7 @@ interface Campaign {
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending_review: { label: "En attente de revue", color: "text-amber-700 bg-amber-50 border-amber-200" },
-  approved_unpaid: { label: "Approuvée — paiement attendu", color: "text-blue-700 bg-blue-50 border-blue-200" },
+  approved_unpaid: { label: "Approuvée, paiement attendu", color: "text-blue-700 bg-blue-50 border-blue-200" },
   paid: { label: "Payée", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
   rejected: { label: "Rejetée", color: "text-red-700 bg-red-50 border-red-200" },
 };
@@ -96,7 +96,7 @@ function CampaignCard({ c, onUpdate }: { c: Campaign; onUpdate: () => void }): R
             </p>
             {c.payment_reference_note ? (
               <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2">
-                Référence transmise : <strong>{c.payment_reference_note}</strong> — en attente de confirmation.
+                Référence transmise : <strong>{c.payment_reference_note}</strong>, en attente de confirmation.
               </p>
             ) : (
               <>

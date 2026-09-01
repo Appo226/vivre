@@ -355,7 +355,7 @@ export default function UrgencesPage(): React.ReactElement {
           )}
           {geoError && (
             <p className="text-xs text-ink-soft mb-3">
-              GPS non disponible — affichage sans tri par distance
+              GPS non disponible, affichage sans tri par distance
             </p>
           )}
 

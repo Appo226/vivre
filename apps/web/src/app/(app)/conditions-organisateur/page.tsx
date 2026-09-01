@@ -6,7 +6,7 @@
  * pas un avis juridique. Voir aussi docs/LEGACY_SUPERAPP_ROADMAP.md pour le contexte du pivot.
  */
 
-export const metadata = { title: "Conditions organisateur — VIVRE" };
+export const metadata = { title: "Conditions organisateur | VIVRE" };
 
 export default function OrganizerTermsPage(): React.ReactElement {
   return (
@@ -22,21 +22,21 @@ export default function OrganizerTermsPage(): React.ReactElement {
           En publiant un événement sur VIVRE, vous déclarez avoir le droit d&apos;organiser cet
           événement au lieu et à la date indiqués (autorisations, permis, accord du propriétaire
           du lieu). Vous êtes seul responsable de la sécurité, du bon déroulement et de la
-          légalité de votre événement — VIVRE facilite la vente de billets, elle n&apos;organise pas
+          légalité de votre événement : VIVRE facilite la vente de billets, elle n&apos;organise pas
           l&apos;événement.
         </Section>
 
         <Section title="2. Vérification d'identité">
           Tout événement proposant au moins un billet payant exige une vérification préalable :
           pièce d&apos;identité et appel téléphonique de confirmation par l&apos;équipe VIVRE. Cette
-          vérification n&apos;est demandée qu&apos;une seule fois — les événements suivants n&apos;ont pas à la
+          vérification n&apos;est demandée qu&apos;une seule fois. Les événements suivants n&apos;ont pas à la
           repasser. VIVRE se réserve le droit de refuser ou révoquer une vérification en cas de
           doute raisonnable sur l&apos;authenticité des informations fournies.
         </Section>
 
         <Section title="3. Frais de plateforme">
           Tout événement, gratuit ou payant, règle des frais de mise en ligne au moment de la
-          soumission — le montant en vigueur vous est indiqué avant paiement. Si vos billets
+          soumission. Le montant en vigueur vous est indiqué avant paiement. Si vos billets
           sont payants, VIVRE prélève en plus une commission sur chaque billet vendu, affichée
           au moment où vous fixez le prix. Vous pouvez également ajouter une publicité (photo
           ou vidéo) mise en avant sur l&apos;accueil, facturée par jour, réglée dans le même

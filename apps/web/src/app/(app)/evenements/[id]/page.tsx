@@ -40,14 +40,14 @@ async function getEventForMetadata(id: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const event = await getEventForMetadata(params.id);
   if (!event) {
-    return { title: "Événement introuvable — VIVRE" };
+    return { title: "Événement introuvable | VIVRE" };
   }
 
   const dateLabel = new Intl.DateTimeFormat("fr-FR", {
     day: "numeric", month: "long", timeZone: "UTC",
   }).format(event.starts_at);
-  const description = `${dateLabel} · ${event.venue_name}, ${event.city.name} — ${event.description.slice(0, 150)}`;
-  const title = `${event.title} — VIVRE`;
+  const description = `${dateLabel} · ${event.venue_name}, ${event.city.name}. ${event.description.slice(0, 150)}`;
+  const title = `${event.title} | VIVRE`;
 
   return {
     title,

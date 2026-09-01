@@ -1,20 +1,21 @@
 /**
  * components/VivreLogo.tsx — Mark + wordmark officiels VIVRE
  *
- * Le mark (ruban vert/rouge noué sur un losange or) vient de la charte graphique
- * validée. `vivre-mark-*.png` (utilisé par manifest.json pour les icônes PWA) garde
- * volontairement une marge transparente — nécessaire comme zone de sécurité pour le
- * masquage d'icône OS, mais ça rendait le ruban visuellement minuscule et éloigné du
- * mot "VIVRE" ici : ~21% de marge haut/bas et ~10% à droite, aucun réglage de gap/taille
- * ne pouvait compenser un vide qui vit dans le fichier image lui-même. `vivre-mark-
- * wordmark-*.png` est un recadrage serré du même fichier source (ratio non-carré,
- * 874×650) — dédié à ce composant uniquement, jamais aux icônes d'app.
+ * Le mark (ruban vert/rouge dimensionnel noué sur un losange or, remplacé le 2026-08-31
+ * par la version glossy fournie par l'utilisateur) vient de la charte graphique validée.
+ * `vivre-mark-*.png` (utilisé par manifest.json pour les icônes PWA) garde volontairement
+ * une marge transparente — nécessaire comme zone de sécurité pour le masquage d'icône OS,
+ * mais ça rendait le ruban visuellement minuscule et éloigné du mot "VIVRE" ici.
+ * `vivre-mark-wordmark-*.png` est un recadrage serré du même mark (ratio non-carré, voir
+ * MARK_ASPECT_RATIO) — dédié à ce composant uniquement, jamais aux icônes d'app.
  */
 
 import Image from "next/image";
 
 const MARK_SIZES = [16, 24, 32, 64, 128, 256, 512, 1024] as const;
-const MARK_ASPECT_RATIO = 874 / 650; /* largeur / hauteur du recadrage serré */
+/* Mark remplacé (2026-08-31) par la version dimensionnelle/glossy fournie par l'utilisateur —
+   ruban plus large et plus plat que l'ancien, d'où un ratio très différent (2.04 vs 1.35). */
+const MARK_ASPECT_RATIO = 2.0421455938697317; /* largeur / hauteur du recadrage serré */
 
 function closestMarkSize(px: number): (typeof MARK_SIZES)[number] {
   return MARK_SIZES.find((s) => s >= px) ?? 1024;

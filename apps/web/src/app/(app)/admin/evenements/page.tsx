@@ -123,11 +123,11 @@ function EventsQueue(): React.ReactElement {
                 </div>
 
                 <div className="mt-3 text-xs text-ink-soft space-y-1">
-                  <p>📸 {photoCount} photo(s)/affiche(s) {photoCount < 3 && <span className="text-red-600 font-semibold">— insuffisant (min 3)</span>}</p>
-                  <p>👤 Organisateur : {event.organizer.first_name ?? "—"} {event.organizer.last_name ?? ""} · {event.organizer.phone}</p>
+                  <p>📸 {photoCount} photo(s)/affiche(s) {photoCount < 3 && <span className="text-red-600 font-semibold">insuffisant (min 3)</span>}</p>
+                  <p>👤 Organisateur : {event.organizer.first_name ?? ""} {event.organizer.last_name ?? ""} · {event.organizer.phone}</p>
                   {event.safety_description && <p>🛡️ Sécurité : {event.safety_description}</p>}
                   {event.expected_profile && <p>👥 Public attendu : {event.expected_profile}</p>}
-                  {isPaid && <p className="text-amber-700 font-semibold">💰 Billets payants — vérifiez que l&apos;organisateur est bien vérifié avant d&apos;approuver.</p>}
+                  {isPaid && <p className="text-amber-700 font-semibold">💰 Billets payants : vérifiez que l&apos;organisateur est bien vérifié avant d&apos;approuver.</p>}
                 </div>
 
                 {rejectingId === event.id ? (

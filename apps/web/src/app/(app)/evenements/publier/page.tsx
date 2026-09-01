@@ -51,7 +51,7 @@ async function openCinetPaySeamless(paymentToken: string): Promise<void> {
     CinetPaySeamless?: { open: (opts: { paymentToken: string; onClose?: () => void }) => void };
   }).CinetPaySeamless;
   if (!seamless) {
-    throw new Error("Module de paiement indisponible — réessayez dans un instant.");
+    throw new Error("Module de paiement indisponible, réessayez dans un instant.");
   }
   await new Promise<void>((resolve) => {
     seamless.open({ paymentToken, onClose: () => resolve() });
@@ -343,7 +343,7 @@ export default function PublierEvenementPage(): React.ReactElement {
     if (!form.venue_address.trim() || form.venue_address.trim().length < 5)
       return "Saisissez l'adresse complète du lieu.";
     if (form.latitude === null || form.longitude === null)
-      return "Positionnez le lieu exact sur la carte — recherchez l'adresse ou touchez la carte.";
+      return "Positionnez le lieu exact sur la carte : recherchez l'adresse ou touchez la carte.";
     if (!form.starts_at) return "Sélectionnez la date de début.";
     if (!form.ends_at)   return "Sélectionnez la date de fin.";
     const start = new Date(form.starts_at);
@@ -532,7 +532,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                   }))}
                   className={selectCls}
                 >
-                  <option value="">— Choisir —</option>
+                  <option value="">Choisir</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                   ))}
@@ -541,7 +541,7 @@ export default function PublierEvenementPage(): React.ReactElement {
 
               <Field label="Ville" required>
                 <select value={form.city_id} onChange={(e) => set("city_id", e.target.value)} className={selectCls}>
-                  <option value="">— Choisir —</option>
+                  <option value="">Choisir</option>
                   {cities.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -571,7 +571,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                   />
                 </Field>
                 <p className="col-span-2 text-xs text-ink-soft -mt-1">
-                  Votre ville sera ajoutée immédiatement — vous n&apos;avez pas besoin d&apos;attendre
+                  Votre ville sera ajoutée immédiatement, vous n&apos;avez pas besoin d&apos;attendre
                   une validation pour publier. On la localisera avec l&apos;adresse du lieu à l&apos;étape suivante.
                 </p>
               </div>
@@ -579,7 +579,7 @@ export default function PublierEvenementPage(): React.ReactElement {
 
             <Field label="Autres catégories (optionnel)">
               <p className="text-xs text-ink-soft mb-2 -mt-1">
-                Aide les gens à trouver votre événement depuis plusieurs catégories — n&apos;affecte
+                Aide les gens à trouver votre événement depuis plusieurs catégories, n&apos;affecte
                 pas le badge affiché, qui suit toujours la catégorie principale. 5 max.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -827,7 +827,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                     >
                       <p className="text-sm font-semibold text-ink">Admission générale</p>
                       <p className="text-xs text-ink-soft mt-0.5">
-                        Aucune place assignée — chacun s&apos;installe où il veut parmi les places libres.
+                        Aucune place assignée : chacun s&apos;installe où il veut parmi les places libres.
                       </p>
                     </button>
                     <button
@@ -866,7 +866,7 @@ export default function PublierEvenementPage(): React.ReactElement {
                     className={inputCls}
                   />
                   <p className="text-xs text-ink-soft mt-1">
-                    Séparez par des virgules. Déjà compris dans le prix — pas d&apos;achat séparé.
+                    Séparez par des virgules. Déjà compris dans le prix, pas d&apos;achat séparé.
                   </p>
                 </Field>
 
@@ -897,7 +897,7 @@ export default function PublierEvenementPage(): React.ReactElement {
               <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-1">Optionnel</p>
               <p className="text-sm text-ink-soft font-dm mb-3">
                 Produits que l&apos;acheteur peut ajouter à sa commande, séparément du billet
-                (ex : tote bag, poster). Achat en plus — pas inclus dans un billet.
+                (ex : tote bag, poster). Achat en plus, pas inclus dans un billet.
               </p>
 
               {form.merch_items.map((merch, idx) => (
@@ -1055,7 +1055,7 @@ export default function PublierEvenementPage(): React.ReactElement {
               <p className="font-semibold mb-1">Avant publication</p>
               <p>
                 {pricing?.free_period_enabled
-                  ? "Période de lancement gratuite — aucun frais à payer pour le moment."
+                  ? "Période de lancement gratuite, aucun frais à payer pour le moment."
                   : `Frais de mise en ligne : ${(pricing?.listing_fee_fcfa ?? 0).toLocaleString("fr-FR")} FCFA${adEnabled ? ` + ${adTotal.toLocaleString("fr-FR")} FCFA de publicité = ${grandTotal.toLocaleString("fr-FR")} FCFA au total` : ""}, réglés par mobile money à l'étape suivante.`}
               </p>
               <p className="mt-1.5">

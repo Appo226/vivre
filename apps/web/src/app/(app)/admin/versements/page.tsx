@@ -47,7 +47,7 @@ function PayoutCard({ p, onPaid }: { p: Payout; onPaid: () => void }): React.Rea
         <div>
           <p className="font-jakarta font-bold text-ink">{p.event.title}</p>
           <p className="text-xs text-ink-soft">
-            {p.organizer.first_name ?? "—"} {p.organizer.last_name ?? ""} · {p.organizer.phone}
+            {p.organizer.first_name ?? ""} {p.organizer.last_name ?? ""} · {p.organizer.phone}
           </p>
         </div>
         <p className="price-text text-sm">{p.net_amount_fcfa.toLocaleString("fr-FR")} FCFA</p>

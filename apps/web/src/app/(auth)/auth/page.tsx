@@ -46,7 +46,7 @@ function SupplierBanner(): React.ReactElement | null {
   if (!redirect.includes("fournisseur")) return null;
   return (
     <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
-      🏪 <strong>Connexion fournisseur</strong> — Connectez-vous pour accéder à votre espace partenaire.
+      🏪 <strong>Connexion fournisseur</strong> : connectez-vous pour accéder à votre espace partenaire.
     </div>
   );
 }
@@ -323,7 +323,7 @@ function AuthForm(): React.ReactElement {
             {mode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-ink mb-1.5">
-                  Email <span className="text-ink-soft text-xs">(optionnel — pour récupérer l&apos;accès et vos reçus)</span>
+                  Email <span className="text-ink-soft text-xs">(optionnel, pour récupérer l&apos;accès et vos reçus)</span>
                 </label>
                 <input
                   type="email"

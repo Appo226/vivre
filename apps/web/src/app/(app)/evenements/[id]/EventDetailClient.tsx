@@ -314,7 +314,7 @@ export default function EventDetailClient(): React.ReactElement | null {
             </a>
           ) : (
             <p className="mt-3 text-xs text-ink-soft">
-              Itinéraire non disponible — l&apos;organisateur n&apos;a pas positionné le lieu sur la carte.
+              Itinéraire non disponible : l&apos;organisateur n&apos;a pas positionné le lieu sur la carte.
             </p>
           )}
         </div>
@@ -367,7 +367,7 @@ export default function EventDetailClient(): React.ReactElement | null {
             </div>
           ) : isSoldOut ? (
             <div className="bg-red-50 rounded-2xl p-4 text-center border border-red-200">
-              <p className="text-red-600 font-medium">Complet — plus de billets disponibles</p>
+              <p className="text-red-600 font-medium">Complet, plus de billets disponibles</p>
             </div>
           ) : (
             <div className="space-y-3">

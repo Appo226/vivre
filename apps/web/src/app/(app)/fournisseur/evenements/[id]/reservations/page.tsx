@@ -203,7 +203,7 @@ export default function ReservationsPage(): React.ReactElement {
             className="w-full flex items-center justify-between px-4 py-3"
           >
             <div className="text-left">
-              <p className="font-jakarta font-semibold text-ink text-sm">Staff — accès scan</p>
+              <p className="font-jakarta font-semibold text-ink text-sm">Staff, accès scan</p>
               <p className="text-xs text-ink-soft font-dm">
                 {staff.length === 0 ? "Personne d'autre ne peut scanner" : `${staff.length} numéro${staff.length > 1 ? "s" : ""} autorisé${staff.length > 1 ? "s" : ""}`}
               </p>
@@ -220,7 +220,7 @@ export default function ReservationsPage(): React.ReactElement {
             <div className="px-4 pb-4 border-t border-border-subtle pt-3 space-y-3">
               <p className="text-xs text-ink-soft font-dm">
                 Un numéro ajouté ici peut scanner les billets de CET événement en se connectant
-                normalement (OTP) — sans avoir votre compte. Il n&apos;a accès à rien d&apos;autre.
+                normalement (OTP), sans avoir votre compte. Il n&apos;a accès à rien d&apos;autre.
               </p>
 
               {staff.length > 0 && (
@@ -384,7 +384,7 @@ export default function ReservationsPage(): React.ReactElement {
                 </span>
               </div>
               <p className="text-xs text-ink-soft font-dm">
-                {b.quantity} × {b.ticket_type.name} — {b.total_amount.toLocaleString("fr-FR")} FCFA
+                {b.quantity} × {b.ticket_type.name} · {b.total_amount.toLocaleString("fr-FR")} FCFA
               </p>
               {validTickets.some((t) => t.seat_number !== null) && (
                 <p className="text-xs text-ink-soft font-dm">

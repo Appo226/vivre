@@ -24,7 +24,7 @@ import { HomeEventsList } from "@/components/HomeEventsList";
 import { getPlatformSettings } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
-  title: "VIVRE — La billetterie des événements du Burkina Faso",
+  title: "VIVRE | La billetterie des événements du Burkina Faso",
 };
 
 export const dynamic = "force-dynamic";
@@ -161,7 +161,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
           <span className="text-2xl">🎟️</span>
           <div>
             <p className="font-jakarta font-bold text-sm">Organisez votre événement</p>
-            <p className="text-white/60 text-xs font-dm">Gratuit pour les billets gratuits — publié en quelques minutes</p>
+            <p className="text-white/60 text-xs font-dm">Gratuit pour les billets gratuits, publié en quelques minutes</p>
           </div>
           <span className="ml-auto text-white/60">›</span>
         </Link>
@@ -176,7 +176,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
           <span className="text-2xl">📣</span>
           <div>
             <p className="font-jakarta font-bold text-sm text-ink">Annoncez sur VIVRE</p>
-            <p className="text-ink-soft text-xs font-dm">Touchez les fans d&apos;événements du Burkina — soumettez votre pub</p>
+            <p className="text-ink-soft text-xs font-dm">Touchez les fans d&apos;événements du Burkina, soumettez votre pub</p>
           </div>
           <span className="ml-auto text-ink-soft">›</span>
         </Link>

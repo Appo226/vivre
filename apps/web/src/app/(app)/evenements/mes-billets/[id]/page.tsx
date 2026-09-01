@@ -106,7 +106,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 const BOOKING_STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: "En attente de paiement", color: "text-amber-700 bg-amber-50 border-amber-200", icon: "⏳" },
-  confirmed: { label: "Confirmé — Prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900", icon: "✅" },
+  confirmed: { label: "Confirmé, prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900", icon: "✅" },
   cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200", icon: "❌" },
 };
 
@@ -568,22 +568,36 @@ function TicketRevealModal({
           <div className="absolute inset-0 opacity-[0.08] brand-pattern" aria-hidden="true" />
 
           <div className="relative text-center mb-5">
-            <VivreLogo size={16} variant="light" className="mx-auto mb-3" />
-            <p className="text-white font-sora font-extrabold text-base leading-tight text-balance">
+            <VivreLogo size={14} variant="light" className="mx-auto mb-4 opacity-80" />
+
+            {/* Nom de l'événement — pièce maîtresse artistique du billet, pas une ligne de
+                métadonnée parmi d'autres. Grand, serré, encadré par le losange or de la
+                charte graphique (même accent que "◆ Billet pour" sur les anciennes versions
+                de cette carte) plutôt qu'une simple police plus grosse. */}
+            <div className="flex items-center justify-center gap-2 mb-1.5">
+              <span className="w-1.5 h-1.5 rotate-45 bg-[#F5A623]" aria-hidden="true" />
+              <p className="text-white/50 text-[10px] font-dm font-semibold uppercase tracking-[0.2em]">Billet pour</p>
+              <span className="w-1.5 h-1.5 rotate-45 bg-[#F5A623]" aria-hidden="true" />
+            </div>
+            <p className="text-white font-sora font-extrabold text-[28px] leading-[1.08] tracking-tight text-balance px-2">
               {booking.event.title}
             </p>
-            <p className="text-[#F5A623] text-[11px] mt-1.5 font-dm font-semibold uppercase tracking-wider">
-              {booking.ticket_type.name}
-              {booking.quantity > 1 && ` · Billet ${ticket.ticket_number}/${booking.quantity}`}
-            </p>
-            {ticket.seat_number !== null && (
-              <p className="text-white font-sora font-extrabold text-2xl mt-2">
-                Place {ticket.seat_number}
+
+            {/* Infos du billet — regroupées, au-dessus du QR, avant tout le reste. */}
+            <div className="mt-4 flex flex-col items-center gap-1">
+              <p className="text-[#F5A623] text-xs font-dm font-bold uppercase tracking-wider">
+                {booking.ticket_type.name}
+                {booking.quantity > 1 && ` · Billet ${ticket.ticket_number}/${booking.quantity}`}
               </p>
-            )}
-            <p className="text-white/70 text-xs mt-1">
-              {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
-            </p>
+              {ticket.seat_number !== null && (
+                <p className="text-white font-sora font-extrabold text-2xl mt-1">
+                  Place {ticket.seat_number}
+                </p>
+              )}
+              <p className="text-white/70 text-xs mt-1">
+                {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
+              </p>
+            </div>
           </div>
 
           {/* Séparateur pointillé style ticket */}
@@ -599,33 +613,18 @@ function TicketRevealModal({
               <div className="absolute top-1/2 -left-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
               <div className="absolute top-1/2 -right-[34px] -translate-y-1/2 w-6 h-6 rounded-full bg-[#0F2E20]" aria-hidden="true" />
               {/*
-                Logo centré dans le QR — niveau H (30% de correction d'erreur) obligatoire
-                pour absorber les modules recouverts par le logo sans compromettre le scan ;
-                "M" (15%) suffisait pour un QR nu mais serait marginal ici. excavate=true fait
-                lire à la librairie un "trou" propre plutôt que de superposer une image sur des
-                modules encodés — c'est ça, pas la seule montée de niveau, qui protège vraiment
-                la lecture. Vérifié par décodage réel via jsQR (même lib que le scanner en
-                porte), pas seulement visuellement — voir le commit associé.
+                Pas de logo dans le QR — décision explicite (utilisateur préfère un code
+                propre, sans risque de lecture, plutôt que la version brandée testée
+                précédemment). Niveau H conservé quand même : plus robuste qu'un simple "M"
+                pour un scan en conditions réelles (éclairage de salle, angle, mouvement),
+                aucune contrepartie à garder ce niveau sur un QR nu.
               */}
               {ticket.status === "cancelled" ? (
                 <div className="relative opacity-30">
-                  <QRCodeSVG
-                    value={ticket.qr_code}
-                    size={168}
-                    level="H"
-                    fgColor="#0F2E20"
-                    imageSettings={{ src: "/icons/vivre-mark-64.png", height: 32, width: 32, excavate: true }}
-                  />
+                  <QRCodeSVG value={ticket.qr_code} size={168} level="H" fgColor="#0F2E20" />
                 </div>
               ) : (
-                <QRCodeSVG
-                  value={ticket.qr_code}
-                  size={168}
-                  level="H"
-                  fgColor="#0F2E20"
-                  bgColor="#FFFFFF"
-                  imageSettings={{ src: "/icons/vivre-mark-64.png", height: 32, width: 32, excavate: true }}
-                />
+                <QRCodeSVG value={ticket.qr_code} size={168} level="H" fgColor="#0F2E20" bgColor="#FFFFFF" />
               )}
             </div>
           </div>
@@ -657,7 +656,7 @@ function TicketRevealModal({
                 {isSaving ? "Génération…" : "Enregistrer le billet"}
               </button>
               <p className="text-center text-white/40 text-[11px] -mt-1">
-                Sauvegarde ce billet en image sur votre téléphone — utile sans connexion à l&apos;entrée
+                Sauvegarde ce billet en image sur votre téléphone, utile sans connexion à l&apos;entrée
               </p>
             </>
           )}
@@ -676,7 +675,7 @@ function TicketRevealModal({
             <div className="bg-surface-card rounded-2xl p-4 shadow-sm space-y-3">
               <p className="text-sm font-semibold text-ink">Transférer à qui ?</p>
               <p className="text-xs text-ink-soft">
-                Ce billet précis passera immédiatement au numéro indiqué — vous n&apos;y aurez plus accès.
+                Ce billet précis passera immédiatement au numéro indiqué : vous n&apos;y aurez plus accès.
                 La personne le retrouvera dans « Mes billets » en se connectant avec ce numéro sur VIVRE.
               </p>
               <input
@@ -738,7 +737,7 @@ function TicketRevealModal({
             <h2 className="text-lg font-bold mb-2 text-ink">Annuler ce billet ?</h2>
             <p className={`text-sm mb-4 ${refund.eligible ? "text-green-700 dark:text-green-300" : "text-ink-soft"}`}>
               {refund.eligible
-                ? `${refund.label} — remboursement automatique de ${ticket.price_fcfa_at_purchase.toLocaleString("fr-FR")} FCFA.`
+                ? `${refund.label} : remboursement automatique de ${ticket.price_fcfa_at_purchase.toLocaleString("fr-FR")} FCFA.`
                 : refund.label}
             </p>
             {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}

@@ -55,7 +55,7 @@ function RefundCard({ r, onDecide }: { r: Refund; onDecide: () => void }): React
       <div className="flex items-start justify-between">
         <div>
           <p className="font-jakarta font-bold text-ink">
-            {r.payment?.user.first_name ?? "—"} {r.payment?.user.last_name ?? ""}
+            {r.payment?.user.first_name ?? ""} {r.payment?.user.last_name ?? ""}
           </p>
           <p className="text-xs text-ink-soft">{r.payment?.user.phone}</p>
         </div>

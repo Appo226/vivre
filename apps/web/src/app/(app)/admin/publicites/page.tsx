@@ -81,7 +81,7 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
           <div>
             <p className="font-jakarta font-bold text-ink">{c.title}</p>
             <p className="text-xs text-ink-soft">
-              {c.advertiser.first_name ?? "—"} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
+              {c.advertiser.first_name ?? ""} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
             </p>
           </div>
           <span className="text-xs font-jakarta font-semibold px-2 py-1 rounded-full bg-surface-elevated text-ink-soft">
@@ -96,7 +96,7 @@ function ReviewCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Rea
             {c.link_url}
           </a>
         ) : (
-          <p className="text-xs text-ink-soft mt-1">Aucun lien — pub non cliquable</p>
+          <p className="text-xs text-ink-soft mt-1">Aucun lien, pub non cliquable</p>
         )}
 
         {error && <p className="text-xs text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg p-2">{error}</p>}
@@ -152,7 +152,7 @@ function PaymentCard({ c, onDecide }: { c: Campaign; onDecide: () => void }): Re
         <div>
           <p className="font-jakarta font-bold text-ink">{c.title}</p>
           <p className="text-xs text-ink-soft">
-            {c.advertiser.first_name ?? "—"} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
+            {c.advertiser.first_name ?? ""} {c.advertiser.last_name ?? ""} · {c.advertiser.phone}
           </p>
         </div>
         <p className="price-text text-sm">{c.price_fcfa.toLocaleString("fr-FR")} FCFA</p>

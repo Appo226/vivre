@@ -118,11 +118,11 @@ export default function CreateAdPage(): React.ReactElement {
       try {
         const duration = await readVideoDuration(file);
         if (duration > MAX_VIDEO_SECONDS) {
-          setError(`Vidéo trop longue (${Math.round(duration)}s) — ${MAX_VIDEO_SECONDS}s maximum.`);
+          setError(`Vidéo trop longue (${Math.round(duration)}s), ${MAX_VIDEO_SECONDS}s maximum.`);
           return;
         }
       } catch {
-        setError("Impossible de lire cette vidéo — essayez un autre fichier.");
+        setError("Impossible de lire cette vidéo, essayez un autre fichier.");
         return;
       }
     }
@@ -133,11 +133,11 @@ export default function CreateAdPage(): React.ReactElement {
         const { width, height } = await readMediaDimensions(file);
         const ratio = width / height;
         if (Math.abs(ratio - spec.ratio) / spec.ratio > ASPECT_TOLERANCE) {
-          setError(`Format incorrect (${width} × ${height}px) — cet emplacement exige ${spec.label}. Recadrez votre visuel et réessayez.`);
+          setError(`Format incorrect (${width} × ${height}px), cet emplacement exige ${spec.label}. Recadrez votre visuel et réessayez.`);
           return;
         }
       } catch {
-        setError("Impossible de lire les dimensions de ce fichier — essayez un autre fichier.");
+        setError("Impossible de lire les dimensions de ce fichier, essayez un autre fichier.");
         return;
       }
     }
@@ -255,7 +255,7 @@ export default function CreateAdPage(): React.ReactElement {
           )}
           {REQUIRED_SPEC[placement] && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-              Format exigé pour cet emplacement : <strong>{REQUIRED_SPEC[placement]?.label}</strong> — le visuel remplit
+              Format exigé pour cet emplacement : <strong>{REQUIRED_SPEC[placement]?.label}</strong> : le visuel remplit
               tout le cadre, sans bande grise ; un fichier au mauvais ratio sera refusé.
             </p>
           )}
@@ -266,7 +266,7 @@ export default function CreateAdPage(): React.ReactElement {
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
-            placeholder="https://… — laissez vide si vous n'avez pas de lien"
+            placeholder="https://… (laissez vide si vous n'avez pas de lien)"
             className={inputCls}
           />
         </Field>
@@ -316,14 +316,14 @@ export default function CreateAdPage(): React.ReactElement {
                 <p>
                   Tarif actuel : <strong>{ratePerDay.toLocaleString("fr-FR")} FCFA/jour</strong>
                   {total !== null && days !== null && (
-                    <> — {days} jour{days > 1 ? "s" : ""} sélectionné{days > 1 ? "s" : ""} = <strong>{total.toLocaleString("fr-FR")} FCFA</strong></>
+                    <>{days} jour{days > 1 ? "s" : ""} sélectionné{days > 1 ? "s" : ""} = <strong>{total.toLocaleString("fr-FR")} FCFA</strong></>
                   )}
                 </p>
               ) : (
                 <p>Chargement du tarif…</p>
               )}
               <p className="text-green-700 dark:text-green-300">
-                Vous ne payez qu&apos;après validation du contenu par notre équipe (généralement sous 24h) —
+                Vous ne payez qu&apos;après validation du contenu par notre équipe (généralement sous 24h).
                 le tarif facturé est celui en vigueur au moment de l&apos;approbation.
               </p>
             </div>

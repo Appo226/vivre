@@ -3,7 +3,7 @@
  * REMARQUE INTERNE : gabarit de démarrage, à faire relire par un avocat avant le lancement réel.
  */
 
-export const metadata = { title: "Politique de confidentialité — VIVRE" };
+export const metadata = { title: "Politique de confidentialité | VIVRE" };
 
 export default function PrivacyPage(): React.ReactElement {
   return (

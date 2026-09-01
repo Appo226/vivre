@@ -56,7 +56,7 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
       },
       () => {
         setLocating(false);
-        setSearchError("Position refusée ou indisponible — cherchez l'adresse ou touchez la carte");
+        setSearchError("Position refusée ou indisponible, cherchez l'adresse ou touchez la carte");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -74,10 +74,10 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
       const data = (await res.json()) as { results: GeocodeResult[] };
       setResults(data.results);
       if (data.results.length === 0) {
-        setSearchError("Aucun résultat — ajustez le pin manuellement sur la carte");
+        setSearchError("Aucun résultat, ajustez le pin manuellement sur la carte");
       }
     } catch {
-      setSearchError("Recherche indisponible — ajustez le pin manuellement");
+      setSearchError("Recherche indisponible, ajustez le pin manuellement");
     } finally {
       setSearching(false);
     }
@@ -104,10 +104,10 @@ export function LocationPicker({ initialQuery, value, onChange }: LocationPicker
         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-700 text-white text-sm font-jakarta font-semibold disabled:opacity-50"
       >
         <span aria-hidden="true">📍</span>
-        {locating ? "Localisation en cours…" : "Je suis sur place — utiliser ma position"}
+        {locating ? "Localisation en cours…" : "Je suis sur place, utiliser ma position"}
       </button>
 
-      <p className="text-xs text-ink-soft text-center">— ou —</p>
+      <p className="text-xs text-ink-soft text-center">ou</p>
 
       <div className="flex gap-2">
         <input

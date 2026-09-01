@@ -191,7 +191,7 @@ export default function ProfileSetupPage(): React.ReactElement {
             {/* --- Email (optionnel) --- */}
             <div>
               <label className="block text-sm font-medium text-ink mb-1.5">
-                Email <span className="text-ink-soft text-xs">(optionnel — pour les reçus)</span>
+                Email <span className="text-ink-soft text-xs">(optionnel, pour les reçus)</span>
               </label>
               <input
                 type="email"

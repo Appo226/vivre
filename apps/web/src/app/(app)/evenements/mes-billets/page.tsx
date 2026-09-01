@@ -210,7 +210,7 @@ function TicketCard({ booking }: { booking: EventBookingSummary }): React.ReactE
         {isUpcoming && (
           <div className="px-3 py-1.5 bg-pink-50 border-t border-pink-100">
             <p className="text-xs text-pink-700 font-dm font-medium text-center">
-              🎉 Événement à venir — Votre billet est prêt
+              🎉 Événement à venir, votre billet est prêt
             </p>
           </div>
         )}

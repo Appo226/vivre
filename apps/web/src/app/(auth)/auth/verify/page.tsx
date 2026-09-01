@@ -234,7 +234,7 @@ function VerifyPhoneContent(): React.ReactElement {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-red-500 font-medium">Code expiré — renvoyez-en un nouveau</p>
+              <p className="text-sm text-red-500 font-medium">Code expiré, renvoyez-en un nouveau</p>
             )}
           </div>
 
@@ -297,7 +297,7 @@ function VerifyPhoneContent(): React.ReactElement {
             onClick={goNext}
             className="text-center text-sm text-ink-soft hover:text-ink-soft mt-6 underline"
           >
-            Plus tard — je vérifierai avant de réserver
+            Plus tard, je vérifierai avant de réserver
           </button>
         </div>
       </main>

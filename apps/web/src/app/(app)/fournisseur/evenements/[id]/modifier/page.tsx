@@ -111,7 +111,7 @@ export default function ModifierEvenementPage(): React.ReactElement {
           // nouveau paiement CinetPay est requis. Pas encore géré depuis cette page (le widget
           // de paiement vit dans /evenements/publier) — informer plutôt que de prétendre que
           // c'est terminé.
-          setError("Un nouveau paiement est requis pour cette resoumission (montant modifié) — contactez le support pour finaliser.");
+          setError("Un nouveau paiement est requis pour cette resoumission (montant modifié). Contactez le support pour finaliser.");
           return;
         }
         setSuccess(submitRes.message ?? "Événement resoumis pour approbation.");

@@ -61,7 +61,7 @@ export function OfflineIndicator(): React.ReactElement | null {
       <span>
         {isOnline
           ? "Connexion rétablie"
-          : "Hors ligne — données en cache disponibles"}
+          : "Hors ligne, données en cache disponibles"}
       </span>
     </div>
   );

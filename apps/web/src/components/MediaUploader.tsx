@@ -93,7 +93,7 @@ export function MediaUploader({ urls, onChange, minRequired = 3 }: MediaUploader
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <p className={["text-xs font-dm", urls.length >= minRequired ? "text-green-600 dark:text-green-300" : "text-amber-600"].join(" ")}>
-        {urls.length}/{minRequired} photos minimum — photos de l&apos;événement ou affiche officielle
+        {urls.length}/{minRequired} photos minimum, photos de l&apos;événement ou affiche officielle
       </p>
     </div>
   );

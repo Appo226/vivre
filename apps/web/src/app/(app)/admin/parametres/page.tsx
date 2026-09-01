@@ -197,11 +197,11 @@ function SettingsForm(): React.ReactElement {
                 label="Sous-titre du hero"
                 value={settings.home_subtitle}
                 maxLength={160}
-                placeholder="Concerts, mariages, kermesses, conférences et bien plus — trouvez votre prochain événement."
+                placeholder="Concerts, mariages, kermesses, conférences et bien plus, trouvez votre prochain événement."
                 onChange={(v) => setSettings({ ...settings, home_subtitle: v })}
               />
               <p className="text-xs text-ink-soft mt-1">
-                Affiché sous « Vivez le Faso. Un billet à la fois. » — garder large, ne pas lister
+                Affiché sous « Vivez le Faso. Un billet à la fois. » : garder large, ne pas lister
                 seulement quelques catégories.
               </p>
             </div>
@@ -210,7 +210,7 @@ function SettingsForm(): React.ReactElement {
               <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-1">Bannière VIVRE (accueil)</p>
               <ToggleField
                 label="Activer la bannière"
-                sub="Contenu propre à VIVRE dans le hero de l'accueil — jamais une pub tierce payante"
+                sub="Contenu propre à VIVRE dans le hero de l'accueil, jamais une pub tierce payante"
                 value={settings.hero_banner_enabled}
                 onChange={(v) => setSettings({ ...settings, hero_banner_enabled: v })}
               />
@@ -346,7 +346,7 @@ function SettingsForm(): React.ReactElement {
                 onChange={(v) => setSettings({ ...settings, ad_price_browse_fcfa_per_day: v })}
               />
               <p className="text-xs text-ink-soft mt-2">
-                Figé au moment où vous approuvez une campagne — un changement ici n&apos;affecte
+                Figé au moment où vous approuvez une campagne : un changement ici n&apos;affecte
                 jamais une campagne déjà approuvée.
               </p>
             </div>
@@ -378,7 +378,7 @@ function SettingsForm(): React.ReactElement {
               />
               <p className="text-xs text-ink-soft mt-2">
                 Payé par l&apos;organisateur à la soumission (frais de mise en ligne + jours de
-                publicité s&apos;il en ajoute une) — même montant que l&apos;événement soit
+                publicité s&apos;il en ajoute une), même montant que l&apos;événement soit
                 gratuit ou payant. Désactivé entièrement si &quot;Période gratuite&quot; est
                 actif ci-dessus.
               </p>

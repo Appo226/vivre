@@ -115,7 +115,7 @@ export default function ScannerPage(): React.ReactElement | null {
       if (err instanceof ApiError) {
         setResult({ valid: false, error: err.message, code: err.code });
       } else {
-        setResult({ valid: false, error: "Erreur réseau — vérifiez votre connexion" });
+        setResult({ valid: false, error: "Erreur réseau, vérifiez votre connexion" });
       }
     } finally {
       setIsScanning(false);
@@ -230,8 +230,8 @@ export default function ScannerPage(): React.ReactElement | null {
             {result.valid ? (
               /* Détails du billet valide */
               <div className="bg-white/20 rounded-xl p-4 mt-3 text-left space-y-2">
-                <DetailRow label="Événement" value={result.event_title ?? "—"} />
-                <DetailRow label="Type" value={result.ticket_type ?? "—"} />
+                <DetailRow label="Événement" value={result.event_title ?? "\u2014"} />
+                <DetailRow label="Type" value={result.ticket_type ?? "\u2014"} />
                 {result.ticket_count && result.ticket_count > 1 && (
                   <DetailRow label="Billet" value={`${result.ticket_number} / ${result.ticket_count}`} />
                 )}
@@ -267,7 +267,7 @@ export default function ScannerPage(): React.ReactElement | null {
             </p>
             <Step n="1" text="Autorisez l'accès à la caméra si demandé" />
             <Step n="2" text="Cadrez le QR code affiché sur le téléphone du client" />
-            <Step n="3" text="Résultat automatique dès la détection — pas de bouton à presser" />
+            <Step n="3" text="Résultat automatique dès la détection, pas de bouton à presser" />
           </div>
         )}
       </div>

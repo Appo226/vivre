@@ -60,11 +60,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   /* Titre de base — chaque page peut le surcharger */
   title: {
-    default: "VIVRE — La billetterie des événements du Burkina Faso",
+    default: "VIVRE | La billetterie des événements du Burkina Faso",
     template: "%s | VIVRE",
   },
   description:
-    "Achetez vos billets d'événements au Burkina Faso — concerts, festivals, conférences. Billet numérique avec QR code, scannable à l'entrée.",
+    "Achetez vos billets d'événements au Burkina Faso : concerts, festivals, conférences. Billet numérique avec QR code, scannable à l'entrée.",
 
   /* Manifest PWA */
   manifest: "/manifest.json",
@@ -83,14 +83,14 @@ export const metadata: Metadata = {
     locale: "fr_BF",
     url: "https://vivrebf.com",
     siteName: "VIVRE",
-    title: "VIVRE — La billetterie des événements du Burkina Faso",
-    description: "Concerts, festivals, conférences — trouvez votre prochain événement et recevez votre billet numérique.",
+    title: "VIVRE | La billetterie des événements du Burkina Faso",
+    description: "Concerts, festivals, conférences, trouvez votre prochain événement et recevez votre billet numérique.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "VIVRE — Billetterie Burkina Faso",
+        alt: "VIVRE | Billetterie Burkina Faso",
       },
     ],
   },
@@ -98,8 +98,8 @@ export const metadata: Metadata = {
   /* Twitter Card — pour le partage sur X/Twitter */
   twitter: {
     card: "summary_large_image",
-    title: "VIVRE — La billetterie des événements du Burkina Faso",
-    description: "Concerts, festivals, conférences — trouvez votre prochain événement et recevez votre billet numérique.",
+    title: "VIVRE | La billetterie des événements du Burkina Faso",
+    description: "Concerts, festivals, conférences, trouvez votre prochain événement et recevez votre billet numérique.",
     images: ["/og-image.png"],
   },
 
