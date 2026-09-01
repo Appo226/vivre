@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
  * Accessible sans connexion — la réservation nécessite un compte.
  */
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 
@@ -86,9 +86,24 @@ function formatEventTime(iso: string): string {
 
 interface BrowseAd { id: string; title: string; image_url: string; media_type: string; link_url: string | null }
 
+/* useSearchParams() exige une frontière Suspense au build (même avec dynamic=
+   "force-dynamic" — voir l'export par défaut plus bas) sous peine d'échec du build
+   statique, pas juste un avertissement. Même motif que SupplierBanner dans
+   (auth)/auth/page.tsx. */
 export default function EvenementsPage(): React.ReactElement {
+  return (
+    <Suspense>
+      <EvenementsPageInner />
+    </Suspense>
+  );
+}
+
+function EvenementsPageInner(): React.ReactElement {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const searchParams = useSearchParams();
+  /* Permet à un lien externe (tuile catégorie de l'accueil) de pré-filtrer directement —
+     lu une seule fois au montage, l'utilisateur peut ensuite changer le filtre normalement. */
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => searchParams.get("category_id") ?? "");
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");

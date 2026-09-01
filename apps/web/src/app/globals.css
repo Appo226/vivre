@@ -312,4 +312,14 @@
   .map-transition {
     transition: opacity 0.3s ease-in-out;
   }
+
+  /* Scroll horizontal sans barre visible (rangée de catégories, carrousels) — la
+     scrollabilité reste, juste la barre elle-même est cachée cross-browser. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

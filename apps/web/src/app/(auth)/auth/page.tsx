@@ -74,6 +74,8 @@ function AuthForm(): React.ReactElement {
   const [mode, setMode] = useState<Mode>("login");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -152,6 +154,10 @@ function AuthForm(): React.ReactElement {
       setError("Le mot de passe doit faire au moins 8 caractères.");
       return;
     }
+    if (password !== confirmPassword) {
+      setError("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await apiClient.post<AuthResponse>(
@@ -185,6 +191,7 @@ function AuthForm(): React.ReactElement {
   function switchMode(next: Mode): void {
     setMode(next);
     setError(null);
+    setConfirmPassword("");
   }
 
   if (isLoading) {
@@ -310,8 +317,13 @@ function AuthForm(): React.ReactElement {
                 Numéro de téléphone <span className="text-red-500">*</span>
               </label>
               <div className="flex rounded-xl border border-border-subtle overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
-                <div className="flex items-center gap-2 px-4 py-3 bg-surface-elevated border-r border-border-subtle shrink-0">
-                  <span className="text-lg leading-none">📱</span>
+                {/* 🇧🇫 + "+226" — indicatif par défaut affiché comme repère visuel, mais
+                    le champ reste un texte libre : normalizePhoneForDisplay accepte déjà
+                    tout numéro international tel quel (voir sa doc plus haut), ce préfixe
+                    ne restreint rien, il montre juste ce qui est supposé si rien n'est tapé. */}
+                <div className="flex items-center gap-1.5 px-3 py-3 bg-surface-elevated border-r border-border-subtle shrink-0">
+                  <span className="text-base leading-none" aria-hidden="true">🇧🇫</span>
+                  <span className="text-sm text-ink-soft font-dm">+226</span>
                 </div>
                 <input
                   type="tel"
@@ -323,7 +335,7 @@ function AuthForm(): React.ReactElement {
                     setPhone(e.target.value.replace(/[^\d\s\-+]/g, ""));
                     setError(null);
                   }}
-                  className="flex-1 px-4 py-3 text-ink placeholder-gray-400 bg-surface-card outline-none text-base"
+                  className="flex-1 min-w-0 px-4 py-3 text-ink placeholder-gray-400 bg-surface-card outline-none text-base"
                   disabled={isLoading}
                 />
               </div>
@@ -350,21 +362,58 @@ function AuthForm(): React.ReactElement {
               <label className="block text-sm font-medium text-ink mb-1.5">
                 Mot de passe <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                placeholder={mode === "signup" ? "8 caractères minimum" : "••••••••"}
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                className={inputCls()}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  placeholder={mode === "signup" ? "8 caractères minimum" : "••••••••"}
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                  className={`${inputCls()} pr-11`}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink"
+                  tabIndex={-1}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+              {mode === "signup" && password.length > 0 && (
+                <p className={["text-xs mt-1.5 flex items-center gap-1", password.length >= 8 ? "text-green-700 dark:text-green-300" : "text-ink-soft"].join(" ")}>
+                  <span aria-hidden="true">{password.length >= 8 ? "✅" : "○"}</span>
+                  Au moins 8 caractères
+                </p>
+              )}
               {mode === "login" && (
                 <a href="/auth/mot-de-passe-oublie" className="block mt-1.5 text-right text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline">
                   Mot de passe oublié ?
                 </a>
               )}
             </div>
+
+            {mode === "signup" && (
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  Confirmer le mot de passe <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Retapez votre mot de passe"
+                  value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
+                  className={inputCls()}
+                  disabled={isLoading}
+                />
+                {confirmPassword.length > 0 && confirmPassword !== password && (
+                  <p className="text-xs mt-1.5 text-red-600">Les mots de passe ne correspondent pas.</p>
+                )}
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-red-600 flex items-start gap-1" role="alert">

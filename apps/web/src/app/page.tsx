@@ -21,6 +21,7 @@ import { HeaderProfileAvatar } from "@/components/HeaderProfileAvatar";
 import { HeroBanner } from "@/components/HeroBanner";
 import { SponsoredSection } from "@/components/SponsoredSection";
 import { HomeEventsList } from "@/components/HomeEventsList";
+import { MyTicketsSummary } from "@/components/MyTicketsSummary";
 import { getPlatformSettings } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
   const upcomingWhere = { status: "approved" as const, deleted_at: null, starts_at: { gte: new Date() } };
 
   const now = new Date();
-  const [events, homeAds, platformSettings] = await Promise.all([
+  const [events, homeAds, platformSettings, categories] = await Promise.all([
     prisma.event.findMany({
       where: upcomingWhere,
       select: {
@@ -64,6 +65,11 @@ export default async function HomePage(): Promise<React.ReactElement> {
       orderBy: { created_at: "asc" },
     }),
     getPlatformSettings(),
+    prisma.eventCategory.findMany({
+      select: { id: true, name: true, icon: true },
+      orderBy: { name: "asc" },
+      take: 5,
+    }),
   ]);
   type HomeEvent = (typeof events)[number];
 
@@ -137,9 +143,48 @@ export default async function HomePage(): Promise<React.ReactElement> {
       {/* Bande de losanges tricolores — signature visuelle VIVRE, pas un simple filet */}
       <div className="brand-pattern h-3.5 -mx-4 md:-mx-6" />
 
+      {/* === EXPLORER PAR CATÉGORIE — vraies catégories de la plateforme, pas un menu
+          générique. "Plus" mène à la liste complète non filtrée plutôt que de dupliquer
+          les 14 catégories ici. */}
+      <section className="pt-5 pb-1">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-sora font-bold text-ink">Explorer par catégorie</h2>
+          <Link href="/evenements" className="text-sm font-semibold text-[#1A6B3A] dark:text-green-300">
+            Voir tout
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
+          {categories.map((cat: { id: string; name: string; icon: string | null }) => (
+            <Link
+              key={cat.id}
+              href={`/evenements?category_id=${cat.id}`}
+              className="flex-shrink-0 w-[76px] flex flex-col items-center gap-1.5 group"
+            >
+              <span className="w-14 h-14 rounded-full bg-surface-card border border-border-subtle flex items-center justify-center text-2xl group-active:scale-95 transition-transform shadow-elevated">
+                {cat.icon ?? "🎫"}
+              </span>
+              <span className="text-[11px] font-dm text-ink-soft text-center leading-tight">{cat.name}</span>
+            </Link>
+          ))}
+          <Link href="/evenements" className="flex-shrink-0 w-[76px] flex flex-col items-center gap-1.5 group">
+            <span className="w-14 h-14 rounded-full bg-surface-elevated border border-border-subtle flex items-center justify-center text-lg text-ink-soft group-active:scale-95 transition-transform">
+              ⋯
+            </span>
+            <span className="text-[11px] font-dm text-ink-soft text-center leading-tight">Plus</span>
+          </Link>
+        </div>
+      </section>
+
       {/* === SECTION SPONSORISÉE — tiers annonceurs, hors identité VIVRE (voir HeroBanner) === */}
-      <div className="pt-5">
+      <div className="pt-4">
         <SponsoredSection ads={homeAds} />
+      </div>
+
+      {/* === VOS BILLETS — état vide ou résumé, selon si le compte connecté a déjà des
+          billets. Composant client car l'accueil est un Server Component sans accès à
+          l'identité de l'utilisateur connecté (JWT côté client uniquement). */}
+      <div className="pt-5">
+        <MyTicketsSummary />
       </div>
 
       {/* === ÉVÉNEMENTS À VENIR === */}
@@ -195,6 +240,33 @@ export default async function HomePage(): Promise<React.ReactElement> {
           </div>
           <span className="ml-auto text-red-400">›</span>
         </Link>
+      </section>
+
+      {/* === POURQUOI CHOISIR VIVRE — signaux de confiance réels : la billetterie est
+          bien numérique (QR), le paiement passe par le pont mobile money manuel
+          existant (pas "carte bancaire"), et le transfert de billet est une vraie
+          fonctionnalité déjà livrée. Pas de "support client 24/7" non plus — VIVRE n'a
+          pas cette infrastructure, on ne le prétend pas. */}
+      <section className="mb-6">
+        <h2 className="font-sora font-bold text-ink mb-4 text-center">Pourquoi choisir VIVRE ?</h2>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🎟️</span>
+            <p className="text-[11px] font-dm text-ink-soft leading-tight">Réservation rapide et sécurisée</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">📱</span>
+            <p className="text-[11px] font-dm text-ink-soft leading-tight">Billet QR dans votre poche</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🔁</span>
+            <p className="text-[11px] font-dm text-ink-soft leading-tight">Transfert de billet en un clic</p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🇧🇫</span>
+            <p className="text-[11px] font-dm text-ink-soft leading-tight">Pensé pour le Burkina Faso</p>
+          </div>
+        </div>
       </section>
 
       <div className="h-bottom-nav" aria-hidden="true" />

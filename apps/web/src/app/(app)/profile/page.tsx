@@ -417,7 +417,7 @@ export default function ProfilePage(): React.ReactElement {
                 href={item.href}
                 className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
               >
-                <span className="text-xl w-8 text-center">{item.icon}</span>
+                <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">{item.icon}</span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-ink">{item.label}</p>
                   <p className="text-xs text-ink-soft">{item.sub}</p>
@@ -441,7 +441,7 @@ export default function ProfilePage(): React.ReactElement {
               href={item.href}
               className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
             >
-              <span className="text-xl w-8 text-center">{item.icon}</span>
+              <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">{item.icon}</span>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-ink">{item.label}</p>
                 <p className="text-xs text-ink-soft">{item.sub}</p>
@@ -460,7 +460,7 @@ export default function ProfilePage(): React.ReactElement {
           {/* Langue */}
           <div className="flex items-center justify-between px-5 py-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-4">
-              <span className="text-xl w-8 text-center">🌐</span>
+              <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🌐</span>
               <div>
                 <p className="text-sm font-semibold text-ink">{t.language}</p>
                 <p className="text-xs text-ink-soft">Interface de l&apos;application</p>
@@ -488,7 +488,7 @@ export default function ProfilePage(): React.ReactElement {
           {/* Thème */}
           <div className="flex items-center justify-between px-5 py-3.5 border-t border-border-subtle">
             <div className="flex items-center gap-4">
-              <span className="text-xl w-8 text-center">🌓</span>
+              <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🌓</span>
               <div>
                 <p className="text-sm font-semibold text-ink">{t.theme}</p>
                 <p className="text-xs text-ink-soft">Apparence de l&apos;application</p>
@@ -516,7 +516,7 @@ export default function ProfilePage(): React.ReactElement {
             href="/profile/notifications"
             className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
           >
-            <span className="text-xl w-8 text-center">🔔</span>
+            <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🔔</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-ink">{t.notifications}</p>
               <p className="text-xs text-ink-soft">Gérer les alertes</p>
@@ -535,7 +535,7 @@ export default function ProfilePage(): React.ReactElement {
               href="/admin"
               className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle hover:bg-surface-elevated active:bg-surface-elevated transition-colors"
             >
-              <span className="text-xl w-8 text-center">⚙️</span>
+              <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">⚙️</span>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-ink">Dashboard administrateur</p>
                 <p className="text-xs text-ink-soft">Approbations, vérifications, remboursements, versements</p>
@@ -553,7 +553,7 @@ export default function ProfilePage(): React.ReactElement {
 
           {/* Aide */}
           <div className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle">
-            <span className="text-xl w-8 text-center">❓</span>
+            <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">❓</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-ink">{t.help}</p>
               <p className="text-xs text-ink-soft">Contacter l&apos;équipe VIVRE</p>
@@ -566,7 +566,7 @@ export default function ProfilePage(): React.ReactElement {
             onClick={() => void handleLogout()}
             className="w-full flex items-center gap-4 px-5 py-4 border-t border-border-subtle hover:bg-red-50 active:bg-red-100 transition-colors text-left"
           >
-            <span className="text-xl w-8 text-center">🚪</span>
+            <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🚪</span>
             <p className="text-sm font-semibold text-red-600">{t.logout}</p>
           </button>
         </div>
