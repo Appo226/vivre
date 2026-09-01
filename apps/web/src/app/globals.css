@@ -54,6 +54,22 @@
   --overlay-scrim: rgba(20, 35, 27, 0.55); /* dégradés sur photo — vert-noir, pas noir pur */
   --shadow-color: rgba(20, 35, 27, 0.09);
   --nav-surface: rgba(255, 253, 248, 0.85); /* verre translucide chaud, avec backdrop-blur */
+
+  /*
+   * Wordmark VIVRE théma-réactif — pour les usages où le fond lui-même change de thème
+   * (hero /auth, SplashScreen), PAS pour le "chrome" de marque fixe-sombre (billet, nav,
+   * sidebar admin) qui continue de passer variant="light"/"dark" explicitement à
+   * VivreLogo. Piloté en CSS pur (variable + sélecteur .dark), jamais en React state ici
+   * — un essai avec `useThemeStore()` a buté sur un vrai bug d'hydratation SSR (le store
+   * restait bloqué sur sa valeur par défaut "light" côté client malgré un localStorage et
+   * une classe .dark corrects) ; le reste du design system évite ce piège en ne dépendant
+   * jamais du store React pour un rendu critique au premier paint, seulement de la classe
+   * .dark posée par le script anti-flash — donc ce token suit la même règle.
+   */
+  --wordmark-color: #0F2E20;
+  --wordmark-dim-color: rgba(22, 38, 29, 0.5);
+  --wordmark-accent-green: #1A6B3A;
+  --wordmark-accent-red: #EF2B2D;
 }
 
 /* ============================================================
@@ -69,6 +85,10 @@
   --overlay-scrim: rgba(6, 19, 13, 0.55);
   --shadow-color: rgba(0, 0, 0, 0.35);
   --nav-surface: rgba(15, 46, 32, 0.85); /* verre translucide sombre, avec backdrop-blur */
+  --wordmark-color: #FFFFFF;
+  --wordmark-dim-color: rgba(255, 255, 255, 0.5);
+  --wordmark-accent-green: #77C28F;
+  --wordmark-accent-red: #F3797A;
 }
 
 /* ============================================================
@@ -216,17 +236,57 @@
   /*
    * Texture du hero d'accueil — même motif losange que .brand-pattern mais plus
    * grand et très discret (fond radial, pas répétition dense) : donne de la
-   * profondeur au bloc sombre du header sans le charger visuellement.
+   * profondeur au bloc sombre du header sans le charger visuellement. Les deux
+   * traits courbes vert/rouge (même idée que les visuels promo fournis par
+   * l'utilisateur — "vif", pas juste des flous radiaux plats) sont le même SVG en
+   * clair et en sombre ; seule l'opacité change sous .dark, jamais la couleur — la
+   * marque ne bouge pas entre thèmes.
+   *
+   * Théma-réactif via var(--surface-page) + sélecteur .dark UNIQUEMENT — jamais un
+   * second nom de classe choisi en React (voir le commentaire sur --wordmark-color
+   * plus haut : cette approche a un vrai bug d'hydratation SSR ici, l'approche
+   * CSS-pure ci-dessous ne l'a pas puisqu'elle suit la même classe .dark que tout
+   * le reste du design system, posée par le script anti-flash avant le premier
+   * paint).
    */
   .hero-texture {
-    background-color: var(--color-dark);
+    background-color: var(--surface-page);
     background-image:
-      radial-gradient(circle at 12% -10%, rgba(245, 166, 35, 0.20), transparent 40%),
-      radial-gradient(circle at 105% 30%, rgba(26, 107, 58, 0.45), transparent 50%),
+      radial-gradient(circle at 12% -10%, rgba(245, 166, 35, 0.14), transparent 40%),
+      radial-gradient(circle at 105% 30%, rgba(26, 107, 58, 0.16), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='900' viewBox='0 0 1600 900'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%231A6B3A' stop-opacity='0'/%3E%3Cstop offset='45%25' stop-color='%231A6B3A' stop-opacity='0.55'/%3E%3Cstop offset='100%25' stop-color='%2377C28F' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='r2' x1='1' y1='1' x2='0' y2='0'%3E%3Cstop offset='0%25' stop-color='%23EF2B2D' stop-opacity='0'/%3E%3Cstop offset='45%25' stop-color='%23EF2B2D' stop-opacity='0.55'/%3E%3Cstop offset='100%25' stop-color='%23F3797A' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cfilter id='b2'%3E%3CfeGaussianBlur stdDeviation='10'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23b2)' fill='none' stroke-linecap='round'%3E%3Cpath d='M-100 780 C 250 850, 480 620, 650 380 S 980 60, 1350 -60' stroke='url(%23g2)' stroke-width='5'/%3E%3Cpath d='M1700 780 C 1350 850, 1120 620, 950 380 S 620 60, 250 -60' stroke='url(%23r2)' stroke-width='5'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Cg fill='none' stroke-width='1.5' opacity='0.18'%3E%3Cpath stroke='%23F5A623' d='M40 20 L60 70 L40 120 L20 70 Z'/%3E%3Cpath stroke='%23EF2B2D' d='M340 160 L364 220 L340 280 L316 220 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+    background-position: left top, right top, center, right bottom;
+    background-size: auto, auto, cover, 260px 200px;
+  }
+
+  /*
+   * Badge flottant sur .hero-texture (chips "Billet QR instantané" etc.) — CSS-pur comme
+   * le reste, pas de theme===dark en React (voir --wordmark-color plus haut). En clair le
+   * fond du hero est un ivoire proche du blanc, donc un badge translucide blanc y serait
+   * quasi invisible — il faut une card bien opaque là ; en sombre c'est l'inverse, le verre
+   * translucide blanc se détache bien du vert forêt.
+   */
+  .chip-on-hero {
+    background-color: var(--surface-card);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-color) 0 1px 3px;
+  }
+  .dark .chip-on-hero {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: none;
+  }
+
+  .dark .hero-texture {
+    background-image:
+      radial-gradient(circle at 12% -10%, rgba(245, 166, 35, 0.22), transparent 40%),
+      radial-gradient(circle at 105% 30%, rgba(26, 107, 58, 0.5), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1600' height='900' viewBox='0 0 1600 900'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0%25' stop-color='%231A6B3A' stop-opacity='0'/%3E%3Cstop offset='45%25' stop-color='%231A6B3A' stop-opacity='0.9'/%3E%3Cstop offset='100%25' stop-color='%2377C28F' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='1' y1='1' x2='0' y2='0'%3E%3Cstop offset='0%25' stop-color='%23EF2B2D' stop-opacity='0'/%3E%3Cstop offset='45%25' stop-color='%23EF2B2D' stop-opacity='0.9'/%3E%3Cstop offset='100%25' stop-color='%23F3797A' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='10'/%3E%3C/filter%3E%3C/defs%3E%3Cg filter='url(%23b)' fill='none' stroke-linecap='round'%3E%3Cpath d='M-100 780 C 250 850, 480 620, 650 380 S 980 60, 1350 -60' stroke='url(%23g)' stroke-width='5'/%3E%3Cpath d='M1700 780 C 1350 850, 1120 620, 950 380 S 620 60, 250 -60' stroke='url(%23r)' stroke-width='5'/%3E%3C/g%3E%3C/svg%3E"),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Cg fill='none' stroke-width='1.5' opacity='0.14'%3E%3Cpath stroke='%23F5A623' d='M40 20 L60 70 L40 120 L20 70 Z'/%3E%3Cpath stroke='%23EF2B2D' d='M340 160 L364 220 L340 280 L316 220 Z'/%3E%3C/g%3E%3C/svg%3E");
-    background-repeat: no-repeat, no-repeat, no-repeat;
-    background-position: left top, right top, right bottom;
-    background-size: auto, auto, 260px 200px;
   }
 }
 

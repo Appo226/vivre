@@ -193,19 +193,28 @@ function AuthForm(): React.ReactElement {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* === EN-TÊTE VERT FORÊT VIVRE === */}
-      <header className="hero-texture px-6 pt-16 pb-10 text-white text-center overflow-hidden">
-        <div className="animate-fade-in inline-flex flex-col items-center gap-2 mb-6">
-          <VivreLogo size={68} variant="light" showTagline />
+      {/*
+        === EN-TÊTE DE MARQUE — premier écran vu par quiconque n'est pas encore connecté,
+        donc le moment le plus "brand-forward" de l'app. Théma-réactif (hero-texture-light
+        en clair, hero-texture en sombre — même trait vert/rouge, juste l'environnement qui
+        change, jamais la marque) plutôt que fixe-sombre comme le reste du "chrome" de marque
+        (bottom nav, sidebar admin) : ici c'est justement LE mark qu'on veut voir respirer
+        dans les deux thèmes, pas un accent secondaire. Le mark est repris en grand et en
+        "respiration" continue (même animation que SplashScreen) — pas juste un petit logo
+        statique dans un coin.
+      */}
+      <header className="hero-texture px-6 pt-16 pb-10 text-center overflow-hidden">
+        <div className="animate-fade-in motion-safe:animate-splash-breathe inline-flex flex-col items-center gap-2 mb-6">
+          <VivreLogo size={92} variant="auto" showTagline />
         </div>
         <div className="animate-slide-up flex items-center justify-center gap-2 flex-wrap" style={{ animationDelay: "80ms" }}>
-          <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold text-white/90">
+          <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
             🎫 Billet QR instantané
           </span>
-          <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold text-white/90">
+          <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
             🔒 Paiement sécurisé
           </span>
-          <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold text-white/90">
+          <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
             📍 Partout au Burkina
           </span>
         </div>

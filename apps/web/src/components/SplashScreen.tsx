@@ -25,10 +25,10 @@ export function SplashScreen({ message }: SplashScreenProps): React.ReactElement
   return (
     <div className="hero-texture fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4">
       <div className="motion-safe:animate-splash-breathe">
-        <VivreLogo size={64} variant="light" showTagline />
+        <VivreLogo size={64} variant="auto" showTagline />
       </div>
       {message && (
-        <p className="font-jakarta text-sm text-white/70 tracking-wide">{message}</p>
+        <p className="font-jakarta text-sm tracking-wide text-ink-soft">{message}</p>
       )}
     </div>
   );

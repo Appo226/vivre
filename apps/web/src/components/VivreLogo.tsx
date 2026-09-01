@@ -24,8 +24,17 @@ function closestMarkSize(px: number): (typeof MARK_SIZES)[number] {
 interface VivreLogoProps {
   /** Hauteur du mark en pixels — le wordmark et la tagline sont mis à l'échelle en proportion. */
   size?: number;
-  /** "light" = wordmark blanc (fond sombre) ; "dark" = wordmark vert forêt (fond clair). */
-  variant?: "light" | "dark";
+  /**
+   * "light" = wordmark blanc (fond TOUJOURS sombre, quel que soit le thème — bottom nav,
+   * sidebar admin, billet). "dark" = wordmark vert forêt (fond TOUJOURS clair). "auto" =
+   * pilote la couleur via CSS (--wordmark-color, voir globals.css) plutôt qu'un choix figé
+   * en React — pour les fonds qui changent eux-mêmes avec le thème (hero /auth,
+   * SplashScreen). Ne PAS driver "auto" depuis un `useThemeStore()` React côté appelant :
+   * ce store a un vrai bug d'hydratation SSR (reste bloqué sur sa valeur par défaut malgré
+   * un localStorage/une classe .dark corrects) — "auto" existe justement pour éviter d'y
+   * retoucher, en suivant la même classe .dark CSS-pure que le reste du design system.
+   */
+  variant?: "light" | "dark" | "auto";
   /** Affiche "Découvrez · Réservez · Vivez" sous le wordmark. */
   showTagline?: boolean;
   className?: string;
@@ -38,7 +47,8 @@ export function VivreLogo({
   className = "",
 }: VivreLogoProps): React.ReactElement {
   const markPx = closestMarkSize(size * 2); /* @2x pour les écrans retina */
-  const wordmarkColor = variant === "light" ? "#FFFFFF" : "#0F2E20";
+  const wordmarkColor = variant === "auto" ? "var(--wordmark-color)" : variant === "light" ? "#FFFFFF" : "#0F2E20";
+  const dimColor = variant === "auto" ? "var(--wordmark-dim-color)" : variant === "light" ? "rgba(255,255,255,0.5)" : undefined;
 
   return (
     <div className={`inline-flex items-center gap-2 ${className}`}>
@@ -59,10 +69,10 @@ export function VivreLogo({
         </span>
         {showTagline && (
           <span className="font-dm text-[10px] tracking-[0.15em] mt-0.5">
-            <span className={variant === "light" ? "text-[#77C28F]" : "text-[#1A6B3A]"}>Découvrez</span>
-            <span className={variant === "light" ? "text-white/50" : "text-ink-soft"}> · </span>
-            <span className={variant === "light" ? "text-[#F3797A]" : "text-[#EF2B2D]"}>Réservez</span>
-            <span className={variant === "light" ? "text-white/50" : "text-ink-soft"}> · </span>
+            <span style={variant === "auto" ? { color: "var(--wordmark-accent-green)" } : undefined} className={variant === "auto" ? undefined : variant === "light" ? "text-[#77C28F]" : "text-[#1A6B3A]"}>Découvrez</span>
+            <span style={dimColor ? { color: dimColor } : undefined} className={dimColor ? undefined : "text-ink-soft"}> · </span>
+            <span style={variant === "auto" ? { color: "var(--wordmark-accent-red)" } : undefined} className={variant === "auto" ? undefined : variant === "light" ? "text-[#F3797A]" : "text-[#EF2B2D]"}>Réservez</span>
+            <span style={dimColor ? { color: dimColor } : undefined} className={dimColor ? undefined : "text-ink-soft"}> · </span>
             <span className="text-[#F5A623]">Vivez</span>
           </span>
         )}
