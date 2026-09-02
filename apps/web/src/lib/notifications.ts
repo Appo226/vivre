@@ -15,6 +15,8 @@ import { prisma } from "@vivre/database";
 
 export type NotificationType =
   | "ticket_transferred"
+  | "ticket_transfer_accepted"
+  | "ticket_transfer_declined"
   | "event_updated"
   | "event_cancelled"
   | "refund_processed"

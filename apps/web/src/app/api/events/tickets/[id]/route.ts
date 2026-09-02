@@ -1,10 +1,16 @@
 /**
  * DELETE /api/events/tickets/[id] — Annuler UN billet précis (pas toute la commande).
  *
- * Politique de remboursement : annulé dans l'heure suivant l'émission du billet → remboursement
- * automatique (mis en file pour traitement admin, voir /admin/remboursements) ; passé ce délai,
- * l'annulation reste possible mais sans remboursement. Voir isWithinRefundWindow dans
- * lib/events.ts pour le détail de cette fenêtre.
+ * Réservé aux admins (voir le contrôle de rôle ci-dessous) — l'annulation en libre-service par
+ * le détenteur lui-même a été retirée : plus de bouton côté acheteur, et l'API le refuse
+ * maintenant même en appel direct (pas seulement caché côté UI, qui n'aurait été qu'une
+ * fausse sécurité). Un litige/remboursement passe désormais par le support → un admin, pas
+ * par le détenteur qui annule lui-même.
+ *
+ * Politique de remboursement (toujours appliquée quand un admin annule) : annulé dans l'heure
+ * suivant l'émission du billet → remboursement automatique (mis en file pour traitement admin,
+ * voir /admin/remboursements) ; passé ce délai, l'annulation reste possible mais sans
+ * remboursement. Voir isWithinRefundWindow dans lib/events.ts pour le détail de cette fenêtre.
  *
  * La commande (EventBooking) repasse à "cancelled" seulement si ce billet était le dernier
  * encore actif — les autres billets de la même commande ne sont jamais affectés.
@@ -39,8 +45,8 @@ export async function DELETE(
   if (!ticket) {
     return apiError(404, "TICKET_NOT_FOUND", "Billet introuvable");
   }
-  if (ticket.user_id !== auth.sub && !auth.roles.includes("admin")) {
-    return apiError(403, "AUTH_FORBIDDEN", "Accès refusé");
+  if (!auth.roles.includes("admin")) {
+    return apiError(403, "AUTH_FORBIDDEN", "Seul le support VIVRE peut annuler un billet — contactez-nous si besoin");
   }
   if (ticket.status === "cancelled") {
     return apiError(409, "ALREADY_CANCELLED", "Billet déjà annulé");

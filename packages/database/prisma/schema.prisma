@@ -96,6 +96,8 @@ model User {
   received_event_bookings   EventBooking[]    @relation("EventBookingTransfer")
   event_tickets             EventTicket[]     @relation("EventTicketHolder")
   received_event_tickets    EventTicket[]     @relation("EventTicketTransfer")
+  sent_ticket_transfers     TicketTransfer[]  @relation("TicketTransferSender")
+  received_ticket_transfers TicketTransfer[]  @relation("TicketTransferRecipient")
   // Portefeuille VIVRE (crédits remboursements)
   wallet                    VivreWallet?
   organizer_verification    OrganizerVerification?
@@ -1559,6 +1561,7 @@ model EventTicket {
   ticket_type    EventTicketType @relation(fields: [ticket_type_id], references: [id])
   user           User            @relation("EventTicketHolder", fields: [user_id], references: [id])
   transferred_to User?           @relation("EventTicketTransfer", fields: [transferred_to_id], references: [id])
+  transfers      TicketTransfer[]
 
   // Filet de sécurité niveau base : même si un bug futur contournait le verrou posé dans
   // issueTicketsForBooking, deux billets #1 pour la même commande resteraient impossibles —
@@ -1572,6 +1575,41 @@ model EventTicket {
   @@index([event_id, status])
   @@index([user_id, status])
   @@map("event_tickets")
+}
+
+// Transfert de billet à consentement explicite : l'ancien flux réassignait EventTicket.user_id
+// immédiatement (aucune trace intermédiaire nécessaire) ; celui-ci passe par un état "pending"
+// le temps que le destinataire clique le lien SMS, se connecte (ou crée un compte), et accepte
+// — le billet ne change de détenteur qu'à l'acceptation, jamais avant. `token` est la seule
+// donnée du lien envoyé par SMS (imprévisible, pas d'auth requise pour le GET d'aperçu), mais
+// accepter/refuser exige d'être connecté ET que le numéro du compte corresponde à
+// recipient_phone — sinon transférer le lien à un tiers suffirait à détourner le billet.
+model TicketTransfer {
+  id              String  @id @default(uuid())
+  ticket_id       String
+  sender_id       String
+  recipient_phone String
+  recipient_id    String? // rempli si un compte existe déjà pour recipient_phone au moment de l'envoi ; sinon renseigné à l'acceptation (après création de compte)
+  token           String  @unique @default(uuid())
+
+  status String @default("pending")
+  // "pending"   : lien envoyé, en attente d'action du destinataire
+  // "accepted"  : destinataire a accepté — billet réassigné, voir EventTicket.user_id
+  // "declined"  : destinataire a explicitement refusé — billet reste chez l'expéditeur
+  // "cancelled" : expéditeur a annulé avant réponse
+  // "expired"   : délai dépassé sans réponse (voir expires_at) — le billet redevient utilisable/transférable normalement
+
+  created_at   DateTime  @default(now())
+  expires_at   DateTime
+  responded_at DateTime?
+
+  ticket    EventTicket @relation(fields: [ticket_id], references: [id])
+  sender    User        @relation("TicketTransferSender", fields: [sender_id], references: [id])
+  recipient User?       @relation("TicketTransferRecipient", fields: [recipient_id], references: [id])
+
+  @@index([ticket_id, status])
+  @@index([token])
+  @@map("ticket_transfers")
 }
 
 // =============================================================

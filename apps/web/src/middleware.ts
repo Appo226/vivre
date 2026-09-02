@@ -52,6 +52,7 @@ const PUBLIC_ROUTES = [
    * La page lit le payment_id et poll l'API (qui elle, vérifie le JWT).
    */
   /^\/paiement\/retour/,             /* Retour après paiement CinetPay */
+  /^\/transfert\//,          /* Lien magique SMS de transfert de billet — doit fonctionner sans session, y compris pour un destinataire qui n'a encore aucun compte */
   /^\/_next/,               /* Assets Next.js */
   /^\/api\//,               /* API routes internes */
   /^\/icons\//,             /* Icons PWA */

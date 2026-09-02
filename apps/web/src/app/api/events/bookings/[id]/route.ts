@@ -49,6 +49,11 @@ export async function GET(
           cancelled_at: true,
           created_at: true,
           price_fcfa_at_purchase: true,
+          // Détenteur ACTUEL de ce billet précis (ticket.user_id) — distinct de booking.user,
+          // l'acheteur d'origine. Sans ça, le billet d'un destinataire de transfert affichait
+          // encore le nom de l'expéditeur comme "détenteur", jamais corrigé tant que personne
+          // n'avait vraiment regardé la carte d'un billet reçu par transfert.
+          user: { select: { id: true, first_name: true, last_name: true, phone: true } },
         },
       },
       event: {

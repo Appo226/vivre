@@ -35,6 +35,9 @@ interface TicketRow {
   cancelled_at: string | null;
   created_at: string;
   price_fcfa_at_purchase: number;
+  // Détenteur ACTUEL de ce billet précis — distinct de booking.user (l'acheteur d'origine),
+  // voir le commentaire sur le SELECT côté API.
+  user: { id: string; first_name: string | null; last_name: string | null; phone: string };
 }
 
 interface EventBookingDetail {
@@ -81,20 +84,6 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("fr-FR", {
     hour: "2-digit", minute: "2-digit", timeZone: "UTC",
   });
-}
-
-// Doit rester égal à REFUND_WINDOW_MS dans apps/web/src/lib/events.ts (côté serveur, seul
-// juge qui compte) — utilisé ici uniquement pour afficher le compte à rebours à l'acheteur.
-const REFUND_WINDOW_MS = 60 * 60 * 1000;
-
-function refundStatus(ticketCreatedAt: string): { eligible: boolean; label: string } {
-  const deadline = new Date(ticketCreatedAt).getTime() + REFUND_WINDOW_MS;
-  const remainingMs = deadline - Date.now();
-  if (remainingMs <= 0) {
-    return { eligible: false, label: "Délai de remboursement dépassé (1h après l'achat)" };
-  }
-  const minutes = Math.ceil(remainingMs / 60000);
-  return { eligible: true, label: `Remboursement possible encore ${minutes} min` };
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -470,10 +459,6 @@ function TicketRevealModal({
   const [transferError, setTransferError] = useState("");
   const [transferSent, setTransferSent] = useState(false);
 
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelError, setCancelError] = useState("");
-  const [cancelResult, setCancelResult] = useState<string | null>(null);
-
   const transferMutation = useMutation({
     mutationFn: () =>
       apiClient.patch<{ message: string }>(`/events/tickets/${ticket.id}/transfer`, { recipient_phone: transferPhone.trim() }),
@@ -484,18 +469,6 @@ function TicketRevealModal({
     },
     onError: (err) => {
       setTransferError(err instanceof ApiError ? err.message : "Erreur réseau.");
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: () => apiClient.delete<{ message: string }>(`/events/tickets/${ticket.id}`),
-    onSuccess: (res) => {
-      onChanged();
-      setCancelResult(res.message);
-      setShowCancelConfirm(false);
-    },
-    onError: (err) => {
-      setCancelError(err instanceof ApiError ? err.message : "Impossible d'annuler");
     },
   });
 
@@ -547,8 +520,6 @@ function TicketRevealModal({
   }
 
   const canTransfer = ticket.status === "valid" && new Date(booking.event.starts_at) > new Date();
-  const canCancel = ticket.status === "valid" && new Date(booking.event.starts_at) > new Date();
-  const refund = refundStatus(ticket.created_at);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] px-4 py-8 overflow-y-auto" onClick={onClose}>
@@ -595,7 +566,12 @@ function TicketRevealModal({
                 </p>
               )}
               <p className="text-white/70 text-xs mt-1">
-                {[booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || booking.user.phone}
+                {[ticket.user.first_name, ticket.user.last_name].filter(Boolean).join(" ") || ticket.user.phone}
+              </p>
+              {/* Repères pour un litige ou un contrôle à l'entrée — commande = toute
+                  l'achat d'origine, billet = ce QR précis (change à chaque transfert). */}
+              <p className="text-white/35 text-[10px] font-mono tracking-wide mt-1.5">
+                Commande #{booking.id.slice(0, 8).toUpperCase()} · Billet #{ticket.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
           </div>
@@ -715,50 +691,8 @@ function TicketRevealModal({
             </div>
           )}
 
-          {canCancel && !cancelResult && (
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="w-full py-3 text-red-300 font-semibold text-sm"
-            >
-              Annuler ce billet
-            </button>
-          )}
-
-          {cancelResult && (
-            <div className="bg-white/10 rounded-2xl p-4 text-sm text-white text-center">{cancelResult}</div>
-          )}
         </div>
       </div>
-
-      {/* Modal confirmation annulation */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-end z-[70]" onClick={() => setShowCancelConfirm(false)}>
-          <div className="w-full max-w-xs mx-auto bg-surface-card rounded-t-3xl px-4 py-6 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-2 text-ink">Annuler ce billet ?</h2>
-            <p className={`text-sm mb-4 ${refund.eligible ? "text-green-700 dark:text-green-300" : "text-ink-soft"}`}>
-              {refund.eligible
-                ? `${refund.label} : remboursement automatique de ${ticket.price_fcfa_at_purchase.toLocaleString("fr-FR")} FCFA.`
-                : refund.label}
-            </p>
-            {cancelError && <p className="text-red-600 text-sm mb-3">{cancelError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowCancelConfirm(false); setCancelError(""); }}
-                className="flex-1 py-3 border border-border-subtle rounded-xl text-ink-soft font-semibold"
-              >
-                Garder
-              </button>
-              <button
-                onClick={() => cancelMutation.mutate()}
-                disabled={cancelMutation.isPending}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-semibold disabled:opacity-60"
-              >
-                {cancelMutation.isPending ? "..." : "Annuler"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
