@@ -102,7 +102,7 @@ export default function EventDetailClient(): React.ReactElement | null {
   const { accessToken } = useAuthStore();
 
   const [selectedTicketType, setSelectedTicketType] = useState<TicketType | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string>("");
   const [selectedMerch, setSelectedMerch] = useState<Record<string, { quantity: number; variant: string }>>({});
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -137,10 +137,35 @@ export default function EventDetailClient(): React.ReactElement | null {
     },
   });
 
-  function openBookingModal(tt: TicketType): void {
-    if (!accessToken) return;
-    setSelectedTicketType(tt);
-    setQuantity(1);
+  /* Un seul type de billet par commande — contrainte réelle du backend (EventBooking a un
+     ticket_type_id unique, pas une liste de lignes), pas juste un choix d'UI. Incrémenter le
+     stepper d'un type différent de celui déjà actif bascule donc dessus au lieu d'empiler
+     plusieurs types dans une même commande. */
+  function incrementType(tt: TicketType): void {
+    if (selectedTicketType?.id === tt.id) {
+      setQuantity((q) => Math.min(tt.max_per_order, tt.available, q + 1));
+    } else {
+      setSelectedTicketType(tt);
+      setQuantity(1);
+      setSelectedVariant("");
+      setSelectedMerch({});
+    }
+  }
+
+  function decrementType(tt: TicketType): void {
+    if (selectedTicketType?.id !== tt.id) return;
+    setQuantity((q) => {
+      const next = q - 1;
+      if (next <= 0) {
+        setSelectedTicketType(null);
+        return 0;
+      }
+      return next;
+    });
+  }
+
+  function openBookingModal(): void {
+    if (!accessToken || !selectedTicketType) return;
     setSelectedVariant("");
     setSelectedMerch({});
     setBookingError("");
@@ -375,13 +400,43 @@ export default function EventDetailClient(): React.ReactElement | null {
                 <TicketTypeCard
                   key={tt.id}
                   ticket={tt}
-                  onSelect={() => openBookingModal(tt)}
+                  quantity={selectedTicketType?.id === tt.id ? quantity : 0}
+                  onIncrement={() => incrementType(tt)}
+                  onDecrement={() => decrementType(tt)}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Barre flottante — apparaît dès qu'un type de billet a une quantité choisie dans la
+          liste ci-dessus, remplace l'ancien flux "taper Acheter → modal vide à remplir" par
+          "ajuster la quantité en place → Continuer pour finaliser". Cachée pendant que la
+          modale de confirmation est ouverte pour ne pas empiler deux barres d'action. */}
+      {selectedTicketType && quantity > 0 && !showBookingModal && (
+        <div className="fixed bottom-[var(--bottom-nav-height)] left-0 right-0 z-50 bg-surface-card border-t border-border-subtle px-4 py-3 shadow-modal">
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-ink-soft">
+                {quantity} × {selectedTicketType.name}
+              </p>
+              <p className="font-bold text-ink">
+                {(selectedTicketType.price_fcfa * quantity).toLocaleString("fr-FR")} FCFA
+              </p>
+            </div>
+            <button
+              onClick={openBookingModal}
+              className="bg-[#1A6B3A] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#155830] transition-colors active:scale-95"
+            >
+              Continuer →
+            </button>
+          </div>
+        </div>
+      )}
+      {selectedTicketType && quantity > 0 && !showBookingModal && (
+        <div className="h-24" aria-hidden="true" />
+      )}
 
       {/* Modal réservation */}
       {showBookingModal && selectedTicketType && (
@@ -580,13 +635,18 @@ export default function EventDetailClient(): React.ReactElement | null {
 
 function TicketTypeCard({
   ticket,
-  onSelect,
+  quantity,
+  onIncrement,
+  onDecrement,
 }: {
   ticket: TicketType;
-  onSelect: () => void;
+  quantity: number;
+  onIncrement: () => void;
+  onDecrement: () => void;
 }): React.ReactElement {
   const isAvailable = ticket.available > 0;
   const isAlmostGone = ticket.available > 0 && ticket.available <= 10;
+  const atMax = quantity >= Math.min(ticket.max_per_order, ticket.available);
 
   return (
     <div className="bg-surface-card rounded-2xl p-4 shadow-sm border border-border-subtle">
@@ -631,13 +691,29 @@ function TicketTypeCard({
             : `${ticket.available} disponible${ticket.available > 1 ? "s" : ""}`}
         </span>
 
-        <button
-          disabled={!isAvailable}
-          onClick={onSelect}
-          className="bg-[#1A6B3A] text-white px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#155830] transition-colors active:scale-95"
-        >
-          {ticket.price_fcfa === 0 ? "Réserver" : "Acheter"}
-        </button>
+        {isAvailable && (
+          <div className="flex items-center border border-border-subtle rounded-xl overflow-hidden">
+            <button
+              type="button"
+              disabled={quantity === 0}
+              onClick={onDecrement}
+              className="w-9 h-9 flex items-center justify-center text-ink-soft font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-elevated"
+              aria-label={`Retirer un billet ${ticket.name}`}
+            >
+              −
+            </button>
+            <span className="w-7 text-center font-semibold text-ink text-sm tabular-nums">{quantity}</span>
+            <button
+              type="button"
+              disabled={atMax}
+              onClick={onIncrement}
+              className="w-9 h-9 flex items-center justify-center text-ink-soft font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-elevated"
+              aria-label={`Ajouter un billet ${ticket.name}`}
+            >
+              +
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

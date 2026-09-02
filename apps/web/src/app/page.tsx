@@ -65,9 +65,14 @@ export default async function HomePage(): Promise<React.ReactElement> {
       orderBy: { created_at: "asc" },
     }),
     getPlatformSettings(),
+    // Uniquement les catégories qui ont au moins un événement réel à venir — sans ce filtre,
+    // la rangée pouvait montrer une catégorie vide (ex: "Nightlife" sans aucun événement)
+    // vers laquelle taper n'aurait mené nulle part. Triée par nombre d'événements décroissant
+    // plutôt qu'alphabétique : les catégories les plus actives du moment en premier.
     prisma.eventCategory.findMany({
+      where: { events: { some: upcomingWhere } },
       select: { id: true, name: true, icon: true },
-      orderBy: { name: "asc" },
+      orderBy: { events: { _count: "desc" } },
       take: 5,
     }),
   ]);

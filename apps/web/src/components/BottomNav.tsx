@@ -44,9 +44,12 @@ const ShieldIcon = (): React.ReactElement => (
   </svg>
 );
 
+/* Le path précédent ici était en fait l'icône Heroicons "groupe de personnes" mal étiquetée
+   TicketIcon — jamais un vrai billet. Remplacé par le vrai path "Ticket" de Heroicons
+   (rectangle à bords perforés/encochés, comme un vrai talon de billet). */
 const TicketIcon = (): React.ReactElement => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-    <path d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z" />
+    <path fillRule="evenodd" d="M4.5 3.75a3 3 0 00-3 3v.75c0 .414.336.75.75.75a2.25 2.25 0 010 4.5.75.75 0 00-.75.75v.75a3 3 0 003 3h15a3 3 0 003-3v-.75a.75.75 0 00-.75-.75 2.25 2.25 0 010-4.5.75.75 0 00.75-.75v-.75a3 3 0 00-3-3h-15zm11.25 3a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008a.75.75 0 01.75-.75h.008zm0 3a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008a.75.75 0 01.75-.75h.008zm0 3a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008a.75.75 0 01.75-.75h.008z" clipRule="evenodd" />
   </svg>
 );
 
