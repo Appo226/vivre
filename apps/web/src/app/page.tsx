@@ -242,33 +242,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
         </Link>
       </section>
 
-      {/* === POURQUOI CHOISIR VIVRE — signaux de confiance réels : la billetterie est
-          bien numérique (QR), le paiement passe par le pont mobile money manuel
-          existant (pas "carte bancaire"), et le transfert de billet est une vraie
-          fonctionnalité déjà livrée. Pas de "support client 24/7" non plus — VIVRE n'a
-          pas cette infrastructure, on ne le prétend pas. */}
-      <section className="mb-6">
-        <h2 className="font-sora font-bold text-ink mb-4 text-center">Pourquoi choisir VIVRE ?</h2>
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div className="flex flex-col items-center gap-2">
-            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🎟️</span>
-            <p className="text-[11px] font-dm text-ink-soft leading-tight">Réservation rapide et sécurisée</p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">📱</span>
-            <p className="text-[11px] font-dm text-ink-soft leading-tight">Billet QR dans votre poche</p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🔁</span>
-            <p className="text-[11px] font-dm text-ink-soft leading-tight">Transfert de billet en un clic</p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="w-11 h-11 rounded-full bg-surface-elevated flex items-center justify-center text-xl">🇧🇫</span>
-            <p className="text-[11px] font-dm text-ink-soft leading-tight">Pensé pour le Burkina Faso</p>
-          </div>
-        </div>
-      </section>
-
       <div className="h-bottom-nav" aria-hidden="true" />
       <BottomNav />
     </main>

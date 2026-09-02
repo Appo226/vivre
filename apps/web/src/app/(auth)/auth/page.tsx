@@ -63,7 +63,7 @@ function normalizePhoneForDisplay(raw: string): string {
 }
 
 function inputCls(): string {
-  return "w-full px-4 py-3 rounded-xl border border-border-subtle outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink placeholder-gray-400 text-base";
+  return "w-full px-4 py-3 rounded-xl border border-border-subtle bg-surface-card outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all text-ink placeholder-gray-400 text-base";
 }
 
 function AuthForm(): React.ReactElement {
@@ -209,11 +209,19 @@ function AuthForm(): React.ReactElement {
         dans les deux thèmes, pas un accent secondaire. Le mark est repris en grand et en
         "respiration" continue (même animation que SplashScreen) — pas juste un petit logo
         statique dans un coin.
+
+        pb-24 (au lieu de pb-10) laisse la place à la carte du formulaire de chevaucher le
+        bas du hero (voir -mt-10 plus bas) — une seule composition ancrée plutôt que deux
+        gabarits empilés avec une bande .brand-pattern comme simple trait de séparation.
       */}
-      <header className="hero-texture px-6 pt-16 pb-10 text-center overflow-hidden">
+      <header className="hero-texture px-6 pt-16 pb-24 text-center overflow-hidden">
         <div className="animate-fade-in motion-safe:animate-splash-breathe inline-flex flex-col items-center gap-2 mb-6">
           <VivreLogo size={92} variant="auto" showTagline />
         </div>
+        {/* Affichés dans les deux modes : "login" est l'onglet ouvert par défaut, donc
+            quelqu'un qui n'a encore jamais créé de compte atterrit dessus lui aussi — les
+            masquer en connexion privait justement les nouveaux visiteurs de ces repères de
+            confiance au moment où ils en ont le plus besoin. */}
         <div className="animate-slide-up flex items-center justify-center gap-2 flex-wrap" style={{ animationDelay: "80ms" }}>
           <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
             🎫 Billet QR instantané
@@ -227,13 +235,17 @@ function AuthForm(): React.ReactElement {
         </div>
       </header>
 
-      <div className="brand-pattern h-3.5 w-full" />
-
-      {/* === FORMULAIRE === */}
-      <main className="flex-1 px-6 pt-8 pb-6 flex flex-col">
-        <div className="max-w-sm mx-auto w-full flex flex-col flex-1">
-          <h2 className="text-2xl font-bold text-ink mb-1">
-            {mode === "login" ? "Bon retour !" : "Bienvenue !"}
+      {/* === FORMULAIRE — carte ancrée sur le hero (chevauchement -mt-10), voir
+          .auth-card-dock dans globals.css pour la justification de cette jonction. */}
+      <main className="auth-card-dock relative -mt-10 flex-1 rounded-t-[28px] px-6 pt-8 pb-6 flex flex-col">
+        <span aria-hidden="true" className="absolute top-3 left-1/2 -translate-x-1/2 h-1 w-10 rounded-full bg-gradient-to-r from-[#1A6B3A] via-[#F5A623] to-[#EF2B2D] opacity-70" />
+        <div className="max-w-sm mx-auto w-full flex flex-col flex-1 pt-3">
+          {/* "Bon retour !" supposait un visiteur déjà client, mais l'onglet "login" est
+              celui ouvert par défaut — un tout premier visiteur qui n'a jamais créé de
+              compte atterrit dessus aussi et n'est justement pas de retour. "Bienvenue !"
+              reste vrai dans les deux cas, sans rien présumer. */}
+          <h2 className="font-sora text-[26px] font-extrabold tracking-tight text-ink mb-1.5">
+            Bienvenue !
           </h2>
           <p className="text-ink-soft text-sm mb-6">
             {mode === "login"
@@ -429,7 +441,7 @@ function AuthForm(): React.ReactElement {
                 "w-full py-4 rounded-xl text-white font-semibold text-base mt-2",
                 "transition-all duration-200",
                 "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
-                isLoading ? "bg-surface-elevated cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:scale-[0.98] shadow-sm",
+                isLoading ? "bg-surface-elevated cursor-not-allowed" : "btn-brand-primary hover:brightness-110 active:scale-[0.98]",
               ].join(" ")}
             >
               {isLoading ? "…" : mode === "login" ? "Se connecter" : "Créer mon compte"}
