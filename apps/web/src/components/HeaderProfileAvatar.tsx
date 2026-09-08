@@ -12,6 +12,7 @@
 
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth.store";
+import { useLang, timeGreeting } from "@/lib/i18n";
 
 function initials(first: string | null, last: string | null): string {
   const value = `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
@@ -20,11 +21,12 @@ function initials(first: string | null, last: string | null): string {
 
 export function HeaderProfileAvatar(): React.ReactElement {
   const user = useAuthStore((s) => s.user);
+  const [lang] = useLang();
 
   return (
     <div className="animate-fade-in flex items-center justify-between gap-3 mb-3">
       <p className="font-dm text-sm text-white/75">
-        Bonjour{user?.first_name ? `, ${user.first_name}` : ""} 👋
+        {timeGreeting(lang)}{user?.first_name ? `, ${user.first_name}` : ""} 👋
       </p>
       <Link href="/profile" className="block active:scale-95 transition-transform shrink-0">
         {user?.avatar_url ? (

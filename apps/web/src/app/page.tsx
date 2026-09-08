@@ -22,6 +22,7 @@ import { HeroBanner } from "@/components/HeroBanner";
 import { SponsoredSection } from "@/components/SponsoredSection";
 import { HomeEventsList } from "@/components/HomeEventsList";
 import { MyTicketsSummary } from "@/components/MyTicketsSummary";
+import { T } from "@/components/T";
 import { getPlatformSettings } from "@/lib/platform-settings";
 
 export const metadata: Metadata = {
@@ -133,7 +134,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             className="flex items-center gap-2 bg-surface-card rounded-full px-4 py-3 text-ink-soft font-dm text-sm shadow-modal hover:bg-white/95 transition-colors"
           >
             <span aria-hidden="true" className="text-[#F5A623]">🔍</span>
-            Rechercher un événement, un lieu…
+            <T k="home_search_placeholder" />
           </Link>
 
           <HeroBanner
@@ -153,9 +154,9 @@ export default async function HomePage(): Promise<React.ReactElement> {
           les 14 catégories ici. */}
       <section className="pt-5 pb-1">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-sora font-bold text-ink">Explorer par catégorie</h2>
+          <h2 className="font-sora font-bold text-ink"><T k="home_explore_category" /></h2>
           <Link href="/evenements" className="text-sm font-semibold text-[#1A6B3A] dark:text-green-300">
-            Voir tout
+            <T k="home_see_all" />
           </Link>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-none">
@@ -175,7 +176,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
             <span className="w-14 h-14 rounded-full bg-surface-elevated border border-border-subtle flex items-center justify-center text-lg text-ink-soft group-active:scale-95 transition-transform">
               ⋯
             </span>
-            <span className="text-[11px] font-dm text-ink-soft text-center leading-tight">Plus</span>
+            <span className="text-[11px] font-dm text-ink-soft text-center leading-tight"><T k="home_more" /></span>
           </Link>
         </div>
       </section>
@@ -196,7 +197,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <section className="pb-4">
         <div className="flex items-center gap-2 mb-4">
           <PatriotStar className="w-4 h-4" />
-          <h2 className="font-sora font-bold text-ink">À l&apos;affiche</h2>
+          <h2 className="font-sora font-bold text-ink"><T k="home_featured" /></h2>
         </div>
 
         <HomeEventsList events={events} />
@@ -210,8 +211,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
         >
           <span className="text-2xl">🎟️</span>
           <div>
-            <p className="font-jakarta font-bold text-sm">Organisez votre événement</p>
-            <p className="text-white/60 text-xs font-dm">Gratuit pour les billets gratuits, publié en quelques minutes</p>
+            <p className="font-jakarta font-bold text-sm"><T k="home_organize_event" /></p>
+            <p className="text-white/60 text-xs font-dm"><T k="home_organize_event_sub" /></p>
           </div>
           <span className="ml-auto text-white/60">›</span>
         </Link>
@@ -225,8 +226,8 @@ export default async function HomePage(): Promise<React.ReactElement> {
         >
           <span className="text-2xl">📣</span>
           <div>
-            <p className="font-jakarta font-bold text-sm text-ink">Annoncez sur VIVRE</p>
-            <p className="text-ink-soft text-xs font-dm">Touchez les fans d&apos;événements du Burkina, soumettez votre pub</p>
+            <p className="font-jakarta font-bold text-sm text-ink"><T k="home_advertise" /></p>
+            <p className="text-ink-soft text-xs font-dm"><T k="home_advertise_sub" /></p>
           </div>
           <span className="ml-auto text-ink-soft">›</span>
         </Link>
@@ -240,7 +241,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
         >
           <span className="text-2xl">🆘</span>
           <div>
-            <p className="font-jakarta font-bold text-red-700 dark:text-red-300 text-sm">Numéros d&apos;urgence</p>
+            <p className="font-jakarta font-bold text-red-700 dark:text-red-300 text-sm"><T k="home_emergency_numbers" /></p>
             <p className="text-red-500 dark:text-red-400 text-xs font-dm">SAMU 15 · Police 17 · Pompiers 18</p>
           </div>
           <span className="ml-auto text-red-400">›</span>

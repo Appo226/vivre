@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useT } from "@/lib/i18n";
 
 interface BookingsMeResponse {
   bookings: unknown[];
@@ -22,6 +23,7 @@ interface BookingsMeResponse {
 
 export function MyTicketsSummary(): React.ReactElement | null {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const t = useT();
 
   const { data } = useQuery<BookingsMeResponse>({
     queryKey: ["my-bookings-count"],
@@ -37,9 +39,9 @@ export function MyTicketsSummary(): React.ReactElement | null {
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-sora font-bold text-ink">Vos billets</h2>
+        <h2 className="font-sora font-bold text-ink">{t.home_your_tickets}</h2>
         <Link href="/evenements/mes-billets" className="text-sm font-semibold text-[#1A6B3A] dark:text-green-300">
-          Voir mes billets
+          {t.home_see_my_tickets}
         </Link>
       </div>
 
@@ -47,8 +49,8 @@ export function MyTicketsSummary(): React.ReactElement | null {
         <div className="rounded-card bg-surface-elevated border border-border-subtle p-5 flex items-center gap-4">
           <span className="w-12 h-12 rounded-full bg-surface-card flex items-center justify-center text-2xl flex-shrink-0">🎟️</span>
           <div className="min-w-0">
-            <p className="font-jakarta font-bold text-sm text-ink">Vous n&apos;avez aucun billet</p>
-            <p className="text-xs text-ink-soft font-dm mt-0.5">Réservez vos prochains événements en quelques clics.</p>
+            <p className="font-jakarta font-bold text-sm text-ink">{t.home_no_tickets}</p>
+            <p className="text-xs text-ink-soft font-dm mt-0.5">{t.home_book_next_event}</p>
           </div>
         </div>
       ) : (
@@ -59,9 +61,9 @@ export function MyTicketsSummary(): React.ReactElement | null {
           <span className="w-12 h-12 rounded-full bg-[#1A6B3A]/10 flex items-center justify-center text-2xl flex-shrink-0">🎫</span>
           <div className="min-w-0 flex-1">
             <p className="font-jakarta font-bold text-sm text-ink">
-              {count} billet{count > 1 ? "s" : ""} à venir
+              {count} {count > 1 ? t.home_upcoming_tickets : t.home_upcoming_ticket}
             </p>
-            <p className="text-xs text-ink-soft font-dm mt-0.5">Retrouvez vos QR codes et vos événements à venir.</p>
+            <p className="text-xs text-ink-soft font-dm mt-0.5">{t.home_find_qr_codes}</p>
           </div>
           <span className="text-ink-soft">›</span>
         </Link>

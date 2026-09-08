@@ -9,31 +9,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { apiClient, ApiError } from "@/lib/api";
 import type { MeResponse } from "@/lib/api";
-
-/* ============================================================
- * TRANSLATIONS
- * ============================================================ */
-
-const T = {
-  fr: {
-    my_profile: "Mon profil", edit: "Modifier", verified: "Vérifié",
-    my_activity: "MON ACTIVITÉ", settings: "PARAMÈTRES", account: "COMPTE",
-    events: "Mes billets",
-    language: "Langue", notifications: "Notifications",
-    help: "Aide & support", logout: "Se déconnecter",
-    theme: "Thème", theme_light: "Clair", theme_dark: "Sombre",
-  },
-  en: {
-    my_profile: "My profile", edit: "Edit", verified: "Verified",
-    my_activity: "MY ACTIVITY", settings: "SETTINGS", account: "ACCOUNT",
-    events: "My tickets",
-    language: "Language", notifications: "Notifications",
-    help: "Help & support", logout: "Sign out",
-    theme: "Theme", theme_light: "Light", theme_dark: "Dark",
-  },
-} as const;
-
-type Lang = keyof typeof T;
+import { useLang, translations, timeGreeting } from "@/lib/i18n";
 
 /* ============================================================
  * HELPERS
@@ -52,13 +28,6 @@ function memberSince(iso: string): string {
 function vivreId(uuid: string): string {
   // Format: VIV-XXXXXX (first 6 hex chars of UUID, uppercase)
   return `VIV-${uuid.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
-}
-
-/* Bonjour/Good morning avant 18h, Bonsoir/Good evening après — heure locale de l'appareil. */
-function timeGreeting(lang: Lang): string {
-  const evening = new Date().getHours() >= 18;
-  if (lang === "en") return evening ? "Good evening" : "Good morning";
-  return evening ? "Bonsoir" : "Bonjour";
 }
 
 /* ============================================================
@@ -85,16 +54,10 @@ export default function ProfilePage(): React.ReactElement {
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [lang, setLang] = useState<Lang>("fr");
+  const [lang, setLang] = useLang();
   const [greeting, setGreeting] = useState<{ message: string; enabled: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { theme, setTheme } = useThemeStore();
-
-  /* Lire la langue depuis localStorage au montage */
-  useEffect(() => {
-    const stored = localStorage.getItem("vivre_lang");
-    if (stored === "en" || stored === "fr") setLang(stored);
-  }, []);
 
   /* Message d'accueil éditable par un admin — silencieux si indisponible, jamais bloquant */
   useEffect(() => {
@@ -212,19 +175,15 @@ export default function ProfilePage(): React.ReactElement {
     router.push("/auth");
   }
 
-  async function toggleLanguage() {
-    if (!profile) return;
-    const next: Lang = (profile.preferred_language === "fr" ? "en" : "fr") as Lang;
-    try {
-      await apiClient.patch("/auth/me", { preferred_language: next });
-      setProfile((p) => p ? { ...p, preferred_language: next } : p);
-      if (user) setUser({ ...user, preferred_language: next });
-      localStorage.setItem("vivre_lang", next);
-      window.location.reload();
-    } catch { /* silently fail */ }
+  /* setLang (voir lib/i18n.ts) persiste déjà côté API + authStore + localStorage, et se
+     répercute immédiatement sans recharger la page — l'ancien flux ici rechargeait toute la
+     page juste pour ce changement. */
+  function toggleLanguage(): void {
+    setLang(lang === "fr" ? "en" : "fr");
+    setProfile((p) => (p ? { ...p, preferred_language: lang === "fr" ? "en" : "fr" } : p));
   }
 
-  const t = T[lang];
+  const t = translations[lang];
 
   const realName = profile
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.phone
@@ -245,7 +204,7 @@ export default function ProfilePage(): React.ReactElement {
         <div className="flex items-start justify-between gap-3 pt-4 mb-1">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold truncate">
-              {profile?.first_name ? `${timeGreeting(lang)}, ${profile.first_name} 👋` : t.my_profile}
+              {profile?.first_name ? `${timeGreeting(lang)}, ${profile.first_name} 👋` : t.profile_my_profile}
             </h1>
             {/* Message admin — actuellement rédigé en français uniquement, donc affiché
                 seulement en langue FR pour éviter un mélange FR/EN dans le header */}
@@ -258,7 +217,7 @@ export default function ProfilePage(): React.ReactElement {
               onClick={startEditing}
               className="text-sm text-green-200 hover:text-white font-medium flex-shrink-0 pt-1.5"
             >
-              {t.edit}
+              {t.profile_edit}
             </button>
           )}
         </div>
@@ -324,7 +283,7 @@ export default function ProfilePage(): React.ReactElement {
             {/* Badge vérifié */}
             {profile?.is_verified && (
               <span className="flex-shrink-0 text-xs bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 font-semibold px-2 py-0.5 rounded-full border border-green-200 dark:border-green-900">
-                ✓ {t.verified}
+                ✓ {t.profile_verified}
               </span>
             )}
           </div>
@@ -431,10 +390,10 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== MON ACTIVITÉ ===== */}
         <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
-            {t.my_activity}
+            {t.profile_my_activity}
           </p>
           {[
-            { href: "/evenements/mes-billets",      icon: "🎟️", label: t.events,         sub: "Billets que vous avez achetés" },
+            { href: "/evenements/mes-billets",      icon: "🎟️", label: t.profile_events, sub: t.profile_events_sub },
           ].map((item) => (
             <Link
               key={item.href}
@@ -454,7 +413,7 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== PARAMÈTRES ===== */}
         <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
-            {t.settings}
+            {t.profile_settings}
           </p>
 
           {/* Langue */}
@@ -462,24 +421,24 @@ export default function ProfilePage(): React.ReactElement {
             <div className="flex items-center gap-4">
               <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🌐</span>
               <div>
-                <p className="text-sm font-semibold text-ink">{t.language}</p>
-                <p className="text-xs text-ink-soft">Interface de l&apos;application</p>
+                <p className="text-sm font-semibold text-ink">{t.profile_language}</p>
+                <p className="text-xs text-ink-soft">{t.profile_language_sub}</p>
               </div>
             </div>
             <button
-              onClick={() => void toggleLanguage()}
+              onClick={toggleLanguage}
               className="flex items-center gap-1 bg-surface-elevated rounded-xl p-1"
             >
-              {(["fr", "en"] as const).map((lang) => (
+              {(["fr", "en"] as const).map((l) => (
                 <span
-                  key={lang}
+                  key={l}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
-                    (profile?.preferred_language ?? "fr") === lang
+                    lang === l
                       ? "bg-[#1A6B3A] text-white"
                       : "text-ink-soft"
                   }`}
                 >
-                  {lang.toUpperCase()}
+                  {l.toUpperCase()}
                 </span>
               ))}
             </button>
@@ -490,8 +449,8 @@ export default function ProfilePage(): React.ReactElement {
             <div className="flex items-center gap-4">
               <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🌓</span>
               <div>
-                <p className="text-sm font-semibold text-ink">{t.theme}</p>
-                <p className="text-xs text-ink-soft">Apparence de l&apos;application</p>
+                <p className="text-sm font-semibold text-ink">{t.profile_theme}</p>
+                <p className="text-xs text-ink-soft">{t.profile_theme_sub}</p>
               </div>
             </div>
             <div className="flex items-center gap-1 bg-surface-elevated rounded-xl p-1">
@@ -505,7 +464,7 @@ export default function ProfilePage(): React.ReactElement {
                       : "text-ink-soft"
                   }`}
                 >
-                  {t[`theme_${option}`]}
+                  {t[`profile_theme_${option}`]}
                 </button>
               ))}
             </div>
@@ -518,7 +477,7 @@ export default function ProfilePage(): React.ReactElement {
           >
             <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🔔</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-ink">{t.notifications}</p>
+              <p className="text-sm font-semibold text-ink">{t.profile_notifications}</p>
               <p className="text-xs text-ink-soft">Gérer les alertes</p>
             </div>
             <span className="text-ink-soft text-sm">›</span>
@@ -548,14 +507,14 @@ export default function ProfilePage(): React.ReactElement {
         {/* ===== COMPTE ===== */}
         <div className="bg-surface-card rounded-2xl shadow-sm overflow-hidden">
           <p className="px-5 pt-4 pb-2 text-xs font-bold text-ink-soft uppercase tracking-widest">
-            {t.account}
+            {t.profile_account}
           </p>
 
           {/* Aide */}
           <div className="flex items-center gap-4 px-5 py-3.5 border-t border-border-subtle">
             <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">❓</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-ink">{t.help}</p>
+              <p className="text-sm font-semibold text-ink">{t.profile_help}</p>
               <p className="text-xs text-ink-soft">Contacter l&apos;équipe VIVRE</p>
             </div>
             <span className="text-ink-soft text-sm">›</span>
@@ -567,7 +526,7 @@ export default function ProfilePage(): React.ReactElement {
             className="w-full flex items-center gap-4 px-5 py-4 border-t border-border-subtle hover:bg-red-50 active:bg-red-100 transition-colors text-left"
           >
             <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🚪</span>
-            <p className="text-sm font-semibold text-red-600">{t.logout}</p>
+            <p className="text-sm font-semibold text-red-600">{t.profile_logout}</p>
           </button>
         </div>
 

@@ -19,6 +19,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { apiClient, ApiError } from "@/lib/api";
+import { useT, type TranslationKey } from "@/lib/i18n";
 import { VivreLogo } from "@/components/VivreLogo";
 
 /* ============================================================
@@ -93,16 +94,16 @@ const PROVIDER_LABELS: Record<string, string> = {
   wave: "Wave",
 };
 
-const BOOKING_STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: "En attente de paiement", color: "text-amber-700 bg-amber-50 border-amber-200", icon: "⏳" },
-  confirmed: { label: "Confirmé, prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900", icon: "✅" },
-  cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200", icon: "❌" },
+const BOOKING_STATUS_CONFIG: Record<string, { labelKey: TranslationKey; color: string; icon: string }> = {
+  pending: { labelKey: "tickets_booking_status_pending", color: "text-amber-700 bg-amber-50 border-amber-200", icon: "⏳" },
+  confirmed: { labelKey: "tickets_booking_status_confirmed", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900", icon: "✅" },
+  cancelled: { labelKey: "tickets_cancelled", color: "text-red-700 bg-red-50 border-red-200", icon: "❌" },
 };
 
-const TICKET_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  valid: { label: "Prêt à entrer", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
-  checked_in: { label: "Utilisé", color: "text-ink-soft bg-surface-elevated border-border-subtle" },
-  cancelled: { label: "Annulé", color: "text-red-700 bg-red-50 border-red-200" },
+const TICKET_STATUS_CONFIG: Record<string, { labelKey: TranslationKey; color: string }> = {
+  valid: { labelKey: "tickets_ready", color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-900" },
+  checked_in: { labelKey: "tickets_used", color: "text-ink-soft bg-surface-elevated border-border-subtle" },
+  cancelled: { labelKey: "tickets_cancelled", color: "text-red-700 bg-red-50 border-red-200" },
 };
 
 /* ============================================================
@@ -122,6 +123,10 @@ export default function EventBilletPage(): React.ReactElement {
   const [payMethod, setPayMethod] = useState("orange_money");
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState("");
+  /* Nommé "tr" (pas "t") : ce fichier utilise déjà "t" comme nom de variable de boucle pour
+     un billet individuel (ex: booking.tickets.find((t) => ...)) — un même nom pour deux
+     choses différentes aurait été trompeur à la lecture. */
+  const tr = useT();
 
   async function handlePay(): Promise<void> {
     if (!booking) return;
@@ -171,16 +176,17 @@ export default function EventBilletPage(): React.ReactElement {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-red-600 font-semibold">Billet introuvable</p>
-          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] dark:text-green-300 text-sm">Retour</button>
+          <p className="text-red-600 font-semibold">{tr.tickets_not_found}</p>
+          <button onClick={() => router.back()} className="mt-3 text-[#1A6B3A] dark:text-green-300 text-sm">{tr.tickets_back}</button>
         </div>
       </div>
     );
   }
 
-  const statusConfig = BOOKING_STATUS_CONFIG[booking.status] ?? {
-    label: booking.status, color: "text-ink-soft bg-surface-elevated border-border-subtle", icon: "•",
-  };
+  const statusCfg = BOOKING_STATUS_CONFIG[booking.status];
+  const statusLabel = statusCfg ? tr[statusCfg.labelKey] : booking.status;
+  const statusColor = statusCfg?.color ?? "text-ink-soft bg-surface-elevated border-border-subtle";
+  const statusIcon = statusCfg?.icon ?? "•";
 
   const eventEndedAt = new Date(booking.event.ends_at);
   const reportDeadline = new Date(eventEndedAt.getTime() + 24 * 60 * 60 * 1000); // T+1 — doit matcher REPORT_WINDOW_HOURS côté API
@@ -202,7 +208,7 @@ export default function EventBilletPage(): React.ReactElement {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Mes billets
+          {tr.nav_tickets}
         </button>
         <h1 className="text-white text-xl font-bold">{booking.event.title}</h1>
         <p className="text-white/70 text-sm mt-0.5 capitalize">
@@ -213,9 +219,9 @@ export default function EventBilletPage(): React.ReactElement {
       <div className="px-4 py-4 space-y-4">
 
         {/* Statut */}
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border ${statusConfig.color}`}>
-          <span>{statusConfig.icon}</span>
-          <p className="font-semibold text-sm">{statusConfig.label}</p>
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl border ${statusColor}`}>
+          <span>{statusIcon}</span>
+          <p className="font-semibold text-sm">{statusLabel}</p>
         </div>
 
         {/* Paiement manuel — pendant la phase pilote, avant que CinetPay soit branché */}
@@ -300,13 +306,13 @@ export default function EventBilletPage(): React.ReactElement {
           </div>
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className="bg-surface-elevated rounded-xl p-3">
-              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ {booking.is_original_buyer ? "Commande" : "Billets détenus"}</p>
-              <p className="font-bold text-ink mt-0.5">{booking.tickets.length} billet{booking.tickets.length > 1 ? "s" : ""}</p>
+              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ {booking.is_original_buyer ? tr.tickets_order : tr.tickets_held}</p>
+              <p className="font-bold text-ink mt-0.5">{booking.tickets.length} {booking.tickets.length > 1 ? tr.tickets_header.toLowerCase() : tr.tickets_ticket.toLowerCase()}</p>
             </div>
             <div className="bg-surface-elevated rounded-xl p-3">
-              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ Montant</p>
+              <p className="text-[10px] text-ink-soft font-semibold uppercase tracking-wider">◆ {tr.tickets_amount}</p>
               <p className="font-bold text-[#1A6B3A] dark:text-green-300 mt-0.5">
-                {booking.total_amount === 0 ? "Gratuit" : `${booking.total_amount.toLocaleString("fr-FR")} FCFA`}
+                {booking.total_amount === 0 ? tr.tickets_free : `${booking.total_amount.toLocaleString("fr-FR")} FCFA`}
               </p>
             </div>
           </div>
@@ -317,11 +323,13 @@ export default function EventBilletPage(): React.ReactElement {
         {booking.tickets.length > 0 && (
           <div>
             <p className="text-xs font-bold text-ink-soft uppercase tracking-widest mb-2">
-              {booking.tickets.length > 1 ? `Mes billets (${booking.tickets.length})` : "Mon billet"}
+              {booking.tickets.length > 1 ? `${tr.tickets_my_tickets_count} (${booking.tickets.length})` : tr.tickets_my_ticket}
             </p>
             <div className="space-y-2">
               {booking.tickets.map((t) => {
-                const tCfg = TICKET_STATUS_CONFIG[t.status] ?? { label: t.status, color: "text-ink-soft bg-surface-elevated border-border-subtle" };
+                const ticketCfg = TICKET_STATUS_CONFIG[t.status];
+                const ticketLabel = ticketCfg ? tr[ticketCfg.labelKey] : t.status;
+                const ticketColor = ticketCfg?.color ?? "text-ink-soft bg-surface-elevated border-border-subtle";
                 return (
                   <button
                     key={t.id}
@@ -335,18 +343,18 @@ export default function EventBilletPage(): React.ReactElement {
                       <div>
                         <p className="font-jakarta font-bold text-sm text-ink">
                           {t.seat_number !== null
-                            ? `${booking.ticket_type.name} · Place ${t.seat_number}`
-                            : booking.quantity > 1 ? `Billet ${t.ticket_number}` : booking.ticket_type.name}
+                            ? `${booking.ticket_type.name} · ${tr.tickets_seat} ${t.seat_number}`
+                            : booking.quantity > 1 ? `${tr.tickets_ticket} ${t.ticket_number}` : booking.ticket_type.name}
                         </p>
                         <p className="text-xs text-ink-soft">
                           {t.seat_number !== null
-                            ? "Toucher pour voir le QR"
-                            : booking.quantity > 1 ? booking.ticket_type.name : "Toucher pour voir le QR"}
+                            ? tr.tickets_tap_to_see_qr
+                            : booking.quantity > 1 ? booking.ticket_type.name : tr.tickets_tap_to_see_qr}
                         </p>
                       </div>
                     </div>
-                    <span className={`text-xs font-dm px-2 py-0.5 rounded-full border flex-shrink-0 ${tCfg.color}`}>
-                      {tCfg.label}
+                    <span className={`text-xs font-dm px-2 py-0.5 rounded-full border flex-shrink-0 ${ticketColor}`}>
+                      {ticketLabel}
                     </span>
                   </button>
                 );
@@ -357,12 +365,12 @@ export default function EventBilletPage(): React.ReactElement {
 
         {/* Contact organisateur */}
         <div className="bg-surface-card rounded-2xl p-4 shadow-sm">
-          <p className="text-sm font-semibold text-ink mb-2">Organisateur</p>
+          <p className="text-sm font-semibold text-ink mb-2">{tr.tickets_organizer}</p>
           <div className="flex items-center gap-3">
             <p className="text-ink-soft text-sm flex-1">
               {[booking.event.organizer.first_name, booking.event.organizer.last_name]
                 .filter(Boolean)
-                .join(" ") || "Organisateur VIVRE"}
+                .join(" ") || tr.tickets_organizer_fallback}
             </p>
             <a
               href={`tel:${booking.event.organizer.phone}`}
@@ -450,6 +458,7 @@ function TicketRevealModal({
   onChanged: () => void;
 }): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const ticketCardRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -468,7 +477,7 @@ function TicketRevealModal({
       setTimeout(() => router.push("/evenements/mes-billets"), 1800);
     },
     onError: (err) => {
-      setTransferError(err instanceof ApiError ? err.message : "Erreur réseau.");
+      setTransferError(err instanceof ApiError ? err.message : t.auth_err_connection);
     },
   });
 
@@ -547,7 +556,7 @@ function TicketRevealModal({
                 de cette carte) plutôt qu'une simple police plus grosse. */}
             <div className="flex items-center justify-center gap-2 mb-1.5">
               <span className="w-1.5 h-1.5 rotate-45 bg-[#F5A623]" aria-hidden="true" />
-              <p className="text-white/50 text-[10px] font-dm font-semibold uppercase tracking-[0.2em]">Billet pour</p>
+              <p className="text-white/50 text-[10px] font-dm font-semibold uppercase tracking-[0.2em]">{t.tickets_for}</p>
               <span className="w-1.5 h-1.5 rotate-45 bg-[#F5A623]" aria-hidden="true" />
             </div>
             <p className="text-white font-sora font-extrabold text-[28px] leading-[1.08] tracking-tight text-balance px-2">
@@ -558,11 +567,11 @@ function TicketRevealModal({
             <div className="mt-4 flex flex-col items-center gap-1">
               <p className="text-[#F5A623] text-xs font-dm font-bold uppercase tracking-wider">
                 {booking.ticket_type.name}
-                {booking.quantity > 1 && ` · Billet ${ticket.ticket_number}/${booking.quantity}`}
+                {booking.quantity > 1 && ` · ${t.tickets_ticket} ${ticket.ticket_number}/${booking.quantity}`}
               </p>
               {ticket.seat_number !== null && (
                 <p className="text-white font-sora font-extrabold text-2xl mt-1">
-                  Place {ticket.seat_number}
+                  {t.tickets_seat} {ticket.seat_number}
                 </p>
               )}
               <p className="text-white/70 text-xs mt-1">
@@ -571,7 +580,7 @@ function TicketRevealModal({
               {/* Repères pour un litige ou un contrôle à l'entrée — commande = toute
                   l'achat d'origine, billet = ce QR précis (change à chaque transfert). */}
               <p className="text-white/35 text-[10px] font-mono tracking-wide mt-1.5">
-                Commande #{booking.id.slice(0, 8).toUpperCase()} · Billet #{ticket.id.slice(0, 8).toUpperCase()}
+                {t.tickets_order} #{booking.id.slice(0, 8).toUpperCase()} · {t.tickets_ticket} #{ticket.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
           </div>
@@ -606,14 +615,14 @@ function TicketRevealModal({
           </div>
 
           {ticket.status === "checked_in" && (
-            <p className="relative text-center text-[#F5A623] text-xs font-bold mt-4">✓ BILLET UTILISÉ</p>
+            <p className="relative text-center text-[#F5A623] text-xs font-bold mt-4">✓ {t.tickets_used_caps}</p>
           )}
           {ticket.status === "cancelled" && (
-            <p className="relative text-center text-red-300 text-xs font-bold mt-4">BILLET ANNULÉ</p>
+            <p className="relative text-center text-red-300 text-xs font-bold mt-4">{t.tickets_cancelled_caps}</p>
           )}
           {ticket.status === "valid" && (
             <p className="relative text-center text-white/40 text-[10px] mt-4">
-              Présentez ce QR code à l&apos;entrée
+              {t.tickets_present_qr}
             </p>
           )}
 
@@ -629,10 +638,10 @@ function TicketRevealModal({
                 disabled={isSaving}
                 className="w-full flex items-center justify-center gap-2 py-3 bg-white/10 text-white font-semibold rounded-2xl disabled:opacity-60 active:scale-95 transition-all"
               >
-                {isSaving ? "Génération…" : "Enregistrer le billet"}
+                {isSaving ? t.tickets_generating : t.tickets_save}
               </button>
               <p className="text-center text-white/40 text-[11px] -mt-1">
-                Sauvegarde ce billet en image sur votre téléphone, utile sans connexion à l&apos;entrée
+                {t.tickets_save_sub}
               </p>
             </>
           )}
@@ -643,23 +652,22 @@ function TicketRevealModal({
               onClick={() => setShowTransferForm(true)}
               className="w-full py-3 border-2 border-white/20 text-white font-semibold rounded-2xl"
             >
-              Transférer ce billet
+              {t.tickets_transfer}
             </button>
           )}
 
           {showTransferForm && (
             <div className="bg-surface-card rounded-2xl p-4 shadow-sm space-y-3">
-              <p className="text-sm font-semibold text-ink">Transférer à qui ?</p>
+              <p className="text-sm font-semibold text-ink">{t.tickets_transfer_to}</p>
               <p className="text-xs text-ink-soft">
-                Ce billet précis passera immédiatement au numéro indiqué : vous n&apos;y aurez plus accès.
-                La personne le retrouvera dans « Mes billets » en se connectant avec ce numéro sur VIVRE.
+                {t.tickets_transfer_explanation}
               </p>
               <input
                 type="tel"
                 inputMode="tel"
                 value={transferPhone}
                 onChange={(e) => setTransferPhone(e.target.value)}
-                placeholder="Numéro du destinataire (ex: 70000000 ou +226...)"
+                placeholder={t.tickets_recipient_phone_placeholder}
                 className="w-full border border-border-subtle bg-surface-card text-ink rounded-xl px-3 py-2.5 text-sm"
               />
               {transferError && <p className="text-xs text-red-600">{transferError}</p>}
@@ -668,18 +676,18 @@ function TicketRevealModal({
                   onClick={() => { setShowTransferForm(false); setTransferError(""); setTransferPhone(""); }}
                   className="flex-1 py-2.5 border border-border-subtle rounded-xl text-sm text-ink-soft"
                 >
-                  Annuler
+                  {t.tickets_cancel}
                 </button>
                 <button
                   onClick={() => {
-                    if (transferPhone.trim().length < 8) { setTransferError("Numéro de téléphone requis."); return; }
+                    if (transferPhone.trim().length < 8) { setTransferError(t.tickets_phone_required); return; }
                     setTransferError("");
                     transferMutation.mutate();
                   }}
                   disabled={transferMutation.isPending}
                   className="flex-1 py-2.5 bg-[#1A6B3A] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
                 >
-                  {transferMutation.isPending ? "Transfert…" : "Confirmer"}
+                  {transferMutation.isPending ? t.tickets_transfer_sending : t.tickets_transfer_confirm}
                 </button>
               </div>
             </div>
@@ -687,7 +695,7 @@ function TicketRevealModal({
 
           {transferSent && (
             <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-2xl p-4 text-sm text-green-800 dark:text-green-300">
-              Billet transféré. Redirection vers vos billets…
+              {t.tickets_transfer_success}
             </div>
           )}
 

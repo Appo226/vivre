@@ -17,6 +17,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useT, type TranslationKey } from "@/lib/i18n";
 
 /* ============================================================
  * DÉFINITION DES ONGLETS
@@ -24,7 +25,7 @@ import { usePathname } from "next/navigation";
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: TranslationKey;
   icon: React.ReactNode;
   /* activePattern : regex qui matche toutes les sous-routes de cet onglet */
   activePattern: RegExp;
@@ -68,31 +69,31 @@ const UserIcon = (): React.ReactElement => (
 const NAV_ITEMS: NavItem[] = [
   {
     href: "/",
-    label: "Accueil",
+    labelKey: "nav_home",
     icon: <HomeIcon />,
     activePattern: /^\/$/,
   },
   {
     href: "/evenements/mes-billets",
-    label: "Mes billets",
+    labelKey: "nav_tickets",
     icon: <TicketIcon />,
     activePattern: /^\/evenements\/mes-billets/,
   },
   {
     href: "/evenements/publier",
-    label: "Organiser",
+    labelKey: "nav_organize",
     icon: <PlusCircleIcon />,
     activePattern: /^\/evenements\/publier/,
   },
   {
     href: "/urgences",
-    label: "Urgences",
+    labelKey: "nav_emergency",
     icon: <ShieldIcon />,
     activePattern: /^\/(urgences|services)/,
   },
   {
     href: "/profile",
-    label: "Profil",
+    labelKey: "nav_profile",
     icon: <UserIcon />,
     activePattern: /^\/profile/,
   },
@@ -104,6 +105,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function BottomNav(): React.ReactElement {
   const pathname = usePathname();
+  const t = useT();
 
   return (
     <nav
@@ -157,7 +159,7 @@ export function BottomNav(): React.ReactElement {
                   "text-[10px] font-medium leading-none",
                   isActive ? "font-semibold" : "",
                 ].join(" ")}>
-                  {item.label}
+                  {t[item.labelKey]}
                 </span>
               </Link>
             </li>

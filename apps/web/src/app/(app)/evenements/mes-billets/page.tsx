@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import { useT, type TranslationKey } from "@/lib/i18n";
 
 /* ============================================================
  * TYPES
@@ -43,21 +44,22 @@ interface BookingsResponse {
 type FilterKey = "all" | "upcoming" | "past" | "cancelled";
 
 /* ============================================================
- * CONFIG
+ * CONFIG — labelKey résolu via useT() dans le composant, pas de texte figé au
+ * chargement du module (voir le même motif dans BottomNav.tsx).
  * ============================================================ */
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all",       label: "Tous" },
-  { key: "upcoming",  label: "À venir" },
-  { key: "past",      label: "Passés" },
-  { key: "cancelled", label: "Annulés" },
+const FILTERS: { key: FilterKey; labelKey: TranslationKey }[] = [
+  { key: "all",       labelKey: "tickets_filter_all" },
+  { key: "upcoming",  labelKey: "tickets_filter_upcoming" },
+  { key: "past",      labelKey: "tickets_filter_past" },
+  { key: "cancelled", labelKey: "tickets_filter_cancelled" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending:    { label: "En attente",  color: "text-yellow-700 bg-yellow-50" },
-  confirmed:  { label: "Confirmé",    color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40"  },
-  cancelled:  { label: "Annulé",      color: "text-red-700    bg-red-50"    },
-  checked_in: { label: "Scanné ✓",   color: "text-blue-700   bg-blue-50"   },
+const STATUS_CONFIG: Record<string, { labelKey: TranslationKey; color: string }> = {
+  pending:    { labelKey: "tickets_status_pending",    color: "text-yellow-700 bg-yellow-50" },
+  confirmed:  { labelKey: "tickets_status_confirmed",  color: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/40"  },
+  cancelled:  { labelKey: "tickets_status_cancelled",  color: "text-red-700    bg-red-50"    },
+  checked_in: { labelKey: "tickets_status_checked_in", color: "text-blue-700   bg-blue-50"   },
 };
 
 /* ============================================================
@@ -66,6 +68,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function MesBilletsPage(): React.ReactElement {
   const router = useRouter();
+  const t = useT();
   const [filter, setFilter] = useState<FilterKey>("all");
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -84,7 +87,7 @@ export default function MesBilletsPage(): React.ReactElement {
       <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-3 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4 mb-3">
           <button onClick={() => router.back()} className="text-ink-soft">‹</button>
-          <h1 className="text-lg font-sora font-bold text-ink">Mes billets</h1>
+          <h1 className="text-lg font-sora font-bold text-ink">{t.nav_tickets}</h1>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {FILTERS.map((f) => (
@@ -98,7 +101,7 @@ export default function MesBilletsPage(): React.ReactElement {
                   : "bg-surface-elevated text-ink-soft hover:bg-surface-elevated",
               ].join(" ")}
             >
-              {f.label}
+              {t[f.labelKey]}
             </button>
           ))}
         </div>
@@ -154,7 +157,10 @@ export default function MesBilletsPage(): React.ReactElement {
  * ============================================================ */
 
 function TicketCard({ booking }: { booking: EventBookingSummary }): React.ReactElement {
-  const statusConf = STATUS_CONFIG[booking.status] ?? { label: booking.status, color: "text-ink-soft bg-surface-elevated" };
+  const t = useT();
+  const statusConf = STATUS_CONFIG[booking.status];
+  const statusLabel = statusConf ? t[statusConf.labelKey] : booking.status;
+  const statusColor = statusConf?.color ?? "text-ink-soft bg-surface-elevated";
   const eventDate = new Date(booking.event.starts_at);
   const isUpcoming = eventDate > new Date() && booking.status === "confirmed";
 
@@ -182,8 +188,8 @@ function TicketCard({ booking }: { booking: EventBookingSummary }): React.ReactE
               </p>
               <p className="text-white/80 text-xs font-dm">{booking.event.venue_name}</p>
             </div>
-            <span className={`text-xs font-dm font-medium px-2 py-0.5 rounded-full ${statusConf.color}`}>
-              {statusConf.label}
+            <span className={`text-xs font-dm font-medium px-2 py-0.5 rounded-full ${statusColor}`}>
+              {statusLabel}
             </span>
           </div>
         </div>

@@ -16,6 +16,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useLang, translations } from "@/lib/i18n";
 import { VivreLogo } from "@/components/VivreLogo";
 import { SplashScreen } from "@/components/SplashScreen";
 
@@ -70,6 +71,8 @@ function AuthForm(): React.ReactElement {
   const router = useRouter();
   const params = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const [lang, setLang] = useLang();
+  const t = translations[lang];
 
   const [mode, setMode] = useState<Mode>("login");
   const [phone, setPhone] = useState("");
@@ -114,7 +117,7 @@ function AuthForm(): React.ReactElement {
     e.preventDefault();
     setError(null);
     if (!phone.trim() || !password) {
-      setError("Numéro de téléphone et mot de passe requis.");
+      setError(t.auth_err_phone_password_required);
       return;
     }
     setIsLoading(true);
@@ -134,10 +137,10 @@ function AuthForm(): React.ReactElement {
         if (err.code === "ACCOUNT_LOCKED") setError(err.message);
         else if (err.code === "ACCOUNT_SUSPENDED") setError(err.message);
         else if (err.code === "PASSWORD_NOT_SET") setError(err.message);
-        else if (err.status === 422) setError("Numéro invalide. Exemple : 70000000");
-        else setError("Numéro de téléphone ou mot de passe incorrect.");
+        else if (err.status === 422) setError(t.auth_err_invalid_phone);
+        else setError(t.auth_err_login_incorrect);
       } else {
-        setError("Une erreur est survenue. Vérifiez votre connexion internet.");
+        setError(t.auth_err_connection);
       }
       setIsLoading(false);
     }
@@ -147,15 +150,15 @@ function AuthForm(): React.ReactElement {
     e.preventDefault();
     setError(null);
     if (!username.trim() || !firstName.trim() || !lastName.trim() || !phone.trim() || !password) {
-      setError("Tous les champs marqués * sont obligatoires.");
+      setError(t.auth_err_all_fields_required);
       return;
     }
     if (password.length < 8) {
-      setError("Le mot de passe doit faire au moins 8 caractères.");
+      setError(t.auth_err_password_min);
       return;
     }
     if (password !== confirmPassword) {
-      setError("Les deux mots de passe ne correspondent pas.");
+      setError(t.auth_passwords_mismatch);
       return;
     }
     setIsLoading(true);
@@ -179,10 +182,10 @@ function AuthForm(): React.ReactElement {
         if (err.code === "PHONE_TAKEN") setError(err.message);
         else if (err.code === "USERNAME_TAKEN") setError(err.message);
         else if (err.code === "EMAIL_TAKEN") setError(err.message);
-        else if (err.status === 422) setError(err.message || "Données invalides.");
-        else setError("Impossible de créer le compte. Réessayez.");
+        else if (err.status === 422) setError(err.message || t.auth_err_signup_generic);
+        else setError(t.auth_err_signup_generic);
       } else {
-        setError("Une erreur est survenue. Vérifiez votre connexion internet.");
+        setError(t.auth_err_connection);
       }
       setIsLoading(false);
     }
@@ -195,7 +198,7 @@ function AuthForm(): React.ReactElement {
   }
 
   if (isLoading) {
-    return <SplashScreen message={mode === "login" ? "Connexion…" : "Création du compte…"} />;
+    return <SplashScreen message={mode === "login" ? t.auth_logging_in : t.auth_creating_account} />;
   }
 
   return (
@@ -214,7 +217,26 @@ function AuthForm(): React.ReactElement {
         bas du hero (voir -mt-10 plus bas) — une seule composition ancrée plutôt que deux
         gabarits empilés avec une bande .brand-pattern comme simple trait de séparation.
       */}
-      <header className="hero-texture px-6 pt-16 pb-24 text-center overflow-hidden">
+      <header className="hero-texture relative px-6 pt-16 pb-24 text-center overflow-hidden">
+        {/* Bascule de langue — seul endroit où la choisir avant d'avoir un compte
+            (contrairement à /profile, pas d'appel API ici : juste localStorage, voir
+            useLang dans lib/i18n.ts). */}
+        <div className="absolute top-4 right-4 flex items-center gap-1 chip-on-hero rounded-full p-1">
+          {(["fr", "en"] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
+              className={[
+                "px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors",
+                lang === l ? "bg-[#1A6B3A] text-white" : "text-ink-soft",
+              ].join(" ")}
+            >
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
         <div className="animate-fade-in motion-safe:animate-splash-breathe inline-flex flex-col items-center gap-2 mb-6">
           <VivreLogo size={92} variant="auto" showTagline />
         </div>
@@ -224,13 +246,13 @@ function AuthForm(): React.ReactElement {
             confiance au moment où ils en ont le plus besoin. */}
         <div className="animate-slide-up flex items-center justify-center gap-2 flex-wrap" style={{ animationDelay: "80ms" }}>
           <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
-            🎫 Billet QR instantané
+            🎫 {t.auth_chip_qr}
           </span>
           <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
-            🔒 Paiement sécurisé
+            🔒 {t.auth_chip_payment}
           </span>
           <span className="chip-on-hero inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-jakarta text-[11px] font-semibold">
-            📍 Partout au Burkina
+            📍 {t.auth_chip_everywhere}
           </span>
         </div>
       </header>
@@ -245,12 +267,10 @@ function AuthForm(): React.ReactElement {
               compte atterrit dessus aussi et n'est justement pas de retour. "Bienvenue !"
               reste vrai dans les deux cas, sans rien présumer. */}
           <h2 className="font-sora text-[26px] font-extrabold tracking-tight text-ink mb-1.5">
-            Bienvenue !
+            {t.auth_welcome}
           </h2>
           <p className="text-ink-soft text-sm mb-6">
-            {mode === "login"
-              ? "Connectez-vous avec votre numéro et votre mot de passe."
-              : "Créez votre compte pour découvrir et réserver des événements."}
+            {mode === "login" ? t.auth_login_subtitle : t.auth_signup_subtitle}
           </p>
 
           <Suspense>
@@ -269,7 +289,7 @@ function AuthForm(): React.ReactElement {
                   mode === m ? "bg-surface-card text-green-700 dark:text-green-300 shadow-sm" : "text-ink-soft",
                 ].join(" ")}
               >
-                {m === "login" ? "Se connecter" : "Créer un compte"}
+                {m === "login" ? t.auth_login_tab : t.auth_signup_tab}
               </button>
             ))}
           </div>
@@ -279,7 +299,7 @@ function AuthForm(): React.ReactElement {
               <>
                 <div>
                   <label className="block text-sm font-medium text-ink mb-1.5">
-                    Nom d&apos;utilisateur <span className="text-red-500">*</span>
+                    {t.auth_username} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -294,7 +314,7 @@ function AuthForm(): React.ReactElement {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-ink mb-1.5">
-                      Prénom <span className="text-red-500">*</span>
+                      {t.auth_first_name} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -308,7 +328,7 @@ function AuthForm(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-ink mb-1.5">
-                      Nom <span className="text-red-500">*</span>
+                      {t.auth_last_name} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -326,7 +346,7 @@ function AuthForm(): React.ReactElement {
 
             <div>
               <label className="block text-sm font-medium text-ink mb-1.5">
-                Numéro de téléphone <span className="text-red-500">*</span>
+                {t.auth_phone} <span className="text-red-500">*</span>
               </label>
               <div className="flex rounded-xl border border-border-subtle overflow-hidden focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-100 transition-all">
                 {/* 🇧🇫 + "+226" — indicatif par défaut affiché comme repère visuel, mais
@@ -356,7 +376,7 @@ function AuthForm(): React.ReactElement {
             {mode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-ink mb-1.5">
-                  Email <span className="text-ink-soft text-xs">(optionnel, pour récupérer l&apos;accès et vos reçus)</span>
+                  {t.auth_email} <span className="text-ink-soft text-xs">{t.auth_email_optional}</span>
                 </label>
                 <input
                   type="email"
@@ -372,7 +392,7 @@ function AuthForm(): React.ReactElement {
 
             <div>
               <label className="block text-sm font-medium text-ink mb-1.5">
-                Mot de passe <span className="text-red-500">*</span>
+                {t.auth_password} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <input
@@ -387,7 +407,7 @@ function AuthForm(): React.ReactElement {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={showPassword ? t.auth_hide_password : t.auth_show_password}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink"
                   tabIndex={-1}
                 >
@@ -397,12 +417,12 @@ function AuthForm(): React.ReactElement {
               {mode === "signup" && password.length > 0 && (
                 <p className={["text-xs mt-1.5 flex items-center gap-1", password.length >= 8 ? "text-green-700 dark:text-green-300" : "text-ink-soft"].join(" ")}>
                   <span aria-hidden="true">{password.length >= 8 ? "✅" : "○"}</span>
-                  Au moins 8 caractères
+                  {t.auth_at_least_8}
                 </p>
               )}
               {mode === "login" && (
                 <a href="/auth/mot-de-passe-oublie" className="block mt-1.5 text-right text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 underline">
-                  Mot de passe oublié ?
+                  {t.auth_forgot_password}
                 </a>
               )}
             </div>
@@ -410,19 +430,19 @@ function AuthForm(): React.ReactElement {
             {mode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-ink mb-1.5">
-                  Confirmer le mot de passe <span className="text-red-500">*</span>
+                  {t.auth_confirm_password} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Retapez votre mot de passe"
+                  placeholder={t.auth_confirm_password_placeholder}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
                   className={inputCls()}
                   disabled={isLoading}
                 />
                 {confirmPassword.length > 0 && confirmPassword !== password && (
-                  <p className="text-xs mt-1.5 text-red-600">Les mots de passe ne correspondent pas.</p>
+                  <p className="text-xs mt-1.5 text-red-600">{t.auth_passwords_mismatch}</p>
                 )}
               </div>
             )}
@@ -444,14 +464,14 @@ function AuthForm(): React.ReactElement {
                 isLoading ? "bg-surface-elevated cursor-not-allowed" : "btn-brand-primary hover:brightness-110 active:scale-[0.98]",
               ].join(" ")}
             >
-              {isLoading ? "…" : mode === "login" ? "Se connecter" : "Créer mon compte"}
+              {isLoading ? "…" : mode === "login" ? t.auth_submit_login : t.auth_submit_signup}
             </button>
 
             <p className="text-center text-xs text-ink-soft mt-1 px-4">
-              En continuant, vous acceptez nos{" "}
-              <a href="/terms" className="text-green-700 dark:text-green-300 underline">Conditions d&apos;utilisation</a>{" "}
-              et notre{" "}
-              <a href="/privacy" className="text-green-700 dark:text-green-300 underline">Politique de confidentialité</a>.
+              {t.auth_continuing_accept}{" "}
+              <a href="/terms" className="text-green-700 dark:text-green-300 underline">{t.auth_terms}</a>{" "}
+              {t.auth_and}{" "}
+              <a href="/privacy" className="text-green-700 dark:text-green-300 underline">{t.auth_privacy}</a>.
             </p>
           </form>
         </div>

@@ -20,6 +20,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useT } from "@/lib/i18n";
 
 /* ============================================================
  * TYPES
@@ -100,6 +101,7 @@ export default function EventDetailClient(): React.ReactElement | null {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { accessToken } = useAuthStore();
+  const t = useT();
 
   const [selectedTicketType, setSelectedTicketType] = useState<TicketType | null>(null);
   const [quantity, setQuantity] = useState(0);
@@ -385,14 +387,14 @@ export default function EventDetailClient(): React.ReactElement | null {
 
         {/* Types de billets */}
         <div>
-          <h2 className="font-semibold text-ink mb-3">Billets</h2>
+          <h2 className="font-semibold text-ink mb-3">{t.tickets_header}</h2>
           {isPast ? (
             <div className="bg-surface-elevated rounded-2xl p-4 text-center">
-              <p className="text-ink-soft font-medium">Cet événement est passé</p>
+              <p className="text-ink-soft font-medium">{t.tickets_past_event}</p>
             </div>
           ) : isSoldOut ? (
             <div className="bg-red-50 rounded-2xl p-4 text-center border border-red-200">
-              <p className="text-red-600 font-medium">Complet, plus de billets disponibles</p>
+              <p className="text-red-600 font-medium">{t.tickets_sold_out}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -429,7 +431,7 @@ export default function EventDetailClient(): React.ReactElement | null {
               onClick={openBookingModal}
               className="bg-[#1A6B3A] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#155830] transition-colors active:scale-95"
             >
-              Continuer →
+              {t.tickets_continue} →
             </button>
           </div>
         </div>
@@ -442,7 +444,7 @@ export default function EventDetailClient(): React.ReactElement | null {
       {showBookingModal && selectedTicketType && (
         <div className="fixed inset-0 bg-black/50 flex items-end z-[60]">
           <div className="w-full bg-surface-card rounded-t-3xl px-4 py-6 max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
-            <h2 className="text-lg font-bold text-ink mb-1">Réserver un billet</h2>
+            <h2 className="text-lg font-bold text-ink mb-1">{t.tickets_book_ticket}</h2>
             <p className="text-sm text-ink-soft mb-4">{event.title}</p>
 
             {/* Résumé ticket */}
@@ -473,7 +475,7 @@ export default function EventDetailClient(): React.ReactElement | null {
 
             {selectedTicketType.variant_options.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium text-ink mb-2">Choisissez une option</p>
+                <p className="text-sm font-medium text-ink mb-2">{t.tickets_choose_option}</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTicketType.variant_options.map((opt) => (
                     <button
@@ -494,7 +496,7 @@ export default function EventDetailClient(): React.ReactElement | null {
 
             {/* Quantité */}
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-medium text-ink">Quantité</p>
+              <p className="text-sm font-medium text-ink">{t.tickets_quantity}</p>
               <div className="flex items-center border border-border-subtle rounded-xl overflow-hidden">
                 <button
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -515,7 +517,7 @@ export default function EventDetailClient(): React.ReactElement | null {
             {/* Produits en option */}
             {event.merch_items.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium text-ink mb-2">Ajouter des produits (optionnel)</p>
+                <p className="text-sm font-medium text-ink mb-2">{t.tickets_add_products}</p>
                 <div className="space-y-2">
                   {event.merch_items.map((item) => {
                     const sel = selectedMerch[item.id];
@@ -535,7 +537,7 @@ export default function EventDetailClient(): React.ReactElement | null {
                             <span>
                               <span className="text-sm font-medium text-ink block">{item.name}</span>
                               {item.description && <span className="text-xs text-ink-soft block">{item.description}</span>}
-                              <span className="text-xs text-ink-soft block">{soldOut ? "Épuisé" : `${item.available} disponible(s)`}</span>
+                              <span className="text-xs text-ink-soft block">{soldOut ? t.tickets_item_sold_out : `${item.available} ${t.tickets_available_suffix}`}</span>
                             </span>
                           </button>
                           <span className="text-sm font-semibold text-[#1A6B3A] dark:text-green-300 flex-shrink-0">
@@ -591,7 +593,7 @@ export default function EventDetailClient(): React.ReactElement | null {
 
             {/* Total */}
             <div className="flex justify-between items-center py-3 border-t border-border-subtle mb-4">
-              <p className="text-ink-soft font-medium">Total</p>
+              <p className="text-ink-soft font-medium">{t.tickets_total}</p>
               <p className="text-xl font-bold text-ink">
                 {(
                   selectedTicketType.price_fcfa * quantity +
@@ -612,14 +614,14 @@ export default function EventDetailClient(): React.ReactElement | null {
                 onClick={() => setShowBookingModal(false)}
                 className="flex-1 py-3 border border-border-subtle rounded-xl text-ink font-semibold"
               >
-                Annuler
+                {t.tickets_cancel}
               </button>
               <button
                 onClick={handleBook}
                 disabled={bookingMutation.isPending}
                 className="flex-1 py-3 bg-[#1A6B3A] text-white rounded-xl font-semibold disabled:opacity-60"
               >
-                {bookingMutation.isPending ? "Réservation..." : "Confirmer"}
+                {bookingMutation.isPending ? t.tickets_booking_in_progress : t.tickets_confirm}
               </button>
             </div>
           </div>
@@ -644,6 +646,7 @@ function TicketTypeCard({
   onIncrement: () => void;
   onDecrement: () => void;
 }): React.ReactElement {
+  const t = useT();
   const isAvailable = ticket.available > 0;
   const isAlmostGone = ticket.available > 0 && ticket.available <= 10;
   const atMax = quantity >= Math.min(ticket.max_per_order, ticket.available);
@@ -656,7 +659,7 @@ function TicketTypeCard({
             <p className="font-semibold text-ink">{ticket.name}</p>
             {ticket.is_seated && (
               <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A6B3A] dark:text-green-300 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900 rounded-full px-1.5 py-0.5">
-                Place numérotée
+                {t.tickets_seated}
               </span>
             )}
           </div>
@@ -667,7 +670,7 @@ function TicketTypeCard({
         <div className="text-right ml-3">
           <p className="font-bold text-[#1A6B3A] dark:text-green-300 text-lg">
             {ticket.price_fcfa === 0
-              ? "Gratuit"
+              ? t.tickets_free
               : `${ticket.price_fcfa.toLocaleString("fr-FR")}`}
           </p>
           {ticket.price_fcfa > 0 && (
@@ -685,10 +688,10 @@ function TicketTypeCard({
             : "text-ink-soft"
         }`}>
           {!isAvailable
-            ? "Épuisé"
+            ? t.tickets_item_sold_out
             : isAlmostGone
-            ? `⚠ ${ticket.available} restant${ticket.available > 1 ? "s" : ""}`
-            : `${ticket.available} disponible${ticket.available > 1 ? "s" : ""}`}
+            ? `⚠ ${ticket.available} ${t.tickets_remaining_suffix}`
+            : `${ticket.available} ${t.tickets_available_suffix}`}
         </span>
 
         {isAvailable && (
