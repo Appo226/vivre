@@ -12,6 +12,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PatriotStar } from "@/components/PatriotStar";
+import { FavoriteHeart } from "@/components/FavoriteHeart";
 
 interface HomeEvent {
   id: string;
@@ -83,6 +84,7 @@ export function HomeEventsList({ events }: { events: HomeEvent[] }): React.React
                   : `À partir de ${event.ticket_types[0].price_fcfa.toLocaleString("fr-FR")} FCFA`}
               </p>
             </div>
+            <FavoriteHeart eventId={event.id} size={18} className="ml-auto mr-3 self-center flex-shrink-0" />
           </Link>
         ))}
       </div>

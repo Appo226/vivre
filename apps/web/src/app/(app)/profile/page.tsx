@@ -394,6 +394,7 @@ export default function ProfilePage(): React.ReactElement {
           </p>
           {[
             { href: "/evenements/mes-billets",      icon: "🎟️", label: t.profile_events, sub: t.profile_events_sub },
+            { href: "/evenements?favorited=true",   icon: "❤️", label: t.profile_favorites, sub: t.profile_favorites_sub },
           ].map((item) => (
             <Link
               key={item.href}
@@ -478,7 +479,7 @@ export default function ProfilePage(): React.ReactElement {
             <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">🔔</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-ink">{t.profile_notifications}</p>
-              <p className="text-xs text-ink-soft">Gérer les alertes</p>
+              <p className="text-xs text-ink-soft">{t.profile_notifications_sub}</p>
             </div>
             <span className="text-ink-soft text-sm">›</span>
           </Link>
@@ -515,7 +516,7 @@ export default function ProfilePage(): React.ReactElement {
             <span className="w-10 h-10 rounded-full bg-surface-elevated flex items-center justify-center text-lg flex-shrink-0">❓</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-ink">{t.profile_help}</p>
-              <p className="text-xs text-ink-soft">Contacter l&apos;équipe VIVRE</p>
+              <p className="text-xs text-ink-soft">{t.profile_help_sub}</p>
             </div>
             <span className="text-ink-soft text-sm">›</span>
           </div>

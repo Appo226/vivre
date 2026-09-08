@@ -176,6 +176,33 @@ export const translations = {
     profile_theme_sub: "Apparence de l'application",
     profile_theme_light: "Clair",
     profile_theme_dark: "Sombre",
+    profile_notifications_sub: "Gérer les alertes",
+    profile_help_sub: "Contacter l'équipe VIVRE",
+
+    // Notifications
+    notif_title: "Notifications",
+    notif_empty: "Aucune notification pour le moment.",
+    notif_load_more: "Voir plus",
+    notif_loading_more: "Chargement…",
+
+    // Favoris
+    favorites_filter: "Favoris",
+    profile_favorites: "Mes favoris",
+    profile_favorites_sub: "Événements que vous avez aimés",
+
+    // Avis
+    reviews_title: "Avis",
+    reviews_empty: "Aucun avis pour le moment.",
+    reviews_write: "Laisser un avis",
+    reviews_edit: "Modifier mon avis",
+    reviews_your_rating: "Votre note",
+    reviews_comment_placeholder: "Partagez votre expérience (optionnel)",
+    reviews_submit: "Publier",
+    reviews_submitting: "Publication…",
+    reviews_submitted: "Avis publié, merci !",
+    reviews_verified: "Achat vérifié",
+    reviews_see_all: "Voir tous les avis",
+    reviews_count_suffix: "avis",
   },
   en: {
     nav_home: "Home",
@@ -321,6 +348,33 @@ export const translations = {
     profile_theme_sub: "App appearance",
     profile_theme_light: "Light",
     profile_theme_dark: "Dark",
+    profile_notifications_sub: "Manage alerts",
+    profile_help_sub: "Contact the VIVRE team",
+
+    // Notifications
+    notif_title: "Notifications",
+    notif_empty: "No notifications yet.",
+    notif_load_more: "See more",
+    notif_loading_more: "Loading…",
+
+    // Favorites
+    favorites_filter: "Favorites",
+    profile_favorites: "My favorites",
+    profile_favorites_sub: "Events you've liked",
+
+    // Reviews
+    reviews_title: "Reviews",
+    reviews_empty: "No reviews yet.",
+    reviews_write: "Write a review",
+    reviews_edit: "Edit my review",
+    reviews_your_rating: "Your rating",
+    reviews_comment_placeholder: "Share your experience (optional)",
+    reviews_submit: "Post",
+    reviews_submitting: "Posting…",
+    reviews_submitted: "Review posted, thank you!",
+    reviews_verified: "Verified purchase",
+    reviews_see_all: "See all reviews",
+    reviews_count_suffix: "reviews",
   },
 } as const;
 
@@ -335,6 +389,21 @@ export function timeGreeting(lang: Lang): string {
   if (hour < 12) return t.greeting_morning;
   if (hour < 18) return t.greeting_afternoon;
   return t.greeting_evening;
+}
+
+/* Composé entièrement par langue plutôt que par fragments de dictionnaire — "il y a" se
+   place avant en français, "ago" se place après en anglais, un assemblage générique de
+   morceaux traduits séparément aurait forcément boité dans l'une des deux langues. */
+export function relativeTime(iso: string, lang: Lang): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diffMs / 60_000);
+  if (m < 1) return lang === "en" ? "Just now" : "À l'instant";
+  if (m < 60) return lang === "en" ? `${m}m ago` : `Il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return lang === "en" ? `${h}h ago` : `Il y a ${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return lang === "en" ? `${d}d ago` : `Il y a ${d}j`;
+  return new Date(iso).toLocaleDateString(lang === "en" ? "en-US" : "fr-FR", { day: "numeric", month: "short" });
 }
 
 /**

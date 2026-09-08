@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAuth, optionalAuth } from "@/lib/require-auth";
 import { generateEventSlug, ACTIVE_BOOKING_STATUSES } from "@/lib/events";
 import { EventsQuerySchema, CreateEventSchema } from "@/lib/schemas/events";
 import { getPlatformSettings, effectiveOrganizerFeePercent } from "@/lib/platform-settings";
@@ -17,9 +17,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!parsed.success) {
     return apiError(422, "VALIDATION_ERROR", "Paramètres invalides");
   }
-  const { city_id, category_id, q, from_date, featured, page, limit } = parsed.data;
+  const { city_id, category_id, q, from_date, featured, favorited, page, limit } = parsed.data;
   const offset = (page - 1) * limit;
   const fromDateFilter = from_date ? new Date(from_date) : new Date();
+
+  const auth = favorited === "true" ? await requireAuth(request) : await optionalAuth(request);
+  if (auth instanceof NextResponse) return auth; // favorited=true sans session -- 401 explicite plutôt qu'une liste vide trompeuse
 
   // Un événement est visible dès qu'il est "approved" — plus de frais de publication requis
   // (les événements 100% gratuits s'auto-approuvent, voir PATCH /api/events/[id]/submit).
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     starts_at: { gte: fromDateFilter },
     ...(city_id && { city_id }),
     ...(featured === "true" && { is_featured: true }),
+    ...(favorited === "true" && auth ? { favorites: { some: { user_id: auth.sub } } } : {}),
     // AND (pas des clés OR séparées) : category_id et q peuvent être actifs en même temps,
     // et deux clés "OR" au même niveau d'un objet JS s'écraseraient silencieusement.
     AND: [
@@ -72,6 +76,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           take: 1,
         },
         _count: { select: { bookings: { where: { status: { in: ACTIVE_BOOKING_STATUSES } } } } },
+        // Sélectionné seulement si connecté -- inutile de faire ce join pour un visiteur
+        // anonyme qui ne pourra de toute façon jamais avoir de favori.
+        ...(auth && { favorites: { where: { user_id: auth.sub }, select: { id: true }, take: 1 } }),
       },
       orderBy: [{ is_featured: "desc" }, { starts_at: "asc" }],
       take: limit,
@@ -80,7 +87,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     prisma.event.count({ where }),
   ]);
 
-  type EventListItem = (typeof events)[number];
+  type EventListItem = (typeof events)[number] & { favorites?: { id: string }[] };
   return NextResponse.json({
     events: events.map((e: EventListItem) => ({
       id: e.id,
@@ -95,6 +102,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       category: e.category,
       min_price: e.ticket_types[0]?.price_fcfa ?? 0,
       bookings_count: e._count.bookings,
+      is_favorited: (e.favorites?.length ?? 0) > 0,
     })),
     total,
     page,

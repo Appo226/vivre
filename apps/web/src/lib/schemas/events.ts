@@ -14,6 +14,7 @@ export const EventsQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   featured: z.enum(["true", "false"]).optional(),
+  favorited: z.enum(["true"]).optional(), // nécessite un compte connecté -- voir GET /events
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });

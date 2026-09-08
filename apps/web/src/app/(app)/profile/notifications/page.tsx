@@ -13,6 +13,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useLang, useT, relativeTime } from "@/lib/i18n";
 
 /* ============================================================
  * TYPES
@@ -32,27 +33,25 @@ interface NotifItem {
  * HELPERS
  * ============================================================ */
 
+/* Types réellement émis aujourd'hui (voir lib/notifications.ts) -- la carte précédente
+   (ride_status, order_status, booking_status...) datait du super-app d'avant le pivot
+   billetterie et ne correspondait plus à rien d'envoyé en pratique ; tout retombait
+   silencieusement sur la cloche générique. */
 const TYPE_ICONS: Record<string, string> = {
-  ride_status:       "🛵",
-  order_status:      "🍽️",
-  booking_status:    "🏨",
-  payment_confirmed: "✅",
-  booking_cancelled: "❌",
-  refund:            "💰",
-  system:            "📢",
+  ticket_transferred:        "🎫",
+  ticket_transfer_accepted:  "✅",
+  ticket_transfer_declined:  "↩️",
+  event_updated:             "📝",
+  event_cancelled:           "❌",
+  refund_processed:          "💰",
+  refund_rejected:           "🚫",
+  event_approved:            "✅",
+  event_rejected:            "🚫",
+  payout_sent:               "💸",
+  ad_approved:               "✅",
+  ad_rejected:               "🚫",
+  event_reminder:            "⏰",
 };
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60_000);
-  if (m < 1)  return "À l'instant";
-  if (m < 60) return `Il y a ${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `Il y a ${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7)  return `Il y a ${d}j`;
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-}
 
 /* ============================================================
  * PAGE
@@ -61,6 +60,8 @@ function relativeTime(iso: string): string {
 export default function NotificationsPage(): React.ReactElement | null {
   const router = useRouter();
   const { accessToken, hasHydrated } = useAuthStore();
+  const [lang] = useLang();
+  const t = useT();
   useEffect(() => {
     if (!hasHydrated) return;
     if (!accessToken) { router.push("/auth"); }
@@ -101,7 +102,7 @@ export default function NotificationsPage(): React.ReactElement | null {
       <header className="bg-surface-card border-b border-border-subtle px-4 pt-safe-top pb-4 sticky top-0 z-10">
         <div className="flex items-center gap-3 pt-4">
           <button onClick={() => router.back()} className="text-ink-soft text-xl">‹</button>
-          <h1 className="text-lg font-sora font-bold text-ink">Notifications</h1>
+          <h1 className="text-lg font-sora font-bold text-ink">{t.notif_title}</h1>
         </div>
       </header>
 
@@ -124,7 +125,7 @@ export default function NotificationsPage(): React.ReactElement | null {
         {!loading && notifs.length === 0 && (
           <div className="text-center py-20">
             <p className="text-4xl mb-3">🔔</p>
-            <p className="text-ink-soft font-dm text-sm">Aucune notification pour le moment.</p>
+            <p className="text-ink-soft font-dm text-sm">{t.notif_empty}</p>
           </div>
         )}
 
@@ -142,7 +143,7 @@ export default function NotificationsPage(): React.ReactElement | null {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-ink font-jakarta">{n.title}</p>
               <p className="text-xs text-ink-soft font-dm mt-0.5 leading-relaxed">{n.body}</p>
-              <p className="text-xs text-ink-soft font-dm mt-1">{relativeTime(n.sent_at)}</p>
+              <p className="text-xs text-ink-soft font-dm mt-1">{relativeTime(n.sent_at, lang)}</p>
             </div>
             {!n.is_read && (
               <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
@@ -156,7 +157,7 @@ export default function NotificationsPage(): React.ReactElement | null {
             disabled={loadingMore}
             className="w-full py-3 text-sm text-green-700 dark:text-green-300 font-jakarta font-semibold disabled:opacity-50"
           >
-            {loadingMore ? "Chargement…" : "Voir plus"}
+            {loadingMore ? t.notif_loading_more : t.notif_load_more}
           </button>
         )}
       </div>

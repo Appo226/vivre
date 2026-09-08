@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useT } from "@/lib/i18n";
+import { FavoriteHeart } from "@/components/FavoriteHeart";
 
 /* ============================================================
  * TYPES
@@ -73,6 +74,19 @@ interface EventDetail {
   ticket_types: TicketType[];
   merch_items: MerchItem[];
   total_bookings: number;
+  rating_avg: number;
+  review_count: number;
+  can_review: boolean;
+  my_review: { id: string; rating: number; comment: string | null } | null;
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  is_verified: boolean;
+  created_at: string;
+  user: { first_name?: string; last_name?: string; avatar_url?: string };
 }
 
 /* ============================================================
@@ -278,6 +292,12 @@ export default function EventDetailClient(): React.ReactElement | null {
           </svg>
         </button>
 
+        <FavoriteHeart
+          eventId={event.id}
+          size={20}
+          className="absolute top-12 right-4 w-10 h-10 bg-black/40 backdrop-blur text-white"
+        />
+
         {/* Badge catégorie */}
         <div
           className="absolute bottom-4 left-4 px-3 py-1 rounded-full text-white text-xs font-semibold"
@@ -299,6 +319,15 @@ export default function EventDetailClient(): React.ReactElement | null {
         {/* Titre + lieu + date */}
         <div>
           <h1 className="text-xl font-bold text-ink font-['Sora']">{event.title}</h1>
+          {event.review_count > 0 && (
+            <div className="mt-1 flex items-center gap-1 text-sm">
+              <span className="text-amber-500">★</span>
+              <span className="font-semibold text-ink">{event.rating_avg.toFixed(1)}</span>
+              <span className="text-ink-soft">
+                ({event.review_count} {t.reviews_count_suffix})
+              </span>
+            </div>
+          )}
           <div className="mt-2 space-y-1.5">
             <div className="flex items-start gap-2 text-sm text-ink-soft">
               <svg className="w-4 h-4 text-ink-soft flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -410,6 +439,15 @@ export default function EventDetailClient(): React.ReactElement | null {
             </div>
           )}
         </div>
+
+        {/* Avis */}
+        <ReviewsSection
+          eventId={event.id}
+          ratingAvg={event.rating_avg}
+          reviewCount={event.review_count}
+          canReview={event.can_review}
+          myReview={event.my_review}
+        />
       </div>
 
       {/* Barre flottante — apparaît dès qu'un type de billet a une quantité choisie dans la
@@ -718,6 +756,143 @@ function TicketTypeCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * COMPOSANT : Avis
+ * ============================================================ */
+
+function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }): React.ReactElement {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className="text-2xl leading-none"
+          aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
+        >
+          <span className={n <= value ? "text-amber-500" : "text-border-subtle"}>★</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsSection({
+  eventId,
+  ratingAvg,
+  reviewCount,
+  canReview,
+  myReview,
+}: {
+  eventId: string;
+  ratingAvg: number;
+  reviewCount: number;
+  canReview: boolean;
+  myReview: { id: string; rating: number; comment: string | null } | null;
+}): React.ReactElement {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [rating, setRating] = useState(myReview?.rating ?? 5);
+  const [comment, setComment] = useState(myReview?.comment ?? "");
+
+  const { data } = useQuery<{ reviews: Review[]; total: number }>({
+    queryKey: ["event-reviews", eventId],
+    queryFn: () => apiClient.get<{ reviews: Review[]; total: number }>(`/events/${eventId}/reviews`),
+    staleTime: 60 * 1000,
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: () =>
+      apiClient.post(`/events/${eventId}/reviews`, { rating, comment: comment.trim() || undefined }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["event-reviews", eventId] });
+      void queryClient.invalidateQueries({ queryKey: ["event", eventId] });
+      setShowForm(false);
+    },
+  });
+
+  const reviews = data?.reviews ?? [];
+  if (!canReview && !myReview && reviews.length === 0) return <></>;
+
+  return (
+    <div className="bg-surface-card rounded-2xl p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-ink">{t.reviews_title}</h2>
+        {reviewCount > 0 && (
+          <span className="text-sm text-ink-soft flex items-center gap-1">
+            <span className="text-amber-500">★</span> {ratingAvg.toFixed(1)} ({reviewCount})
+          </span>
+        )}
+      </div>
+
+      {(canReview || myReview) && !showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="mb-4 text-sm font-semibold text-[#1A6B3A] dark:text-green-300"
+        >
+          {myReview ? t.reviews_edit : t.reviews_write}
+        </button>
+      )}
+
+      {showForm && (
+        <div className="mb-4 p-3 bg-surface-elevated rounded-xl space-y-3">
+          <div>
+            <p className="text-xs font-medium text-ink-soft mb-1.5">{t.reviews_your_rating}</p>
+            <StarPicker value={rating} onChange={setRating} />
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder={t.reviews_comment_placeholder}
+            rows={3}
+            className="w-full rounded-lg border border-border-subtle bg-surface-card px-3 py-2 text-sm text-ink resize-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowForm(false)}
+              className="flex-1 py-2 border border-border-subtle rounded-xl text-ink text-sm font-semibold"
+            >
+              {t.tickets_cancel}
+            </button>
+            <button
+              onClick={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending}
+              className="flex-1 py-2 bg-[#1A6B3A] text-white rounded-xl text-sm font-semibold disabled:opacity-60"
+            >
+              {submitMutation.isPending ? t.reviews_submitting : t.reviews_submit}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {reviews.length === 0 ? (
+        <p className="text-sm text-ink-soft">{t.reviews_empty}</p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((r) => (
+            <div key={r.id} className="border-t border-border-subtle pt-3 first:border-t-0 first:pt-0">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-ink">
+                  {r.user.first_name ?? "—"} {r.user.last_name?.[0] ? `${r.user.last_name[0]}.` : ""}
+                </p>
+                <span className="text-amber-500 text-sm">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+              </div>
+              {r.is_verified && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1A6B3A] dark:text-green-300">
+                  {t.reviews_verified}
+                </span>
+              )}
+              {r.comment && <p className="text-sm text-ink-soft mt-1">{r.comment}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

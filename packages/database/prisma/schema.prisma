@@ -98,6 +98,7 @@ model User {
   received_event_tickets    EventTicket[]     @relation("EventTicketTransfer")
   sent_ticket_transfers     TicketTransfer[]  @relation("TicketTransferSender")
   received_ticket_transfers TicketTransfer[]  @relation("TicketTransferRecipient")
+  event_favorites           EventFavorite[]
   // Portefeuille VIVRE (crédits remboursements)
   wallet                    VivreWallet?
   organizer_verification    OrganizerVerification?
@@ -957,11 +958,14 @@ model Refund {
 // Évaluation polymorphique — une seule table pour toutes les entités.
 // entity_type + entity_id = référence vers n'importe quelle entité.
 // is_verified = true uniquement si booking_ref_id est valide (avis vérifié).
-// Le trigger PostgreSQL met à jour rating_avg sur l'entité parente après INSERT/UPDATE.
+// rating_avg sur l'entité parente (ex: Event.rating_avg) est recalculé par l'application à
+// chaque écriture (voir POST /api/events/[id]/reviews) -- le commentaire précédent mentionnait
+// un trigger PostgreSQL, mais aucun n'existe dans l'historique de migrations ; ne pas supposer
+// qu'un mécanisme automatique maintient ce champ.
 model Review {
   id             String  @id @default(uuid())
   user_id        String
-  entity_type    String  // "transport_company" | "property" | "restaurant" | "guide" | "driver" | "attraction"
+  entity_type    String  // "transport_company" | "property" | "restaurant" | "guide" | "driver" | "attraction" | "event"
   entity_id      String  // UUID de l'entité concernée
   booking_ref_id String? // UUID de la réservation — si présent = avis vérifié
   rating         Int     // 1-5
@@ -976,6 +980,7 @@ model Review {
 
   user           User    @relation(fields: [user_id], references: [id])
 
+  @@unique([user_id, entity_type, entity_id]) // Un seul avis par utilisateur par entité — permet un upsert
   @@index([entity_type, entity_id, is_visible]) // Récupérer les avis d'une entité
   @@index([user_id])
   @@map("reviews")
@@ -1341,12 +1346,30 @@ model Event {
   staff        EventStaff[]
   category_tags EventCategoryTag[]
   merch_items  EventMerchItem[]
+  favorites    EventFavorite[]
 
   @@index([city_id, status, starts_at])        // Découverte par ville
   @@index([organizer_id, status])              // Dashboard organisateur
   @@index([status, starts_at])                 // Événements approuvés futurs (home)
   @@index([slug])                              // Lookup par slug (page événement)
   @@map("events")
+}
+
+// Cœur/favori sur un événement — juste une paire (utilisateur, événement), pas de
+// justification supplémentaire nécessaire. unique([user_id, event_id]) empêche un double
+// favori au niveau base plutôt que de compter uniquement sur une vérification applicative.
+model EventFavorite {
+  id         String   @id @default(uuid())
+  user_id    String
+  event_id   String
+  created_at DateTime @default(now())
+
+  user  User  @relation(fields: [user_id], references: [id])
+  event Event @relation(fields: [event_id], references: [id])
+
+  @@unique([user_id, event_id])
+  @@index([user_id])
+  @@map("event_favorites")
 }
 
 // Accès scan délégué par l'organisateur à un membre de son staff, pour un événement donné.

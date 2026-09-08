@@ -20,6 +20,9 @@ import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
+import { FavoriteHeart } from "@/components/FavoriteHeart";
+import { useAuthStore } from "@/store/auth.store";
+import { useT } from "@/lib/i18n";
 
 /* ============================================================
  * TYPES
@@ -107,6 +110,9 @@ function EvenementsPageInner(): React.ReactElement {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");
+  const [favoritedOnly, setFavoritedOnly] = useState<boolean>(() => searchParams.get("favorited") === "true");
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const t = useT();
 
   /* Charger les catégories pour les filtres */
   const { data: categoriesData } = useQuery<{ categories: EventCategory[] }>({
@@ -143,6 +149,7 @@ function EvenementsPageInner(): React.ReactElement {
   if (selectedCategory) queryParams.set("category_id", selectedCategory);
   if (selectedCity) queryParams.set("city_id", selectedCity);
   if (searchQuery) queryParams.set("q", searchQuery);
+  if (favoritedOnly && isAuthenticated) queryParams.set("favorited", "true");
   queryParams.set("limit", "12");
 
   /* Pagination infinie */
@@ -153,7 +160,7 @@ function EvenementsPageInner(): React.ReactElement {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery<EventsPage>({
-    queryKey: ["events", selectedCategory, selectedCity, searchQuery],
+    queryKey: ["events", selectedCategory, selectedCity, searchQuery, favoritedOnly],
     queryFn: ({ pageParam = 1 }) => {
       queryParams.set("page", String(pageParam));
       return apiClient.get<EventsPage>(`/events?${queryParams.toString()}`);
@@ -247,6 +254,20 @@ function EvenementsPageInner(): React.ReactElement {
               {cat.name}
             </button>
           ))}
+          {/* Filtre favoris -- caché pour un visiteur non connecté, l'API le refuserait de
+              toute façon (voir GET /events, favorited=true exige une session). */}
+          {isAuthenticated && (
+            <button
+              onClick={() => setFavoritedOnly((v) => !v)}
+              className={`px-4 py-2 rounded-full text-sm font-medium flex-shrink-0 transition-all flex items-center gap-1.5 ${
+                favoritedOnly
+                  ? "bg-[#EF2B2D] text-white shadow-sm"
+                  : "bg-surface-card text-ink-soft border border-border-subtle"
+              }`}
+            >
+              {favoritedOnly ? "❤️" : "🤍"} {t.favorites_filter}
+            </button>
+          )}
         </div>
       </div>
 
@@ -405,45 +426,56 @@ function EventCardComponent({
   onPress: () => void;
 }): React.ReactElement {
   return (
-    <button
-      onClick={onPress}
-      className="bg-surface-card rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow text-left active:scale-[0.98]"
-    >
-      {/* Image ou gradient */}
-      {event.cover_url ? (
-        <img
-          src={event.cover_url}
-          alt={event.title}
-          className="w-full h-28 object-cover"
-        />
-      ) : (
-        <div
-          className="w-full h-28 flex items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${event.category.color_hex}88, ${event.category.color_hex})` }}
-        >
-          <span className="text-3xl">{event.category.icon ?? "🎪"}</span>
-        </div>
-      )}
+    <div className="relative bg-surface-card rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Cœur en dehors du <button> de la carte -- un <button> dans un <button> est du HTML
+          invalide (comportement de clic imprévisible selon les navigateurs), donc c'est un
+          élément frère superposé, pas un enfant. */}
+      <FavoriteHeart
+        eventId={event.id}
+        size={16}
+        className="absolute top-2 right-2 z-10 w-7 h-7 bg-black/40 backdrop-blur-sm text-white"
+      />
 
-      {/* Info */}
-      <div className="p-2.5">
-        {event.is_featured && (
-          <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wide">
-            ⭐ À la une
-          </span>
+      <button
+        onClick={onPress}
+        className="block w-full text-left active:scale-[0.98] transition-transform"
+      >
+        {/* Image ou gradient */}
+        {event.cover_url ? (
+          <img
+            src={event.cover_url}
+            alt={event.title}
+            className="w-full h-28 object-cover"
+          />
+        ) : (
+          <div
+            className="w-full h-28 flex items-center justify-center"
+            style={{ background: `linear-gradient(135deg, ${event.category.color_hex}88, ${event.category.color_hex})` }}
+          >
+            <span className="text-3xl">{event.category.icon ?? "🎪"}</span>
+          </div>
         )}
-        <p className="font-semibold text-ink text-xs line-clamp-2 mt-0.5 leading-tight">
-          {event.title}
-        </p>
-        <p className="text-[10px] text-ink-soft mt-1">
-          {formatEventDate(event.starts_at)}
-        </p>
-        <p className="text-[10px] text-ink-soft truncate">{event.venue_name}</p>
-        <p className="text-xs font-bold text-[#1A6B3A] dark:text-green-300 mt-1.5">
-          {event.min_price === 0 ? "Gratuit" : `${event.min_price.toLocaleString("fr-FR")} F`}
-        </p>
-      </div>
-    </button>
+
+        {/* Info */}
+        <div className="p-2.5">
+          {event.is_featured && (
+            <span className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wide">
+              ⭐ À la une
+            </span>
+          )}
+          <p className="font-semibold text-ink text-xs line-clamp-2 mt-0.5 leading-tight">
+            {event.title}
+          </p>
+          <p className="text-[10px] text-ink-soft mt-1">
+            {formatEventDate(event.starts_at)}
+          </p>
+          <p className="text-[10px] text-ink-soft truncate">{event.venue_name}</p>
+          <p className="text-xs font-bold text-[#1A6B3A] dark:text-green-300 mt-1.5">
+            {event.min_price === 0 ? "Gratuit" : `${event.min_price.toLocaleString("fr-FR")} F`}
+          </p>
+        </div>
+      </button>
+    </div>
   );
 }
 

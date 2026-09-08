@@ -7,16 +7,17 @@ import { z } from "zod";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { looksLikeUuid, ACTIVE_BOOKING_STATUSES } from "@/lib/events";
-import { requireAuth } from "@/lib/require-auth";
+import { requireAuth, optionalAuth } from "@/lib/require-auth";
 import { notify } from "@/lib/notifications";
 import { sendOrangeSms } from "@/lib/otp-channel";
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   const { id } = params;
   const where = looksLikeUuid(id) ? { id } : { slug: id };
+  const auth = await optionalAuth(request);
 
   const event = await prisma.event.findFirst({
     where: { ...where, deleted_at: null },
@@ -38,6 +39,7 @@ export async function GET(
       is_featured: true,
       safety_description: true,
       rejection_reason: true,
+      rating_avg: true,
       city: { select: { id: true, name: true } },
       category: { select: { id: true, name: true, icon: true, color_hex: true } },
       category_tags: { select: { category: { select: { id: true, name: true, icon: true } } } },
@@ -109,6 +111,28 @@ export async function GET(
     })
   );
 
+  const [reviewCount, isFavorited, myReview, hasEligibleBooking] = await Promise.all([
+    prisma.review.count({ where: { entity_type: "event", entity_id: event.id, is_visible: true } }),
+    auth
+      ? prisma.eventFavorite.findUnique({
+          where: { user_id_event_id: { user_id: auth.sub, event_id: event.id } },
+          select: { id: true },
+        }).then((f: { id: string } | null) => f !== null)
+      : Promise.resolve(false),
+    auth
+      ? prisma.review.findUnique({
+          where: { user_id_entity_type_entity_id: { user_id: auth.sub, entity_type: "event", entity_id: event.id } },
+          select: { id: true, rating: true, comment: true },
+        })
+      : Promise.resolve(null),
+    auth
+      ? prisma.eventBooking.findFirst({
+          where: { user_id: auth.sub, event_id: event.id, status: { in: ["confirmed", "checked_in"] } },
+          select: { id: true },
+        }).then((b: { id: string } | null) => b !== null)
+      : Promise.resolve(false),
+  ]);
+
   return NextResponse.json({
     ...event,
     starts_at: event.starts_at.toISOString(),
@@ -116,6 +140,10 @@ export async function GET(
     ticket_types: ticketTypesWithAvailability,
     merch_items: merchItemsWithAvailability,
     total_bookings: event._count.bookings,
+    review_count: reviewCount,
+    is_favorited: isFavorited,
+    my_review: myReview,
+    can_review: hasEligibleBooking && event.ends_at < new Date() && myReview === null,
   });
 }
 
