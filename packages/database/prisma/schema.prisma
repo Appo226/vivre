@@ -81,6 +81,7 @@ model User {
   ride_requests        RideRequest[]
   reviews              Review[]
   payments             Payment[]
+  idempotency_keys     IdempotencyKey[]
   notifications        Notification[]
   device_tokens        DeviceToken[]
   service_corrections  ServiceCorrection[]
@@ -893,6 +894,114 @@ model GuideBooking {
 // Transaction de paiement — point central de toute transaction financière VIVRE.
 // platform_fee = 12% de amount (commission VIVRE)
 // supplier_amount = 88% de amount (versé au fournisseur)
+// =============================================================
+// SECTION 08a — ORCHESTRATEUR DE PAIEMENT (Stage 1)
+// PaymentAttempt = historique immuable des tentatives par Payment (corrige la réécriture en
+// place de /api/payments/initiate). IdempotencyKey = protection contre les doubles requêtes
+// sur la création de réservation et l'initiation de paiement. Voir apps/web/src/lib/payments/.
+// =============================================================
+
+// Statut d'UNE tentative de paiement. Ne change JAMAIS sur la seule base du temps écoulé —
+// uniquement sur un résultat provider AUTHENTIQUE (adapter.verify()) ou une transition interne
+// valide (adapter.initiate() qui réussit/échoue). Voir lib/payments/orchestrator.ts.
+enum PaymentAttemptStatus {
+  initiated   // Ligne créée ; adapter.initiate() pas encore confirmé
+  pending     // adapter.initiate() a réussi (ou vérification provider "toujours en attente"/
+              // échec réseau lors de verify()) — en attente d'une réponse authentique
+  completed   // Le provider a confirmé le succès — jamais déduit du seul payload webhook
+  failed      // Le provider a confirmé l'échec, ou adapter.initiate() lui-même a échoué
+  expired     // RÉSERVÉ — nécessite un futur signal AUTHENTIQUE du provider ("plus valable").
+              // Aucun chemin de code ne l'assigne aujourd'hui (l'API de vérification CinetPay
+              // n'a pas ce statut) — ne JAMAIS l'assigner sur la seule base du temps écoulé.
+  cancelled   // RÉSERVÉ — tentative supplantée par une nouvelle ; non automatisé en Stage 1
+              // (les clés d'idempotence empêchent déjà la création d'une tentative concurrente).
+}
+
+enum RefundStatus {
+  pending
+  completed
+  rejected
+}
+
+enum PayoutStatus {
+  held
+  eligible
+  paid
+  on_hold_dispute
+}
+
+enum PaymentProviderKind {
+  cinetpay
+  manual_bridge
+  // pispi_payin / pispi_payout réservés pour un stage ultérieur — pas encore ajoutés
+}
+
+// Un essai concret de collecte de paiement pour un Payment donné. Un Payment peut avoir
+// PLUSIEURS PaymentAttempt (une par tentative/retry), chacune immuable une fois résolue —
+// corrige le bug où /api/payments/initiate réutilisait la même ligne Payment à chaque retry,
+// perdant l'historique des tentatives précédentes.
+model PaymentAttempt {
+  id                     String                @id @default(uuid())
+  payment_id             String
+
+  provider               PaymentProviderKind
+  status                 PaymentAttemptStatus  @default(initiated)
+
+  amount_fcfa            Int      // Snapshot — doit égaler Payment.amount au moment de la tentative
+  provider_ref           String?  // Référence informative du provider (ex: CinetPay payment_token)
+                                   // — jamais utilisée pour la vérification, voir verify().
+  client_idempotency_key String?  // Clé Idempotency-Key du client ayant déclenché cette tentative
+
+  failure_code           String?
+  failure_message        String?
+  raw_provider_response  Json?    // Dernière réponse brute (initiation ou vérification), pour audit
+
+  // Non-null dès qu'un cycle de réconciliation a signalé cette tentative à un admin (statut
+  // toujours non-terminal, âge > PAYMENT_REVIEW_AFTER_HOURS) — notifié UNE SEULE fois. N'EST
+  // PAS un statut terminal : l'attempt reste "initiated"/"pending".
+  flagged_for_review_at  DateTime?
+
+  initiated_at           DateTime  @default(now())
+  resolved_at            DateTime?
+
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  payment                Payment   @relation(fields: [payment_id], references: [id])
+
+  @@index([payment_id, status])
+  @@index([provider, status, initiated_at]) // Balayage de réconciliation (ancré sur initiated_at)
+  @@map("payment_attempts")
+}
+
+// Clé d'idempotence côté client — protège POST /events/bookings et POST /payments/initiate
+// contre les doubles soumissions (double-clic, retry réseau). Voir lib/idempotency.ts pour la
+// sémantique exacte de concurrence (attente bornée unique, jamais indéfinie).
+model IdempotencyKey {
+  id              String   @id @default(uuid())
+  user_id         String
+  scope           String   // "event_booking_create" | "payment_initiate"
+  key             String   // UUID généré côté client
+  request_hash    String   // sha256 du corps de requête normalisé — détecte la réutilisation
+                            // de la même clé avec un corps DIFFÉRENT
+
+  status          String   @default("in_progress") // "in_progress" | "completed" | "failed"
+  response_status Int?
+  response_body   Json?
+
+  resource_type   String?
+  resource_id     String?
+
+  created_at      DateTime @default(now())
+  expires_at      DateTime
+
+  user            User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, scope, key])
+  @@index([expires_at])
+  @@map("idempotency_keys")
+}
+
 model Payment {
   id             String   @id @default(uuid())
   user_id        String
@@ -901,7 +1010,7 @@ model Payment {
   payment_method String   // "orange_money" | "moov" | "telecel_money" — set from CinetPay webhook
   provider_ref   String?  // CinetPay payment_token — stocké à l'initiation
   status         String   @default("pending")   // pending|completed|failed|cancelled
-  booking_type   String   // "transport" | "property" | "food" | "event"
+  booking_type   String   // "transport" | "property" | "food" | "event" | "event_listing" | "ad_campaign"
   booking_id     String   // UUID de la réservation (polymorphique)
   platform_fee   Int      // FCFA — commission 12%
   supplier_amount Int     // FCFA — 88% reversé au fournisseur
@@ -913,12 +1022,14 @@ model Payment {
 
   user           User     @relation(fields: [user_id], references: [id])
   refunds        Refund[]
+  attempts       PaymentAttempt[]
   // Relations inverses depuis les tables de réservation
   transport_bookings  TransportBooking[]
   property_bookings   PropertyBooking[]
   orders              Order[]
   guide_bookings      GuideBooking[]
   event_bookings      EventBooking[]
+  ad_campaigns        AdCampaign[]
 
   @@index([user_id, status])
   @@index([booking_type, booking_id])
@@ -932,7 +1043,7 @@ model Refund {
   payment_id     String
   amount         Int      // FCFA — peut être partiel
   reason         String
-  status         String   @default("pending") // "pending"|"completed"|"rejected"
+  status         RefundStatus @default(pending)
   // Méthode choisie par l'utilisateur
   refund_method  String   @default("vivre_credit") // "vivre_credit" | "mobile_money"
   // Traçabilité de la réservation source
@@ -1776,6 +1887,11 @@ model AdCampaign {
   payment_submitted_at   DateTime? // Distingue "en attente de confirmation admin" de "pas encore envoyé"
   paid_at                DateTime?
   confirmed_by            String?  // UUID de l'admin qui a confirmé la réception du paiement
+  // Depuis Stage 1 (fondation paiement) : source de vérité sous-jacente pour la confirmation —
+  // les champs ci-dessus restent pour l'affichage admin, mais confirmManually() (voir
+  // lib/payments/orchestrator.ts) crée un Payment+PaymentAttempt réel via booking_type =
+  // "ad_campaign" (100% revenu VIVRE, pas de répartition organisateur — supplier_amount = 0).
+  payment_id              String?
 
   impressions_count Int @default(0)
   clicks_count      Int @default(0)
@@ -1783,7 +1899,8 @@ model AdCampaign {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  advertiser User @relation(fields: [advertiser_id], references: [id])
+  advertiser User     @relation(fields: [advertiser_id], references: [id])
+  payment    Payment? @relation(fields: [payment_id], references: [id])
 
   @@index([status, placement, start_date, end_date])
   @@index([advertiser_id])
@@ -1802,7 +1919,7 @@ model EventPayout {
   commission_fcfa         Int // Part VIVRE retenue (organizer_fee_percent au moment du calcul)
   net_amount_fcfa          Int // Ce que l'organisateur recevra
 
-  status           String   @default("held") // "held" | "eligible" | "paid" | "on_hold_dispute"
+  status           PayoutStatus @default(held)
   eligible_at      DateTime // Calculé : fin de l'événement + délai selon confiance organisateur
 
   paid_at          DateTime?
@@ -1829,6 +1946,11 @@ model EventPayout {
 // Solde de crédit VIVRE par utilisateur.
 // Crédité lors d'un remboursement en "vivre_credit".
 // Débité lors d'un paiement partiel ou total avec le portefeuille.
+//
+// RETIRÉ — aucune référence de code nulle part dans apps/web/src à ce jour (audit Stage 1). Le
+// champ Refund.refund_method="vivre_credit" existe dans le domaine de valeurs mais n'est jamais
+// produit par le code réel (toujours "mobile_money"). Conservé (pas supprimé — nombre de lignes
+// en prod non confirmé) mais NE PAS construire de nouvelle fonctionnalité dessus.
 model VivreWallet {
   id           String   @id @default(uuid())
   user_id      String   @unique
