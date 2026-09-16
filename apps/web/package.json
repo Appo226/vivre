@@ -9,7 +9,8 @@
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "clean": "rimraf .next"
+    "clean": "rimraf .next",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",
@@ -29,6 +30,7 @@
     "bcryptjs": "^3.0.3",
     "embla-carousel-react": "^8.1.0",
     "firebase": "^12.14.0",
+    "firebase-admin": "^14.3.0",
     "framer-motion": "^11.1.0",
     "html2canvas": "^1.4.1",
     "jose": "^5.9.6",
@@ -57,8 +59,10 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.0",
     "babel-loader": "^10.1.1",
+    "dotenv": "^17.4.2",
     "postcss": "^8.4.0",
     "rimraf": "^5.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^2"
   }
 }
