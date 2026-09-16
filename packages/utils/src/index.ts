@@ -5,7 +5,6 @@
  *   import { formatFCFA, distanceKm, normalizePhone } from '@vivre/utils'
  */
 
-export * from "./currency.js";
 export * from "./date.js";
 export * from "./geo.js";
 export * from "./phone.js";

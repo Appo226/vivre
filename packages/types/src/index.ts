@@ -14,7 +14,6 @@
  * - property.ts : Types pour l'hébergement
  * - tourism.ts  : Types pour le tourisme, guides, attractions
  * - services.ts : Types pour les services publics et urgences
- * - payments.ts : Types pour les paiements
  * - ai.ts       : Types pour l'assistant IA
  * - driver.ts   : Types pour les chauffeurs
  */
@@ -32,6 +31,5 @@ export * from "./food.js";
 export * from "./property.js";
 export * from "./tourism.js";
 export * from "./services.js";
-export * from "./payments.js";
 export * from "./ai.js";
 export * from "./driver.js";
