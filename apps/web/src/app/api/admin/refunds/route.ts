@@ -3,9 +3,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { RefundStatus } from "@prisma/client";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
+
+const VALID_REFUND_STATUSES: RefundStatus[] = ["pending", "completed", "rejected"];
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
@@ -14,7 +17,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return apiError(403, "AUTH_FORBIDDEN", "Réservé aux administrateurs");
   }
 
-  const status = request.nextUrl.searchParams.get("status") ?? "pending";
+  const statusParam = request.nextUrl.searchParams.get("status");
+  const status: RefundStatus = VALID_REFUND_STATUSES.includes(statusParam as RefundStatus)
+    ? (statusParam as RefundStatus)
+    : "pending";
 
   const refunds = await prisma.refund.findMany({
     where: { status, booking_type: { in: ["event", "event_listing"] } },

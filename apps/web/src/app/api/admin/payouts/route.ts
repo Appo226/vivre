@@ -4,10 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { PayoutStatus } from "@prisma/client";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
 import { syncPendingPayouts } from "@/lib/event-payout";
+
+const VALID_PAYOUT_STATUSES: PayoutStatus[] = ["held", "eligible", "paid", "on_hold_dispute"];
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
@@ -18,7 +21,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   await syncPendingPayouts();
 
-  const status = request.nextUrl.searchParams.get("status") ?? "eligible";
+  const statusParam = request.nextUrl.searchParams.get("status");
+  const status: PayoutStatus = VALID_PAYOUT_STATUSES.includes(statusParam as PayoutStatus)
+    ? (statusParam as PayoutStatus)
+    : "eligible";
 
   const payouts = await prisma.eventPayout.findMany({
     where: { status },
