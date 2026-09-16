@@ -40,3 +40,67 @@ jobs:
 
       - name: Typecheck all apps
         run: pnpm typecheck
+
+  test:
+    name: Payment integration tests
+    runs-on: ubuntu-latest
+
+    # Postgres jetable, propre à chaque run — jamais vivre_dev/production. Stage 1 (fondation
+    # paiement) exige que cette suite passe avant tout déploiement touchant ce code, voir
+    # PAYMENT_ARCHITECTURE_AUDIT.md et le plan Stage 1.
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: vivre_test
+          POSTGRES_PASSWORD: vivre_test
+          POSTGRES_DB: vivre_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://vivre_test:vivre_test@localhost:5432/vivre_test
+      DIRECT_URL: postgresql://vivre_test:vivre_test@localhost:5432/vivre_test
+      JWT_SECRET: ci-test-secret-not-used-in-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9.1.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @vivre/database run generate
+
+      - name: Build packages
+        run: |
+          pnpm --filter @vivre/types    run build
+          pnpm --filter @vivre/utils    run build
+          pnpm --filter @vivre/database run build
+
+      - name: Apply migrations to the CI Postgres container
+        run: pnpm --filter @vivre/database run migrate:prod
+
+      - name: Write .env.test.local for the CI database
+        run: |
+          cat > apps/web/.env.test.local <<EOF
+          DATABASE_URL="${DATABASE_URL}"
+          DIRECT_URL="${DIRECT_URL}"
+          JWT_SECRET="${JWT_SECRET}"
+          EOF
+
+      - name: Run integration tests
+        run: pnpm --filter @vivre/web run test
