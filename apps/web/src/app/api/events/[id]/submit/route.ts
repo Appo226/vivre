@@ -25,7 +25,9 @@ import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
 import { getPlatformSettings, effectiveListingFeeFcfa, effectiveAdPricePerDayFcfa } from "@/lib/platform-settings";
-import { cinetpayConfigured, initiateCinetPayPayment, buildReturnUrl, buildNotifyUrl } from "@/lib/cinetpay";
+import { buildReturnUrl, buildNotifyUrl } from "@/lib/cinetpay";
+import { isProviderAvailable } from "@/lib/payments/registry";
+import { initiatePayment } from "@/lib/payments/orchestrator";
 import { notify } from "@/lib/notifications";
 
 const SubmitBodySchema = z.object({
@@ -180,7 +182,7 @@ export async function PATCH(
     });
   }
 
-  if (!cinetpayConfigured()) {
+  if (!isProviderAvailable("cinetpay")) {
     return apiError(
       503,
       "PAYMENTS_NOT_CONFIGURED",
@@ -188,43 +190,36 @@ export async function PATCH(
     );
   }
 
-  const payment = await prisma.payment.create({
-    data: {
-      user_id: auth.sub,
-      amount: totalFcfa,
-      payment_method: "pending",
-      status: "pending",
-      booking_type: "event_listing",
-      booking_id: event.id,
-      platform_fee: totalFcfa,
-      supplier_amount: 0,
-    },
-    select: { id: true },
-  });
-
   const organizerName = [event.organizer.first_name, event.organizer.last_name].filter(Boolean).join(" ") || "Organisateur VIVRE";
 
   try {
-    const result = await initiateCinetPayPayment({
-      transactionId: payment.id,
+    const outcome = await initiatePayment({
+      userId: auth.sub,
+      bookingType: "event_listing",
+      bookingId: event.id,
       amountFcfa: totalFcfa,
+      platformFeeFcfa: totalFcfa, // 100% revenu VIVRE — pas de répartition organisateur
+      supplierAmountFcfa: 0,
       description: `Mise en ligne — ${event.title}`,
       customerName: organizerName,
       customerPhone: event.organizer.phone,
       ...(event.organizer.email && { customerEmail: event.organizer.email }),
-      returnUrl: buildReturnUrl(payment.id),
+      provider: "cinetpay",
+      // Toujours un Payment neuf ici (pas de existingPaymentId) — la réutilisation d'un
+      // paiement PRÉCÉDENT COMPLÉTÉ pour la resoumission est déjà gérée juste au-dessus
+      // (reusedPriorPayment), avant même d'atteindre ce bloc.
+      returnUrl: buildReturnUrl,
       notifyUrl: buildNotifyUrl(),
     });
 
-    await prisma.payment.update({ where: { id: payment.id }, data: { provider_ref: result.paymentToken } });
     await prisma.event.update({
       where: { id },
       data: { publishing_fee_fcfa: totalFcfa, ...pendingAdData },
     });
 
     return NextResponse.json({
-      payment_id: payment.id,
-      payment_token: result.paymentToken,
+      payment_id: outcome.payment.id,
+      payment_token: outcome.providerRef,
       total_fcfa: totalFcfa,
       listing_fee_fcfa: listingFee,
       ad_fee_fcfa: adFee,
