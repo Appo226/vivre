@@ -27,6 +27,7 @@ import { issueTicketsForBooking, ACTIVE_BOOKING_STATUSES } from "@/lib/events";
 import { CreateBookingSchema } from "@/lib/schemas/events";
 import { validatePromoCodeForUpdate } from "@/lib/promo-codes";
 import { getPlatformSettings, effectiveBuyerFee } from "@/lib/platform-settings";
+import { claimIdempotencyKey, resolveIdempotencyKey, failIdempotencyKey } from "@/lib/idempotency";
 
 class BookingRejected extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) {
@@ -140,6 +141,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const settings = await getPlatformSettings();
+
+  // Idempotence posée seulement autour de l'écriture réelle — pas des validations ci-dessus
+  // (EVENT_NOT_FOUND, MERCH_ITEM_NOT_FOUND, etc.) : rejouer une validation qui rejette sans
+  // aucun effet de bord n'a besoin d'aucune protection contre les doublons.
+  const idem = await claimIdempotencyKey(request, auth.sub, "event_booking_create", parsed.data);
+  if (idem instanceof NextResponse) return idem;
 
   try {
     const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -259,28 +266,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await issueTicketsForBooking(booking.id);
     }
 
-    return NextResponse.json(
-      {
-        booking_id: booking.id,
-        event_id,
-        ticket_type: ticketType.name,
-        quantity,
-        subtotal_fcfa: booking.subtotal_fcfa,
-        merch_subtotal_fcfa: booking.merch_subtotal_fcfa,
-        discount_fcfa: booking.discount_fcfa,
-        buyer_fee_fcfa: booking.buyer_fee_fcfa,
-        total_amount: booking.total_amount,
-        status: booking.status,
-        message: isFree
-          ? "Billet confirmé ! Retrouvez votre QR code dans « Mes billets »."
-          : "Réservation créée. Finalisez le paiement pour confirmer votre billet.",
-      },
-      { status: 201 }
-    );
+    const responseBody = {
+      booking_id: booking.id,
+      event_id,
+      ticket_type: ticketType.name,
+      quantity,
+      subtotal_fcfa: booking.subtotal_fcfa,
+      merch_subtotal_fcfa: booking.merch_subtotal_fcfa,
+      discount_fcfa: booking.discount_fcfa,
+      buyer_fee_fcfa: booking.buyer_fee_fcfa,
+      total_amount: booking.total_amount,
+      status: booking.status,
+      message: isFree
+        ? "Billet confirmé ! Retrouvez votre QR code dans « Mes billets »."
+        : "Réservation créée. Finalisez le paiement pour confirmer votre billet.",
+    };
+    await resolveIdempotencyKey(idem, 201, responseBody, { type: "event_booking", id: booking.id });
+    return NextResponse.json(responseBody, { status: 201 });
   } catch (err) {
     if (err instanceof BookingRejected) {
+      // Rejet métier légitime (survente, code promo invalide...) — pas une panne transitoire :
+      // on met en cache la réponse pour qu'un retry avec la même clé rejoue le même rejet au
+      // lieu de retenter l'écriture.
+      const body = { error: err.message, code: err.code, ...(err.details !== undefined && { details: err.details }) };
+      await resolveIdempotencyKey(idem, err.status, body);
       return apiError(err.status, err.code, err.message, err.details);
     }
+    // Erreur inattendue — libérer la clé pour qu'un retry légitime après une panne
+    // transitoire ne reste pas bloqué.
+    await failIdempotencyKey(idem);
     throw err;
   }
 }

@@ -2,6 +2,9 @@
  * POST /api/payments/initiate — Démarre un paiement mobile money pour une réservation en attente.
  * Retourne l'URL CinetPay hébergée (Orange Money, Moov Money, Telecel Money, et Wave si
  * disponible sur le compte CinetPay — voir lib/cinetpay.ts) vers laquelle rediriger le client.
+ *
+ * Passe par lib/payments/orchestrator.ts (initiatePayment) — crée toujours une PaymentAttempt
+ * neuve, même sur un retry, pour préserver l'historique complet des tentatives.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -9,7 +12,10 @@ import { z } from "zod";
 import { prisma } from "@vivre/database";
 import { apiError } from "@/lib/api-response";
 import { requireAuth } from "@/lib/require-auth";
-import { cinetpayConfigured, initiateCinetPayPayment, buildReturnUrl, buildNotifyUrl } from "@/lib/cinetpay";
+import { buildReturnUrl, buildNotifyUrl } from "@/lib/cinetpay";
+import { isProviderAvailable } from "@/lib/payments/registry";
+import { initiatePayment } from "@/lib/payments/orchestrator";
+import { claimIdempotencyKey, resolveIdempotencyKey, failIdempotencyKey } from "@/lib/idempotency";
 
 const InitiatePaymentSchema = z.object({ booking_id: z.string().uuid() });
 
@@ -17,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const auth = await requireAuth(request);
   if (auth instanceof NextResponse) return auth;
 
-  if (!cinetpayConfigured()) {
+  if (!isProviderAvailable("cinetpay")) {
     return apiError(
       503,
       "PAYMENTS_NOT_CONFIGURED",
@@ -58,48 +64,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return apiError(409, "BOOKING_ALREADY_FREE", "Ce billet est gratuit — aucun paiement requis");
   }
 
-  const payment = booking.payment_id
-    ? await prisma.payment.update({
-        where: { id: booking.payment_id },
-        data: { status: "pending" },
-        select: { id: true },
-      })
-    : await prisma.payment.create({
-        data: {
-          user_id: auth.sub,
-          amount: booking.total_amount,
-          payment_method: "pending",
-          status: "pending",
-          booking_type: "event",
-          booking_id: booking.id,
-          platform_fee: booking.commission_fcfa,
-          supplier_amount: booking.total_amount - booking.commission_fcfa,
-        },
-        select: { id: true },
-      });
-
-  if (!booking.payment_id) {
-    await prisma.eventBooking.update({ where: { id: booking.id }, data: { payment_id: payment.id } });
-  }
+  const idem = await claimIdempotencyKey(request, auth.sub, "payment_initiate", parsed.data);
+  if (idem instanceof NextResponse) return idem;
 
   const customerName = [booking.user.first_name, booking.user.last_name].filter(Boolean).join(" ") || "Client VIVRE";
 
   try {
-    const result = await initiateCinetPayPayment({
-      transactionId: payment.id,
+    const outcome = await initiatePayment({
+      userId: auth.sub,
+      bookingType: "event",
+      bookingId: booking.id,
       amountFcfa: booking.total_amount,
+      platformFeeFcfa: booking.commission_fcfa,
+      supplierAmountFcfa: booking.total_amount - booking.commission_fcfa,
       description: `Billet — ${booking.event.title}`,
       customerName,
       customerPhone: booking.user.phone,
       ...(booking.user.email && { customerEmail: booking.user.email }),
-      returnUrl: buildReturnUrl(payment.id),
+      provider: "cinetpay",
+      existingPaymentId: booking.payment_id,
+      returnUrl: buildReturnUrl,
       notifyUrl: buildNotifyUrl(),
     });
 
-    await prisma.payment.update({ where: { id: payment.id }, data: { provider_ref: result.paymentToken } });
-
-    return NextResponse.json({ payment_id: payment.id, payment_url: result.paymentUrl });
+    const responseBody = { payment_id: outcome.payment.id, payment_url: outcome.redirectUrl };
+    await resolveIdempotencyKey(idem, 200, responseBody, { type: "payment", id: outcome.payment.id });
+    return NextResponse.json(responseBody);
   } catch (err) {
+    // Panne de communication avec le provider — TRANSITOIRE, contrairement à un rejet métier
+    // stable (survente, etc. dans /events/bookings). On libère la clé plutôt que de mettre en
+    // cache l'échec, pour qu'un retry légitime (même sous la même clé, le frontend n'en génère
+    // pas de nouvelle à chaque clic "Payer") puisse réellement retenter l'appel au provider.
+    await failIdempotencyKey(idem);
     return apiError(502, "CINETPAY_ERROR", "Impossible d'initier le paiement", (err as Error).message);
   }
 }

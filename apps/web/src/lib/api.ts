@@ -98,13 +98,14 @@ async function request<T>(
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
   path: string,
   body?: unknown,
-  options?: { skipAuth?: boolean; isRetry?: boolean }
+  options?: { skipAuth?: boolean; isRetry?: boolean; headers?: Record<string, string> }
 ): Promise<T> {
   const { accessToken } = useAuthStore.getState();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Accept": "application/json",
+    ...options?.headers,
   };
 
   /* Injecter le token JWT sauf pour les routes publiques (send-otp, verify-otp) */
@@ -178,7 +179,7 @@ async function request<T>(
 
 export const apiClient = {
   get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body?: unknown, options?: { skipAuth?: boolean }) =>
+  post: <T>(path: string, body?: unknown, options?: { skipAuth?: boolean; headers?: Record<string, string> }) =>
     request<T>("POST", path, body, options),
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
   delete: <T>(path: string) => request<T>("DELETE", path),

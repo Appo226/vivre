@@ -123,6 +123,10 @@ export default function EventBilletPage(): React.ReactElement {
   const [payMethod, setPayMethod] = useState("orange_money");
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState("");
+  // Seedée une fois par montage de page — un re-clic sur "Payer" pendant que isPaying est
+  // racy (avant que le disabled du bouton ne prenne effet) réutilise la même clé, donc le
+  // serveur dédoublonne l'appel à CinetPay au lieu d'ouvrir deux paiements pour la même commande.
+  const payIdempotencyKeyRef = useRef<string>(crypto.randomUUID());
   /* Nommé "tr" (pas "t") : ce fichier utilise déjà "t" comme nom de variable de boucle pour
      un billet individuel (ex: booking.tickets.find((t) => ...)) — un même nom pour deux
      choses différentes aurait été trompeur à la lecture. */
@@ -133,11 +137,16 @@ export default function EventBilletPage(): React.ReactElement {
     setIsPaying(true); setPayError("");
     try {
       const res = await apiClient.post<{ payment_url: string }>(
-        "/payments/initiate", { booking_type: "event", booking_id: booking.id }
+        "/payments/initiate", { booking_type: "event", booking_id: booking.id },
+        { headers: { "Idempotency-Key": payIdempotencyKeyRef.current } }
       );
       window.location.href = res.payment_url;
     } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : "Erreur réseau.");
+      if (err instanceof ApiError && err.code === "REQUEST_IN_PROGRESS") {
+        setPayError("Déjà en cours de traitement — patientez quelques secondes.");
+      } else {
+        setPayError(err instanceof ApiError ? err.message : "Erreur réseau.");
+      }
     } finally { setIsPaying(false); }
   }
 

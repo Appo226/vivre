@@ -15,7 +15,7 @@
  * se fait côté serveur dans page.tsx, qui rend ce composant pour toute la partie interactive.
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api";
@@ -123,6 +123,10 @@ export default function EventDetailClient(): React.ReactElement | null {
   const [selectedMerch, setSelectedMerch] = useState<Record<string, { quantity: number; variant: string }>>({});
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingError, setBookingError] = useState("");
+  // Régénérée à chaque ouverture du panneau de réservation — un double-clic/retry réseau sur
+  // "Confirmer" pendant que le panneau reste ouvert réutilise la même clé, donc le serveur
+  // dédoublonne au lieu de créer deux commandes distinctes pour le même choix.
+  const bookingIdempotencyKeyRef = useRef<string>(crypto.randomUUID());
   const [showSafetyInfo, setShowSafetyInfo] = useState(false);
 
   const { data: event, isLoading, isError } = useQuery<EventDetail>({
@@ -138,7 +142,10 @@ export default function EventDetailClient(): React.ReactElement | null {
       quantity: number;
       selected_variant?: string;
       merch_items?: { merch_item_id: string; quantity: number; variant?: string }[];
-    }) => apiClient.post<{ booking_id: string }>("/events/bookings", data),
+    }) =>
+      apiClient.post<{ booking_id: string }>("/events/bookings", data, {
+        headers: { "Idempotency-Key": bookingIdempotencyKeyRef.current },
+      }),
     onSuccess: (response) => {
       void queryClient.invalidateQueries({ queryKey: ["event", id] });
       void queryClient.invalidateQueries({ queryKey: ["event-bookings"] });
@@ -147,6 +154,10 @@ export default function EventDetailClient(): React.ReactElement | null {
     onError: (err) => {
       if (err instanceof ApiError && err.code === "PHONE_NOT_VERIFIED") {
         router.push(`/auth/verify?redirect=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
+      if (err instanceof ApiError && err.code === "REQUEST_IN_PROGRESS") {
+        setBookingError("Déjà en cours de traitement — patientez quelques secondes.");
         return;
       }
       setBookingError(err instanceof ApiError ? err.message : "Erreur lors de la réservation");
@@ -185,6 +196,7 @@ export default function EventDetailClient(): React.ReactElement | null {
     setSelectedVariant("");
     setSelectedMerch({});
     setBookingError("");
+    bookingIdempotencyKeyRef.current = crypto.randomUUID();
     setShowBookingModal(true);
   }
 
