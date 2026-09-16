@@ -51,6 +51,7 @@ const TYPE_ICONS: Record<string, string> = {
   ad_approved:               "✅",
   ad_rejected:               "🚫",
   event_reminder:            "⏰",
+  payment_needs_review:      "⚠️",
 };
 
 /* ============================================================

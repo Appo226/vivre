@@ -1,17 +1,18 @@
 /**
- * lib/notifications.ts — Création de notifications in-app.
+ * lib/notifications.ts — Création de notifications in-app + push FCM.
  *
- * Un seul point d'entrée pour écrire dans la table notifications, appelé depuis chaque
- * endroit où quelque chose arrive à une personne (billet transféré, événement approuvé,
- * remboursement traité...). channel="push" par défaut : le centre de notifications
- * (/profile/notifications) est le seul canal réellement branché pour l'instant — pas
- * d'envoi FCM ici, juste l'enregistrement que la personne verra en ouvrant l'app.
+ * Un seul point d'entrée pour signaler que quelque chose arrive à une personne (billet
+ * transféré, événement approuvé, remboursement traité...) : écrit dans la table
+ * notifications (toujours visible dans /profile/notifications) ET déclenche l'envoi push
+ * FCM vers ses appareils enregistrés (voir lib/push.ts) — no-op silencieux si l'utilisateur
+ * n'a aucun device_token ou si Firebase n'est pas configuré.
  *
  * Ne doit jamais faire échouer l'action principale (transfert, approbation...) si l'écriture
- * échoue — une notification manquée est un désagrément, pas une erreur bloquante.
+ * ou l'envoi échoue — une notification manquée est un désagrément, pas une erreur bloquante.
  */
 
 import { prisma } from "@vivre/database";
+import { sendPush } from "@/lib/push";
 
 export type NotificationType =
   | "ticket_transferred"
@@ -26,7 +27,11 @@ export type NotificationType =
   | "payout_sent"
   | "ad_approved"
   | "ad_rejected"
-  | "event_reminder";
+  | "event_reminder"
+  // Alerte opérationnelle admin — un PaymentAttempt reste non résolu (ni complété ni échoué de
+  // façon authentique) au-delà de PAYMENT_REVIEW_AFTER_HOURS, ou une double complétion a été
+  // détectée. Voir lib/payments/orchestrator.ts. N'est jamais envoyée à un acheteur/organisateur.
+  | "payment_needs_review";
 
 interface NotifyInput {
   userId: string;
@@ -51,4 +56,7 @@ export async function notify({ userId, type, title, body, data }: NotifyInput): 
   } catch (err) {
     console.error(`[notify] Échec création notification (${type}) pour user ${userId}:`, err);
   }
+
+  /* Best-effort, en parallèle — un push raté ne doit jamais faire échouer notify() */
+  void sendPush({ userId, title, body, ...(data && { data }) }).catch(() => {});
 }

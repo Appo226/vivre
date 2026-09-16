@@ -268,3 +268,93 @@ export async function cancelTickets(params: {
 
   return { refundedFcfa, refundCreated: refundedFcfa > 0, cancelledTicketIds };
 }
+
+// Un panier abandonné (commande "pending" jamais payée) retient de l'inventaire réel
+// indéfiniment — le commentaire "billet réservé 10 min" sur EventBooking.status est un vestige
+// du modèle transport pré-pivot ; rien ne l'appliquait jamais. Corrigé par le cron de
+// réconciliation (voir app/api/cron/reconcile-payments/route.ts), appelé APRÈS
+// reconcileStalePayments() dans la même invocation.
+const BOOKING_RESERVATION_TTL_MINUTES = 30;
+
+export interface BookingExpiryResult {
+  candidatesChecked: number;
+  expired: number;
+  skippedActivePayment: number; // tentative non-terminale en cours — laissé "pending" exprès
+  skippedAnomaly: number;       // Payment déjà "completed" mais commande encore "pending"
+}
+
+/**
+ * Annule les commandes "pending" abandonnées, SEULEMENT quand c'est sans ambiguïté sûr — voir
+ * le tableau d'états dans le plan Stage 1. Ne se fie jamais au seul temps écoulé : vérifie
+ * toujours si une PaymentAttempt active existe avant d'annuler, pour qu'"acheteur payé +
+ * commande annulée + inventaire revendu" reste structurellement impossible.
+ */
+export async function expireStalePendingBookings(): Promise<BookingExpiryResult> {
+  const cutoff = new Date(Date.now() - BOOKING_RESERVATION_TTL_MINUTES * 60 * 1000);
+  const result: BookingExpiryResult = { candidatesChecked: 0, expired: 0, skippedActivePayment: 0, skippedAnomaly: 0 };
+
+  const candidates = await prisma.eventBooking.findMany({
+    where: { status: "pending", created_at: { lt: cutoff } },
+    select: { id: true },
+    take: 200,
+  });
+
+  for (const candidate of candidates) {
+    result.candidatesChecked += 1;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT id FROM event_bookings WHERE id = ${candidate.id} FOR UPDATE`;
+
+      const booking = await tx.eventBooking.findUnique({
+        where: { id: candidate.id },
+        select: {
+          id: true,
+          status: true,
+          payment_id: true,
+          payment: { select: { status: true } },
+        },
+      });
+      if (!booking || booking.status !== "pending") return; // déjà résolue entre-temps
+
+      if (!booking.payment_id) {
+        // Jamais aucune tentative de paiement — zéro ambiguïté.
+        await tx.eventBooking.update({
+          where: { id: booking.id },
+          data: { status: "cancelled", cancelled_at: new Date(), cancellation_reason: "Expiré — paiement non initié dans le délai" },
+        });
+        result.expired += 1;
+        return;
+      }
+
+      if (booking.payment?.status === "completed") {
+        // Anomalie défensive — un paiement complété aurait dû déjà confirmer la commande via
+        // applyCompletedPayment(). Ne JAMAIS toucher la commande ici ; signaler pour revue.
+        console.error(
+          `[events] Anomalie : booking ${booking.id} encore "pending" alors que son Payment est "completed" — vérification manuelle requise.`
+        );
+        result.skippedAnomaly += 1;
+        return;
+      }
+
+      const activeAttempt = await tx.paymentAttempt.findFirst({
+        where: { payment_id: booking.payment_id, status: { in: ["initiated", "pending"] } },
+        select: { id: true },
+      });
+      if (activeAttempt) {
+        // Tentative encore ouverte ou d'état inconnu (ex: verify() a échoué par timeout) — ne
+        // JAMAIS annuler ici, c'est exactement le cas où on ne sait pas si l'acheteur a payé.
+        result.skippedActivePayment += 1;
+        return;
+      }
+
+      // Payment existe mais aucune tentative n'a jamais authentiquement réussi — sûr d'annuler.
+      await tx.eventBooking.update({
+        where: { id: booking.id },
+        data: { status: "cancelled", cancelled_at: new Date(), cancellation_reason: "Expiré — paiement non complété dans le délai" },
+      });
+      result.expired += 1;
+    });
+  }
+
+  return result;
+}
